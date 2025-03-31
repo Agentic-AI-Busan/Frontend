@@ -1,9 +1,9 @@
 import React, { useState, useRef } from 'react';
 import styled from 'styled-components';
-import NaverMap from '../components/Map/NaverMap';
-import TravelRouteSidebar from '../components/Map/TravelRouteSidebar';
-import travel_img1 from '../assets/images/travel_img1.jpg';
-import { Place } from '../components/Map/NaverMap';
+import NaverMap from '../../components/Map/NaverMap';
+import TravelRouteSidebar from '../../components/Map/TravelRouteSidebar';
+import travel_img1 from '../../assets/images/travel_img1.jpg';
+import { Place } from '../../components/Map/NaverMap';
 
 // 지도 컨테이너 스타일
 const MapContainer = styled.div`
