@@ -17,9 +17,10 @@ import SelectionAdd from './pages/Selection/selectionAdd'
 import MyGuidePage from './pages/Mypage/myGuidePage'
 import SelectionDestination from './pages/Selection/selectDestination'
 import SelectionRestaurant from './pages/Selection/selectRestaurant'
-import MapPage from './pages/mapPage'
+import MapPage from './pages/SchduleEditing/mapPage'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
+import EditingPage from './pages/SchduleEditing/editingPage'
 
 // styled-components를 위한 타입 정의
 interface ContainerProps {
@@ -53,14 +54,14 @@ const GlobalStyle = createGlobalStyle<{ $isMapPage: boolean }>`
 function App() {
   // useLocation 훅을 사용하여 현재 경로 확인
   const location = useLocation();
-  const isMapPage = location.pathname === '/map';
+  const isFullScreenPage = location.pathname === '/map' || location.pathname === '/editing';
 
   return (
     <>
-      <GlobalStyle $isMapPage={isMapPage} />
-      <AppContainer $isMapPage={isMapPage}>
+      <GlobalStyle $isMapPage={isFullScreenPage} />
+      <AppContainer $isMapPage={isFullScreenPage}>
         <Navbar />
-        <MainContent $isMapPage={isMapPage}>
+        <MainContent $isMapPage={isFullScreenPage}>
           <Routes>
             <Route path="/" element={<MainPage />} />
             <Route path="/login" element={<LoginPage />} />
@@ -78,10 +79,11 @@ function App() {
             <Route path="/selectionDestination" element={<SelectionDestination />} />
             <Route path="/selectionRestaurant" element={<SelectionRestaurant />} />
             <Route path="/map" element={<MapPage />} />
+            <Route path="/editing" element={<EditingPage />} />
             <Route path="*" element={<ErrorPage />} />
           </Routes>
         </MainContent>
-        {!isMapPage && <Footer />}
+        {!isFullScreenPage && <Footer />}
       </AppContainer>
     </>
   )
