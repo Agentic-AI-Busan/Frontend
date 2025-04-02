@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import NaverMap from '../../components/Map/NaverMap';
 import TravelRouteSidebar from '../../components/Map/TravelRouteSidebar';
@@ -109,6 +110,7 @@ const EditScheduleButton = styled.button`
 `;
 
 const MapPage = () => {
+  const navigate = useNavigate();
   // 장소 데이터
   const [places] = useState<Place[]>([
     { 
@@ -476,8 +478,7 @@ const MapPage = () => {
 
   // 일정 편집 핸들러
   const handleEditSchedule = () => {
-    // 일정 편집 페이지로 이동하거나 편집 모드를 활성화하는 로직 추가
-    console.log('일정 편집하기');
+    navigate('/editing');
   };
 
   // 장소 포커스 핸들러

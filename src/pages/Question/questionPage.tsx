@@ -1,4 +1,5 @@
 import React, {useEffect, useState, useRef} from 'react';
+import { useNavigate } from 'react-router-dom';
 import flatpickr from 'flatpickr';
 import { Korean } from 'flatpickr/dist/l10n/ko';
 import 'flatpickr/dist/flatpickr.min.css';
@@ -831,6 +832,7 @@ interface Message {
 }
 
 const QuestionPage: React.FC = () => {
+    const navigate = useNavigate();
     // 상태 관리
     const question = getQuestion("김수연");
     const userName = "김수연";
@@ -1216,6 +1218,18 @@ const QuestionPage: React.FC = () => {
             clearTimeout(timer);
         };
     }, [visibleSections]);
+
+    // 마지막 질문 이후 로딩 처리
+    useEffect(() => {
+        if (isComplete) {
+            // 3초 후에 로딩 종료 및 다음 페이지로 이동
+            const timer = setTimeout(() => {
+                navigate('/selectionDestination');
+            }, 3000);
+            
+            return () => clearTimeout(timer);
+        }
+    }, [isComplete, navigate]);
 
     return (
         <>

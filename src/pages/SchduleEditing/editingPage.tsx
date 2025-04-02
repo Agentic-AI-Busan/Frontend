@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import travel_img1 from '../../assets/images/travel_img1.jpg';
 import AISidebar from '../../components/AISidebar';
@@ -20,6 +21,7 @@ interface DaySchedule {
 }
 
 const EditingPage = () => {
+    const navigate = useNavigate();
 
 // 초기 여행 데이터
 const [schedules, setSchedules] = useState<DaySchedule[]>([
@@ -420,7 +422,7 @@ return (
                     </DestinationDetails>
                 </DestinationTitle>
                 <ButtonContainer>
-                    <ViewMapButton onClick={() => window.location.href = '/map'}>
+                    <ViewMapButton onClick={() => navigate('/map')}>
                         <MapIcon>🗺️</MapIcon> 지도로 확인하기
                     </ViewMapButton>
                     <SaveButtonSmall onClick={saveMemo}>저장하기</SaveButtonSmall>

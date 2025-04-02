@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import Modal from 'react-modal';
 import LoadingSpinner from '../../components/LoadingSpinner';
@@ -25,6 +26,7 @@ const MainContainer = styled.div`
 Modal.setAppElement('#root'); // 모달을 위한 설정
 
 const SelectionAdd: React.FC = () => {
+    const navigate = useNavigate();
     const [selectedPlaces, setSelectedPlaces] = useState({
         travel: [
             { id: 1, title: '광안대교' },
@@ -87,14 +89,12 @@ const SelectionAdd: React.FC = () => {
             // 3초 후에 로딩 종료 및 다음 페이지로 이동
             const timer = setTimeout(() => {
                 setIsLoading(false);
-                // 여기에 다음 페이지로 이동하는 코드 (예: navigate('/selection/result'))
-                console.log('선택 완료! 다음 페이지로 이동합니다.');
-                // window.location.href = '/selection/result'; // 실제 구현 시 사용
+                navigate('/map');
             }, 3000);
             
             return () => clearTimeout(timer);
         }
-    }, [isTravelComplete, isRestaurantComplete]);
+    }, [isTravelComplete, isRestaurantComplete, navigate]);
 
     // 선택 완료 핸들러
     const handleTravelComplete = () => {

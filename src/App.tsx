@@ -4,7 +4,6 @@ import styled, { createGlobalStyle } from 'styled-components'
 import LoginPage from './pages/LoginSingup/loginPage'
 import SignupPage from './pages/LoginSingup/signupPage'
 import MainPage from './pages/mainPage'
-import SelectionPage from './pages/Selection/selectRestaurant'
 import QuestionPage from './pages/Question/questionPage'
 import MyPage from './pages/Mypage/profileCorrection'
 import ScheduleMap from './pages/Schedule/scheduleMap'
@@ -66,7 +65,6 @@ function App() {
             <Route path="/" element={<MainPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
-            <Route path="/selection" element={<SelectionPage />} />
             <Route path="/question" element={<QuestionPage />} />
             <Route path="/myPage" element={<MyPage />} />
             <Route path="/scheduleMap" element={<ScheduleMap />} />
