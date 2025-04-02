@@ -120,12 +120,13 @@ const AIAvatar = styled.div`
     justify-content: center;
     width: 36px;
     height: 36px;
-    background-color: #3b82f6;
-    color: white;
+    background-color: white;
+    color: #3498db;
     border-radius: 50%;
     font-size: 16px;
     font-weight: 700;
     margin-right: 14px;
+    border: 2px solid #3498db;
 `;
 
 const MessagesContainer = styled.div`

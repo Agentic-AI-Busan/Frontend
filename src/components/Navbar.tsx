@@ -56,7 +56,7 @@ const MenuButton = styled.button`
     height: 40px;
     
     &:hover {
-        color: #007bff;
+        color: #3498db;
         border-radius: 4px;
     }
 `;

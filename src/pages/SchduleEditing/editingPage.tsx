@@ -5,7 +5,6 @@ import travel_img1 from '../../assets/images/travel_img1.jpg';
 import AISidebar from '../../components/AISidebar';
 import EditingCard from '../../components/EditingCard';
 import { 
-  getDayColor, 
   getDayDarkerTextColor, 
   getDayVeryLightColor, 
   getDayMediumColor 
@@ -483,8 +482,8 @@ return (
                     }}
                 >
                     <AddPlaceButton onClick={() => addPlace(dayIndex)}>
-                    <PlusIcon>+</PlusIcon>
-                    <AddPlaceText>장소 추가</AddPlaceText>
+                      <PlusIcon>+</PlusIcon>
+                      <AddPlaceText>장소 추가</AddPlaceText>
                     </AddPlaceButton>
                     {schedule.places.map((place, placeIndex) => (
                       <EditingCard
@@ -545,7 +544,7 @@ const MainContainer = styled.div`
 
 const SaveButtonSmall = styled.button`
   padding: 10px 18px;
-  background-color: #6366f1;
+  background-color: #3498db;
   color: white;
   border: none;
   border-radius: 8px;
@@ -564,7 +563,7 @@ const SaveButtonSmall = styled.button`
   }
   
   &:hover {
-    background-color: #4f46e5;
+    background-color: #2980b9;
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
   }
@@ -644,9 +643,9 @@ const NavButton = styled.button`
   display: flex;
   align-items: center;
   padding: 8px 16px;
-  background-color: #3498db;
-  color: white;
-  border: none;
+  background-color: #ffffff;
+  color: #333333;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
@@ -654,11 +653,12 @@ const NavButton = styled.button`
   transition: all 0.2s;
   
   &:hover {
-    background-color: #2980b9;
+    background-color: #f9fafb;
   }
   
   &:disabled {
-    background-color: #cbd5e1;
+    background-color: #f3f4f6;
+    color: #9ca3af;
     cursor: not-allowed;
   }
 `;
@@ -691,8 +691,6 @@ const DayContainer = styled.div<{ active: boolean; dayNumber: number }>`
   margin-bottom: 10px;
   width: 100%;
   box-sizing: border-box;
-  border-top: 5px solid ${props => getDayColor(props.dayNumber)};
-  border-bottom: 5px solid ${props => getDayColor(props.dayNumber)};
   border-radius: 12px;
   background-color: white;
   padding: 20px;
@@ -767,33 +765,35 @@ const AddPlaceButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 13px;
-  background-color: #f8fafc;
+  width: 100%;
+  padding: 14px 0;
+  margin-top: 15px;
+  background: rgba(148, 163, 184, 0.1);
+  color: #64748b;
   border: 2px dashed #94a3b8;
   border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s ease;
-  margin-bottom: 8px;
+  transition: all 0.3s;
   
   &:hover {
-    background-color: #e2e8f0;
-    border-color: #64748b;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    background: rgba(148, 163, 184, 0.2);
+    transform: translateY(-2px);
   }
 `;
 
 const PlusIcon = styled.span`
   font-size: 24px;
   font-weight: 700;
-  color: #475569;
+  color: #64748b;
   margin-right: 8px;
 `;
 
 const AddPlaceText = styled.span`
   font-size: 15px;
   font-weight: 600;
-  color: #475569;
+  color: #64748b;
 `;
 
 const ButtonContainer = styled.div`

@@ -149,9 +149,9 @@ const AddPlaceButton = styled.button<{ isComplete?: boolean }>`
     width: 100%;
     padding: 14px 0;
     margin-top: 15px;
-    background: ${props => props.isComplete ? '#e0e0e0' : 'rgba(52, 152, 219, 0.1)'};
-    color: ${props => props.isComplete ? '#999' : '#3498db'};
-    border: 2px dashed ${props => props.isComplete ? '#ccc' : '#3498db'};
+    background: ${props => props.isComplete ? '#e0e0e0' : 'rgba(148, 163, 184, 0.1)'};
+    color: ${props => props.isComplete ? '#999' : '#64748b'};
+    border: 2px dashed ${props => props.isComplete ? '#ccc' : '#94a3b8'};
     border-radius: 12px;
     font-size: 16px;
     font-weight: 700;
@@ -161,7 +161,7 @@ const AddPlaceButton = styled.button<{ isComplete?: boolean }>`
     pointer-events: ${props => props.isComplete ? 'none' : 'auto'};
     
     &:hover {
-        background: ${props => props.isComplete ? '#e0e0e0' : 'rgba(52, 152, 219, 0.2)'};
+        background: ${props => props.isComplete ? '#e0e0e0' : 'rgba(148, 163, 184, 0.2)'};
         transform: translateY(-2px);
     }
 `;
