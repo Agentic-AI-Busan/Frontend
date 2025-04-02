@@ -5,29 +5,33 @@ import NaverMap from '../../components/Map/NaverMap';
 import TravelRouteSidebar from '../../components/Map/TravelRouteSidebar';
 import travel_img1 from '../../assets/images/travel_img1.jpg';
 import { Place } from '../../components/Map/NaverMap';
-
-// 지도 컨테이너 스타일
-const MapContainer = styled.div`
-  width: calc(100% - 320px);
-  height: calc(100% - 60px); // Navbar 높이 (60px) 고려
-  margin: 0;
-  position: absolute;
-  top: 60px; // Navbar 높이만큼 아래로 이동
-  left: 320px; // 왼쪽 사이드바 너비
-  right: 0;
-  bottom: 0;
-  overflow: hidden;
-  z-index: 5;
-`;
+import { getDayColor } from '../../components/Map/MapContent';
 
 // 페이지 전체 컨테이너
 const PageContainer = styled.div`
   display: flex;
   width: 100%;
-  height: 100%;
-  position: absolute;
+  height: 100vh;
+  position: fixed;
   top: 0;
   left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  overflow: hidden;
+`;
+
+// 지도 컨테이너 스타일
+const MapContainer = styled.div`
+  flex: 1;
+  height: calc(100vh - 60px);
+  margin: 0;
+  position: absolute;
+  top: 60px; // Navbar 높이만큼 아래로 이동
+  left: 350px; // 왼쪽 사이드바 너비와 정확히 일치
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
   z-index: 5;
 `;
 
@@ -43,13 +47,25 @@ const DayButtonsContainer = styled.div`
 `;
 
 // 일차 선택 버튼 스타일
-const DayButton = styled.button<{ isActive: boolean }>`
+const DayButton = styled.button<{ isActive: boolean; day: number }>`
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background: ${({ isActive }) => (isActive ? '#3498db' : '#ffffff')};
+  background: ${props => {
+    if (props.isActive) {
+      return getDayColor(props.day);
+    } else {
+      return '#ffffff';
+    }
+  }};
   color: ${({ isActive }) => (isActive ? '#ffffff' : '#2c3e50')};
-  border: 2px solid ${({ isActive }) => (isActive ? '#3498db' : '#e0e0e0')};
+  border: 2px solid ${props => {
+    if (props.isActive) {
+      return getDayColor(props.day);
+    } else {
+      return '#e0e0e0';
+    }
+  }};
   font-size: 16px;
   font-weight: 700;
   display: flex;
@@ -62,7 +78,7 @@ const DayButton = styled.button<{ isActive: boolean }>`
   &:hover {
     transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
-    border-color: #3498db;
+    border-color: ${props => getDayColor(props.day)};
   }
   
   &:active {
@@ -76,30 +92,31 @@ const EditScheduleButton = styled.button`
   position: absolute;
   bottom: 30px;
   right: 30px;
-  padding: 15px 25px;
-  background-color: #3498db;
-  color: #ffffff;
-  border: none;
-  border-radius: 30px;
-  font-size: 16px;
+  padding: 10px 18px;
+  background-color: #f8fafc;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
   font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
   z-index: 100;
   
   &:hover {
-    background-color: #2980b9;
-    transform: translateY(-3px);
-    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+    background-color: #f1f5f9;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    color: #1e40af;
   }
   
   &:active {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    transform: translateY(0);
+    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.05);
   }
   
   &::before {
@@ -522,6 +539,7 @@ const MapPage = () => {
           {travelRoutes.map(route => (
             <DayButton 
               key={route.day}
+              day={route.day}
               isActive={activeDay === route.day}
               onClick={() => handleDaySelect(route.day)}
             >

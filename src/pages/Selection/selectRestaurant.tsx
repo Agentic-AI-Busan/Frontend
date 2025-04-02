@@ -74,6 +74,7 @@ const SelectRestaurant: React.FC = () => {
       headerTitle="님의 성향이 반영된 음식점 추천 목록입니다."
       sidebarTitle={`${userName}님이 선택한 음식점입니다.`}
       userName={userName}
+      buttonText="음식점 선택 완료"
     />
   );
 };

@@ -3,7 +3,8 @@ import styled from 'styled-components';
 import { 
     generateInfoWindowContent, 
     createInfoWindow, 
-    createMarker 
+    createMarker,
+    getDayColor
 } from './MapContent';
 
 // 장소 정보 타입
@@ -136,17 +137,6 @@ const NaverMap: React.FC<NaverMapProps> = ({
     const polylineRef = useRef<NaverMapTypes.Polyline | null>(null);
     const markersRef = useRef<NaverMapTypes.Marker[]>([]);
     const activeMarkerRef = useRef<NaverMapTypes.Marker | null>(null); // 현재 활성화된 마커
-
-    // 날짜별 색상 정의
-    const getDayColor = (day: number) => {
-        switch(day) {
-            case 1: return '#3498db'; // 파란색
-            case 2: return '#e74c3c'; // 빨간색
-            case 3: return '#2ecc71'; // 초록색
-            case 4: return '#f39c12'; // 주황색
-            default: return '#3498db';
-        }
-    };
 
     // 현재 일차에 해당하는 장소들의 경계에 맞게 지도 포커스 맞추기
     const fitBoundsToActivePlaces = (activePlaces: Place[]) => {

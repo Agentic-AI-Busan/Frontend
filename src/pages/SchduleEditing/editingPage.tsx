@@ -4,6 +4,12 @@ import styled from 'styled-components';
 import travel_img1 from '../../assets/images/travel_img1.jpg';
 import AISidebar from '../../components/AISidebar';
 import EditingCard from '../../components/EditingCard';
+import { 
+  getDayColor, 
+  getDayDarkerTextColor, 
+  getDayVeryLightColor, 
+  getDayMediumColor 
+} from '../../components/Map/MapContent';
 
 interface VisitPlace {
     id: number;
@@ -685,24 +691,8 @@ const DayContainer = styled.div<{ active: boolean; dayNumber: number }>`
   margin-bottom: 10px;
   width: 100%;
   box-sizing: border-box;
-  border-top: 5px solid ${props => {
-    switch(props.dayNumber) {
-      case 1: return '#3498db'; // 파란색
-      case 2: return '#e74c3c'; // 빨간색
-      case 3: return '#2ecc71'; // 초록색
-      case 4: return '#f39c12'; // 주황색
-      default: return '#3498db';
-    }
-  }};
-  border-bottom: 5px solid ${props => {
-    switch(props.dayNumber) {
-      case 1: return '#3498db'; // 파란색
-      case 2: return '#e74c3c'; // 빨간색
-      case 3: return '#2ecc71'; // 초록색
-      case 4: return '#f39c12'; // 주황색
-      default: return '#3498db';
-    }
-  }};
+  border-top: 5px solid ${props => getDayColor(props.dayNumber)};
+  border-bottom: 5px solid ${props => getDayColor(props.dayNumber)};
   border-radius: 12px;
   background-color: white;
   padding: 20px;
@@ -756,36 +746,12 @@ const DayDate = styled.span<{ dayNumber: number }>`
   display: inline-block;
   font-size: 15px;
   font-weight: 600;
-  color: ${props => {
-    switch(props.dayNumber) {
-      case 1: return '#1e40af'; // 진한 파란색
-      case 2: return '#9f1239'; // 진한 빨간색
-      case 3: return '#166534'; // 진한 초록색
-      case 4: return '#854d0e'; // 진한 주황색
-      default: return '#1e40af';
-    }
-  }};
-  background-color: ${props => {
-    switch(props.dayNumber) {
-      case 1: return '#dbeafe'; // 연한 파란색
-      case 2: return '#fee2e2'; // 연한 빨간색
-      case 3: return '#dcfce7'; // 연한 초록색
-      case 4: return '#fef3c7'; // 연한 주황색
-      default: return '#dbeafe';
-    }
-  }};
+  color: ${props => getDayDarkerTextColor(props.dayNumber)};
+  background-color: ${props => getDayVeryLightColor(props.dayNumber)};
   padding: 5px 14px;
   border-radius: 20px;
   margin-left: 6px;
-  border: 1px solid ${props => {
-    switch(props.dayNumber) {
-      case 1: return '#bfdbfe'; // 중간 파란색
-      case 2: return '#fecaca'; // 중간 빨간색
-      case 3: return '#bbf7d0'; // 중간 초록색
-      case 4: return '#fde68a'; // 중간 주황색
-      default: return '#bfdbfe';
-    }
-  }};
+  border: 1px solid ${props => getDayMediumColor(props.dayNumber)};
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 `;
 

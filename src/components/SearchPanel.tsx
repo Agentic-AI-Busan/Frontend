@@ -72,57 +72,50 @@ const slideOutRight = keyframes`
 
 // 검색 컨테이너 스타일 컴포넌트
 const SearchContainer = styled.div<{ isClosing?: boolean }>`
-    width: 400px;
-    min-height: 600px;
-    max-height: 80vh;
+    width: 100%;
+    max-width: 400px;
+    height: calc(100vh - 150px);
     background: #ffffff;
     border-radius: 16px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-    padding: 25px;
+    padding: 20px;
     display: flex;
     flex-direction: column;
     overflow-y: auto;
-    position: fixed;
+    position: relative;
     z-index: 1000;
     border: 1px solid #f0f0f0;
-    top: 100px;
-    transform: none;
+    margin: 20px 0;
     
     @media (max-width: 992px) {
         width: 90%;
-        max-height: 70vh;
-        left: 5%;
-        margin-bottom: 20px;
+        max-width: none;
+        height: auto;
+        min-height: 350px;
+        margin: 10px auto;
     }
 `;
 
 // 여행지 검색 컨테이너 위치 조정
 const TravelSearchContainer = styled(SearchContainer)<{ isClosing?: boolean }>`
-    left: 35px;
-    top: 160px;
+    margin-right: 0;
     animation: ${props => props.isClosing ? slideOutLeft : slideInLeft} 0.4s ease-out forwards;
     
     @media (max-width: 992px) {
-        left: 5%;
-        top: 80px;
-        transform: none;
+        margin-right: 0;
+        margin-bottom: 20px;
         animation: ${props => props.isClosing ? fadeOut : fadeIn} 0.4s ease-out forwards;
     }
 `;
 
 // 음식점 검색 컨테이너 위치 조정
 const RestaurantSearchContainer = styled(SearchContainer)<{ isClosing?: boolean }>`
-    right: 35px;
-    left: auto;
-    top: 160px;
+    margin-left: 0;
     animation: ${props => props.isClosing ? slideOutRight : slideInRight} 0.4s ease-out forwards;
     
     @media (max-width: 992px) {
-        width: 80%;
-        right: auto;
-        left: 5%;
-        top: 120px;
-        transform: none;
+        margin-left: 0;
+        margin-top: 20px;
         animation: ${props => props.isClosing ? fadeOut : fadeIn} 0.4s ease-out forwards;
     }
 `;

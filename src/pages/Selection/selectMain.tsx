@@ -284,6 +284,7 @@ interface SelectMainProps {
     headerTitle: string;
     sidebarTitle: string;
     userName: string;
+    buttonText: string;
 }
 
 const SelectMain: React.FC<SelectMainProps> = ({
@@ -294,7 +295,8 @@ const SelectMain: React.FC<SelectMainProps> = ({
     onSave,
     headerTitle,
     sidebarTitle,
-    userName
+    userName,
+    buttonText
 }) => {
     const [deletingId, setDeletingId] = useState<number | null>(null);
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -351,7 +353,7 @@ const SelectMain: React.FC<SelectMainProps> = ({
                         <HeaderTitle>
                             <strong>{userName}</strong> {headerTitle}
                         </HeaderTitle>
-                        <HeaderSubtitle>원하시는 여행지를 선택해 주세요</HeaderSubtitle>
+                        <HeaderSubtitle>원하시는 {headerTitle.includes('여행지') ? '여행지' : '음식점'}를 선택해 주세요</HeaderSubtitle>
                     </PageHeader>
                     
                     <TravelGrid>
@@ -402,6 +404,7 @@ const SelectMain: React.FC<SelectMainProps> = ({
                     onComplete={handleSave}
                     onReset={() => {}}
                     showAddButton={false}
+                    buttonText={buttonText}
                 />
             </TravelSection>
 

@@ -20,7 +20,7 @@ const GlobalStyle = createGlobalStyle`
 
 const Wrapper = styled.div`
     width: 100%;
-    height: calc(100vh - 145px); /* 네브바(60px)와 푸터(85px)의 합: 145px */
+    height: calc(100vh - 90px);
     display: flex;
     flex-direction: column;
     position: fixed;
@@ -29,25 +29,41 @@ const Wrapper = styled.div`
     right: 0;
     overflow: hidden;
     justify-content: center;
+    padding: 20px 0;
+
+    @media (max-width: 768px) {
+        height: calc(100vh - 60px);
+        padding: 10px 0;
+    }
 `;
 
 const GuideWrap = styled.div`
     display: flex;
     gap: 24px;
     padding: 24px;
-    height: 100%;
+    height: calc(100vh - 120px);
     max-width: 1440px;
     margin: 0 auto;
     width: 85%;
     overflow: hidden;
+    align-self: center;
 
-    margin-bottom: 80px;
+    @media (max-width: 1200px) {
+        width: 95%;
+        height: calc(100vh - 100px);
+    }
 
     @media (max-width: 768px) {
         flex-direction: column;
         padding: 16px;
         gap: 16px;
-        height: calc(100vh - 165px); /* 모바일에서는 여유공간 줄임 */
+        height: calc(100vh - 80px);
+        width: 100%;
+    }
+
+    @media (max-width: 480px) {
+        padding: 12px;
+        height: calc(100vh - 60px);
     }
 `;
 

@@ -98,6 +98,7 @@ const SelectDestination: React.FC = () => {
       headerTitle="님의 성향이 반영된 여행지 추천 목록입니다."
       sidebarTitle={`${userName}님이 선택한 여행지입니다.`}
       userName={userName}
+      buttonText="여행지 선택 완료"
     />
   );
 };

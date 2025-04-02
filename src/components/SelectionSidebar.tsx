@@ -52,31 +52,31 @@ const SidebarTitle = styled.strong<{ isComplete?: boolean }>`
 const SelectedItemsList = styled.div`
     flex: 1;
     overflow-y: auto;
-    margin-bottom: 80px; /* 버튼 높이 + 여백 */
+    margin-bottom: 80px;
     padding-right: 5px;
-    scrollbar-width: none; /* Firefox에서는 스크롤바 완전히 숨김 */
-    -ms-overflow-style: none; /* IE와 Edge에서 스크롤바 숨김 */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
     
     &::-webkit-scrollbar {
-        display: none; /* Chrome, Safari에서 스크롤바 숨김 */
+        display: none;
     }
 `;
 
 // 선택된 여행지 사이드바 스타일 컴포넌트
 const SidebarContainer = styled.div<{ isComplete?: boolean }>`
-    width: 320px;
-    min-height: 600px;
-    height: calc(100vh - 250px);
+    width: 350px;
+    height: calc(100vh - 150px);
     background: ${props => props.isComplete ? '#f5f5f5' : '#ffffff'};
     border-radius: 16px;
     box-shadow: ${props => props.isComplete 
         ? '0 10px 30px rgba(0, 0, 0, 0.08)' 
         : '0 10px 30px rgba(0, 0, 0, 0.05)'};
-    padding: 25px;
+    padding: 20px;
+    margin: 20px 0;
     display: flex;
     flex-direction: column;
     position: relative;
-    transition: all 0.4s ease;
+    // transition: all 0.4s ease;
     border: 1px solid ${props => props.isComplete ? '#e0e0e0' : '#f0f0f0'};
     
     &:hover {
@@ -87,7 +87,8 @@ const SidebarContainer = styled.div<{ isComplete?: boolean }>`
     
     @media (max-width: 992px) {
         width: 100%;
-        height: 600px;
+        height: auto;
+        min-height: 350px;
     }
 `;
 
@@ -244,6 +245,7 @@ interface SelectionSidebarProps {
     onComplete: () => void;
     onReset: () => void;
     showAddButton?: boolean;
+    buttonText: string;
 }
 
 const SelectionSidebar: React.FC<SelectionSidebarProps> = ({
@@ -256,12 +258,10 @@ const SelectionSidebar: React.FC<SelectionSidebarProps> = ({
     onShowSearch,
     onComplete,
     onReset,
-    showAddButton
+    showAddButton,
+    buttonText
 }) => {
     const addButtonText = type === 'travel' ? '+ 여행지 추가하기' : '+ 음식점 추가하기';
-    const completeButtonText = isComplete 
-        ? '선택 완료됨' 
-        : (type === 'travel' ? '여행지 선택 완료' : '음식점 선택 완료');
 
     return (
         <SidebarContainer isComplete={isComplete} className={`${type}_spot`}>
@@ -276,7 +276,7 @@ const SelectionSidebar: React.FC<SelectionSidebarProps> = ({
                         isDeleting={deletingItemId === item.id}
                         isComplete={isComplete}
                     >
-                        {item.title}
+                        <span>{item.title}</span>
                         <DeleteButton 
                             href="#" 
                             onClick={(e) => {
@@ -300,19 +300,19 @@ const SelectionSidebar: React.FC<SelectionSidebarProps> = ({
                 )}
             </SelectedItemsList>
 
-            {isComplete && (
+            {!isComplete ? (
+                <CompleteButton 
+                    onClick={onComplete}
+                    disabled={items.length === 0}
+                    isComplete={isComplete}
+                >
+                    {buttonText}
+                </CompleteButton>
+            ) : (
                 <ResetButton onClick={onReset}>
                     다시 선택하기
                 </ResetButton>
             )}
-
-            <CompleteButton 
-                onClick={onComplete}
-                disabled={isComplete}
-                isComplete={isComplete}
-            >
-                {completeButtonText}
-            </CompleteButton>
         </SidebarContainer>
     );
 };

@@ -124,19 +124,108 @@ export const infoWindowStyle = {
     boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)"
 };
 
-// 마커 색상 정의
-const markerColors: { [key: string]: string } = {
-    day1: '#3498db', // 파란색
-    day2: '#2ecc71', // 초록색
-    day3: '#e74c3c', // 빨간색
-    day4: '#f1c40f', // 노란색
-    day5: '#9b59b6', // 보라색
+// 마커 색상 정의 - 앱 전체에서 사용하는 일차별 색상
+export const dayColors = {
+    primary: {
+        day1: '#3498db', // 파란색
+        day2: '#2ecc71', // 초록색
+        day3: '#e74c3c', // 빨간색
+        day4: '#f39c12', // 주황색
+        day5: '#9b59b6', // 보라색
+    },
+    dark: {
+        day1: '#2980b9', // 파란색 어두운 버전
+        day2: '#27ae60', // 초록색 어두운 버전
+        day3: '#c0392b', // 빨간색 어두운 버전
+        day4: '#d35400', // 주황색 어두운 버전
+        day5: '#8e44ad', // 보라색 어두운 버전
+    },
+    light: {
+        day1: '#edf7fd', // 파란색 배경
+        day2: '#eafef1', // 초록색 배경
+        day3: '#fdeeee', // 빨간색 배경
+        day4: '#fff8e6', // 주황색 배경
+        day5: '#f5eeff', // 보라색 배경
+    },
+    text: {
+        day1: '#2980b9', // 파란색 텍스트
+        day2: '#27ae60', // 초록색 텍스트
+        day3: '#c0392b', // 빨간색 텍스트
+        day4: '#d35400', // 주황색 텍스트
+        day5: '#8e44ad', // 보라색 텍스트
+    },
+    darkerText: {
+        day1: '#1e40af', // 진한 파란색
+        day2: '#166534', // 진한 초록색
+        day3: '#9f1239', // 진한 빨간색
+        day4: '#854d0e', // 진한 주황색
+        day5: '#581c87', // 진한 보라색
+    },
+    veryLight: {
+        day1: '#dbeafe', // 연한 파란색
+        day2: '#dcfce7', // 연한 초록색
+        day3: '#fee2e2', // 연한 빨간색
+        day4: '#fef3c7', // 연한 주황색
+        day5: '#f3e8ff', // 연한 보라색
+    },
+    medium: {
+        day1: '#bfdbfe', // 중간 파란색
+        day2: '#bbf7d0', // 중간 초록색
+        day3: '#fecaca', // 중간 빨간색
+        day4: '#fde68a', // 중간 주황색
+        day5: '#e9d5ff', // 중간 보라색
+    }
+};
+
+/**
+ * 일차(day) 번호에 따라 해당하는 색상 반환하는 유틸리티 함수
+ */
+// 기본 색상 가져오기
+export const getDayColor = (day: number): string => {
+    const colorKey = `day${day}` as keyof typeof dayColors.primary;
+    return dayColors.primary[colorKey] || dayColors.primary.day1;
+};
+
+// 어두운 버전 색상 가져오기
+export const getDayDarkColor = (day: number): string => {
+    const colorKey = `day${day}` as keyof typeof dayColors.dark;
+    return dayColors.dark[colorKey] || dayColors.dark.day1;
+};
+
+// 밝은 배경 색상 가져오기
+export const getDayLightColor = (day: number): string => {
+    const colorKey = `day${day}` as keyof typeof dayColors.light;
+    return dayColors.light[colorKey] || dayColors.light.day1;
+};
+
+// 텍스트 색상 가져오기
+export const getDayTextColor = (day: number): string => {
+    const colorKey = `day${day}` as keyof typeof dayColors.text;
+    return dayColors.text[colorKey] || dayColors.text.day1;
+};
+
+// 더 어두운 텍스트 색상 가져오기
+export const getDayDarkerTextColor = (day: number): string => {
+    const colorKey = `day${day}` as keyof typeof dayColors.darkerText;
+    return dayColors.darkerText[colorKey] || dayColors.darkerText.day1;
+};
+
+// 매우 연한 배경색 가져오기
+export const getDayVeryLightColor = (day: number): string => {
+    const colorKey = `day${day}` as keyof typeof dayColors.veryLight;
+    return dayColors.veryLight[colorKey] || dayColors.veryLight.day1;
+};
+
+// 중간 강도 테두리 색상 가져오기
+export const getDayMediumColor = (day: number): string => {
+    const colorKey = `day${day}` as keyof typeof dayColors.medium;
+    return dayColors.medium[colorKey] || dayColors.medium.day1;
 };
 
 // 마커 스타일 옵션
 export const markerStyle = {
     day1: {
-        fillColor: markerColors.day1,
+        fillColor: dayColors.primary.day1,
         fillOpacity: 0.8,
         strokeWeight: 2,
         strokeColor: '#ffffff',
@@ -146,7 +235,7 @@ export const markerStyle = {
         textWeight: 'bold',
     },
     day2: {
-        fillColor: markerColors.day2,
+        fillColor: dayColors.primary.day2,
         fillOpacity: 0.8,
         strokeWeight: 2,
         strokeColor: '#ffffff',
@@ -156,7 +245,7 @@ export const markerStyle = {
         textWeight: 'bold',
     },
     day3: {
-        fillColor: markerColors.day3,
+        fillColor: dayColors.primary.day3,
         fillOpacity: 0.8,
         strokeWeight: 2,
         strokeColor: '#ffffff',
@@ -166,7 +255,7 @@ export const markerStyle = {
         textWeight: 'bold',
     },
     day4: {
-        fillColor: markerColors.day4,
+        fillColor: dayColors.primary.day4,
         fillOpacity: 0.8,
         strokeWeight: 2,
         strokeColor: '#ffffff',
@@ -176,7 +265,7 @@ export const markerStyle = {
         textWeight: 'bold',
     },
     day5: {
-        fillColor: markerColors.day5,
+        fillColor: dayColors.primary.day5,
         fillOpacity: 0.8,
         strokeWeight: 2,
         strokeColor: '#ffffff',
@@ -284,7 +373,7 @@ export const createMarker = (
     if (!window.naver || !window.naver.maps) return null;
     
     // 색상이 제공되면 해당 색상 사용, 아니면 기본 일차별 색상 사용
-    const markerColor = color || markerColors[`day${day}`];
+    const markerColor = color || getDayColor(day);
     
     const markerOptions = {
         position: new window.naver.maps.LatLng(position.lat, position.lng),
