@@ -21,11 +21,10 @@ const fadeIn = keyframes`
 // 사이드바 컨테이너
 const SidebarContainer = styled.div`
     width: 400px;
-    height: calc(100vh - 60px);
+    height: calc(100vh - 40px);
     background: #ffffff;
     border-right: 1px solid #e0e0e0;
     padding: 20px;
-    padding-bottom: 140px;
     display: flex;
     flex-direction: column;
     position: absolute;

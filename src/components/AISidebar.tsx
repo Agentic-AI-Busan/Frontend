@@ -190,7 +190,7 @@ const SendButton = styled.button`
     width: 50px;
     height: 50px;
     border-radius: 50%;
-    background-color: #3b82f6;
+    background-color: #3498db;
     color: white;
     border: none;
     display: flex;
@@ -203,7 +203,7 @@ const SendButton = styled.button`
     box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
     
     &:hover {
-        background-color: #2563eb;
+        background-color: #2980b9;
         transform: translateY(-2px);
         box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
     }

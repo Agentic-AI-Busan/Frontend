@@ -76,13 +76,13 @@ const SidebarContainer = styled.div<{ isComplete?: boolean }>`
     display: flex;
     flex-direction: column;
     position: relative;
-    // transition: all 0.4s ease;
-    border: 1px solid ${props => props.isComplete ? '#e0e0e0' : '#f0f0f0'};
+    transition: all 0.4s ease;
+    border: 1px solid ${props => props.isComplete ? '#e0e0e0' : 'rgba(0, 0, 0, 0.08)'};
     
     &:hover {
         box-shadow: ${props => props.isComplete 
-            ? '0 15px 35px rgba(0, 0, 0, 0.4)' 
-            : '0 15px 35px rgba(0, 0, 0, 0.2)'};
+            ? '0 15px 35px rgba(0, 0, 0, 0.1)' 
+            : '0 15px 35px rgba(0, 0, 0, 0.08)'};
     }
     
     @media (max-width: 992px) {

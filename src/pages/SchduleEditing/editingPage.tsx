@@ -545,7 +545,7 @@ const MainContainer = styled.div`
 
 const SaveButtonSmall = styled.button`
   padding: 10px 18px;
-  background-color: #3b82f6;
+  background-color: #6366f1;
   color: white;
   border: none;
   border-radius: 8px;
@@ -564,7 +564,7 @@ const SaveButtonSmall = styled.button`
   }
   
   &:hover {
-    background-color: #2563eb;
+    background-color: #4f46e5;
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
   }
@@ -767,29 +767,33 @@ const AddPlaceButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
-  background-color: white;
-  border: 2px dashed #e2e8f0;
+  padding: 13px;
+  background-color: #f8fafc;
+  border: 2px dashed #94a3b8;
   border-radius: 12px;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
+  margin-bottom: 8px;
   
   &:hover {
-    background-color: #f8fafc;
+    background-color: #e2e8f0;
+    border-color: #64748b;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   }
 `;
 
 const PlusIcon = styled.span`
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 700;
-  color: #64748b;
+  color: #475569;
   margin-right: 8px;
 `;
 
 const AddPlaceText = styled.span`
-  font-size: 14px;
-  font-weight: 500;
-  color: #64748b;
+  font-size: 15px;
+  font-weight: 600;
+  color: #475569;
 `;
 
 const ButtonContainer = styled.div`

@@ -6,8 +6,6 @@ import SignupPage from './pages/LoginSingup/signupPage'
 import MainPage from './pages/mainPage'
 import QuestionPage from './pages/Question/questionPage'
 import MyPage from './pages/Mypage/profileCorrection'
-import ScheduleMap from './pages/Schedule/scheduleMap'
-import ScheduleEdit from './pages/Schedule/schduleEdit'
 import ErrorPage from './pages/errorPage'
 import JoinAgreePage from './pages/LoginSingup/joinAgreePage'
 import JoinRegisterPage from './pages/LoginSingup/joinRegisterPage'
@@ -77,8 +75,6 @@ function App() {
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/question" element={<QuestionPage />} />
             <Route path="/myPage" element={<MyPage />} />
-            <Route path="/scheduleMap" element={<ScheduleMap />} />
-            <Route path="/scheduleEdit" element={<ScheduleEdit />} />
             <Route path="/joinAgree" element={<JoinAgreePage />} />
             <Route path="/joinRegister" element={<JoinRegisterPage />} />
             <Route path="/loading" element={<LoadingPage />} />
