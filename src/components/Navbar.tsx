@@ -56,7 +56,7 @@ const MenuButton = styled.button`
     height: 40px;
     
     &:hover {
-        color: #007bff;
+        color: #3498db;
         border-radius: 4px;
     }
 `;
@@ -112,12 +112,12 @@ const Navbar: React.FC<NavbarProps> = ({ userName = 'Seongsurib' }) => {
                     </MenuItem>
                     <MenuItem>
                         <MenuButton onClick={() => handleNavigation('/guide')}>
-                            가이드북
+                            여행지 검색
                         </MenuButton>
                     </MenuItem>
                     <MenuItem>
-                        <MenuButton onClick={() => handleNavigation('/travel')}>
-                            여행지 검색
+                        <MenuButton onClick={() => handleNavigation('/question')}>
+                            가이드 시작하기
                         </MenuButton>
                     </MenuItem>
                 </MenuList>

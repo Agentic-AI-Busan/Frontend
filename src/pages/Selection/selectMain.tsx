@@ -5,38 +5,37 @@ import SelectionSidebar from '../../components/SelectionSidebar';
 
 // 페이지 레이아웃 컴포넌트를 중앙 정렬로 수정
 const ContentWrapper = styled.div`
-    width: 1500px;
+    width: 100%;
+    max-width: 1450px;
     margin: auto;
     display: flex;
     flex-direction: column;
     align-items: center;
-    height: auto;
-    padding: 1rem 0;
+    height: calc(100vh - 60px);
+    padding: 1rem;
+    box-sizing: border-box;
     
     @media (max-width: 1440px) {
-        width: 70%;
+        max-width: 90%;
     }
 `;
 
 // 상단 헤더 컴포넌트
 const PageHeader = styled.div`
     width: 100%;
-    padding: 20px 30px;
+    padding: 20px 0;
     text-align: center;
     position: relative;
-    background: linear-gradient(135deg, #f8f9fa 0%, #f0f2f5 100%);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
     
-    &::before {
+    &::after {
         content: '';
         position: absolute;
         bottom: 0;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 120px;
-        height: 3px;
-        background: linear-gradient(90deg, #0066cc, #00a3ff);
-        border-radius: 2px;
+        left: 0;
+        width: 100%;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(0, 102, 204, 0.5), transparent);
     }
 `;
 
@@ -82,40 +81,35 @@ const HeaderSubtitle = styled.p`
 // 여행 목록 섹션 스타일 컴포넌트
 const TravelSection = styled.div`
     display: flex;
-    gap: 30px;
+    gap: 20px;
     width: 100%;
-    padding: 15px 0;
+    padding: 0;
+    flex: 1;
     
     @media (max-width: 992px) {
         flex-direction: column;
+        gap: 15px;
     }
 `;
 
 // 메인 리스트 컨테이너 컴포넌트
 const TravelListContainer = styled.div`
     flex: 1;
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-    overflow: hidden;
     display: flex;
     flex-direction: column;
     min-width: 70%;
-    transition: all 0.3s ease;
-    
-    &:hover {
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
-    }
+    height: 100%;
+    overflow: hidden;
 `;
 
 const TravelGrid = styled.div`
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-    padding: 20px;
+    gap: 25px;
+    padding: 10px 10px 10px 10px;
     margin: 0;
     overflow-y: auto;
-    height: 610px;
+    height: calc(100vh - 250px);
     
     @media (max-width: 1200px) {
         grid-template-columns: repeat(2, 1fr);
@@ -129,25 +123,18 @@ const TravelGrid = styled.div`
     &::-webkit-scrollbar {
         width: 8px;
         background: transparent;
-        transition: all 0.3s ease;
     }
     
     &::-webkit-scrollbar-track {
         background: transparent;
-        transition: all 0.3s ease;
     }
     
     &::-webkit-scrollbar-thumb {
-        background: transparent;
+        background: #ccc;
         border-radius: 4px;
-        transition: all 0.3s ease;
     }
     
     &:hover::-webkit-scrollbar-thumb {
-        background: #ccc;
-    }
-    
-    &:hover::-webkit-scrollbar-thumb:hover {
         background: #aaa;
     }
 `;
@@ -157,7 +144,8 @@ const TravelCard = styled.div`
     position: relative;
     border-radius: 10px;
     overflow: hidden;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+    border: 1px solid #f0f0f0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
     transition: all 0.3s ease;
     height: 295px;
     background: #fff;
@@ -165,9 +153,11 @@ const TravelCard = styled.div`
     flex-direction: column;
     
     &:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 12px 20px rgba(0, 0, 0, 0.25);
+        transform: translateY(-4px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.14);
         cursor: pointer;
+        background: #fafafa;
+        border-color: #e8e8e8;
         
         img {
             transform: scale(1.05);
@@ -236,30 +226,24 @@ const CardButtonWrapper = styled.div`
 `;
 
 const SelectButton = styled.button`
-    display: inline-block;
-    padding: 8px 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
     background: #f0f0f0;
     color: #333;
+    border: 1px solid #dddddd;
     border-radius: 20px;
-    text-decoration: none;
     font-size: 14px;
-    font-weight: 500;
-    text-align: center;
-    transition: all 0.2s ease;
+    font-weight: 600;
     cursor: pointer;
-    border: none;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    margin-right: 5px;
+    transition: all 0.3s;
     
     &:hover {
-        background: #0066cc;
-        color: white;
-        box-shadow: 0 4px 8px rgba(0, 102, 204, 0.3);
-    }
-    
-    &:active {
-        transform: translateY(0);
-        box-shadow: 0 2px 4px rgba(0, 102, 204, 0.3);
+        background: #3498db;
+        color: #fff;
+        border-color: #3498db;
+        box-shadow: 0 6px 12px rgba(52, 152, 219, 0.3);
     }
 `;
 
@@ -284,6 +268,7 @@ interface SelectMainProps {
     headerTitle: string;
     sidebarTitle: string;
     userName: string;
+    buttonText: string;
 }
 
 const SelectMain: React.FC<SelectMainProps> = ({
@@ -294,7 +279,8 @@ const SelectMain: React.FC<SelectMainProps> = ({
     onSave,
     headerTitle,
     sidebarTitle,
-    userName
+    userName,
+    buttonText
 }) => {
     const [deletingId, setDeletingId] = useState<number | null>(null);
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -351,7 +337,7 @@ const SelectMain: React.FC<SelectMainProps> = ({
                         <HeaderTitle>
                             <strong>{userName}</strong> {headerTitle}
                         </HeaderTitle>
-                        <HeaderSubtitle>원하시는 여행지를 선택해 주세요</HeaderSubtitle>
+                        <HeaderSubtitle>원하시는 {headerTitle.includes('여행지') ? '여행지' : '음식점'}를 선택해 주세요</HeaderSubtitle>
                     </PageHeader>
                     
                     <TravelGrid>
@@ -402,6 +388,7 @@ const SelectMain: React.FC<SelectMainProps> = ({
                     onComplete={handleSave}
                     onReset={() => {}}
                     showAddButton={false}
+                    buttonText={buttonText}
                 />
             </TravelSection>
 

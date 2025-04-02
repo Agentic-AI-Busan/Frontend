@@ -4,11 +4,8 @@ import styled, { createGlobalStyle } from 'styled-components'
 import LoginPage from './pages/LoginSingup/loginPage'
 import SignupPage from './pages/LoginSingup/signupPage'
 import MainPage from './pages/mainPage'
-import SelectionPage from './pages/Selection/selectRestaurant'
 import QuestionPage from './pages/Question/questionPage'
 import MyPage from './pages/Mypage/profileCorrection'
-import ScheduleMap from './pages/Schedule/scheduleMap'
-import ScheduleEdit from './pages/Schedule/schduleEdit'
 import ErrorPage from './pages/errorPage'
 import JoinAgreePage from './pages/LoginSingup/joinAgreePage'
 import JoinRegisterPage from './pages/LoginSingup/joinRegisterPage'
@@ -30,15 +27,15 @@ interface ContainerProps {
 const AppContainer = styled.div<ContainerProps>`
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
-    height: ${props => props.$isMapPage ? '100vh' : 'auto'};
-    overflow: ${props => props.$isMapPage ? 'hidden' : 'auto'};
+    height: 100vh;
+    overflow: hidden;
 `;
 
 const MainContent = styled.main<ContainerProps>`
     flex: 1;
-    // padding: 20px;
     overflow: ${props => props.$isMapPage ? 'hidden' : 'auto'};
+    position: relative;
+    height: calc(100vh - 60px); // 네비게이션 바 높이(60px)를 제외한 높이
 `;
 
 // 전역 스타일 정의
@@ -46,14 +43,24 @@ const GlobalStyle = createGlobalStyle<{ $isMapPage: boolean }>`
   html, body, #root {
     margin: 0;
     padding: 0;
-    overflow: ${props => props.$isMapPage ? 'hidden' : 'auto'};
-    height: ${props => props.$isMapPage ? '100%' : 'auto'};
+    height: 100vh;
+    overflow: hidden;
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 `;
 
 function App() {
-  // useLocation 훅을 사용하여 현재 경로 확인
   const location = useLocation();
+  const isMainPage = location.pathname === '/';
   const isFullScreenPage = location.pathname === '/map' || location.pathname === '/editing';
 
   return (
@@ -66,11 +73,8 @@ function App() {
             <Route path="/" element={<MainPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
-            <Route path="/selection" element={<SelectionPage />} />
             <Route path="/question" element={<QuestionPage />} />
             <Route path="/myPage" element={<MyPage />} />
-            <Route path="/scheduleMap" element={<ScheduleMap />} />
-            <Route path="/scheduleEdit" element={<ScheduleEdit />} />
             <Route path="/joinAgree" element={<JoinAgreePage />} />
             <Route path="/joinRegister" element={<JoinRegisterPage />} />
             <Route path="/loading" element={<LoadingPage />} />
@@ -83,7 +87,7 @@ function App() {
             <Route path="*" element={<ErrorPage />} />
           </Routes>
         </MainContent>
-        {!isFullScreenPage && <Footer />}
+        {isMainPage && <Footer />}
       </AppContainer>
     </>
   )

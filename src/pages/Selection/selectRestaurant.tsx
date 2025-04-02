@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import SelectMain from './selectMain';
 import travelImage1 from '../../assets/images/travel_img1.jpg';
 import travelImage2 from '../../assets/images/travel_img2.jpg';
@@ -17,6 +18,7 @@ interface SelectedItem {
 }
 
 const SelectRestaurant: React.FC = () => {
+  const navigate = useNavigate();
   const [userName] = useState<string>("성수립");
   const [restaurantItems] = useState<TravelItem[]>([
     {
@@ -58,6 +60,8 @@ const SelectRestaurant: React.FC = () => {
   const handleSave = () => {
     // 음식점 저장 로직 구현
     console.log('Saving restaurants:', selectedItems);
+    // selectionAdd 페이지로 이동
+    navigate('/selectionAdd');
   };
 
   return (
@@ -70,6 +74,7 @@ const SelectRestaurant: React.FC = () => {
       headerTitle="님의 성향이 반영된 음식점 추천 목록입니다."
       sidebarTitle={`${userName}님이 선택한 음식점입니다.`}
       userName={userName}
+      buttonText="음식점 선택 완료"
     />
   );
 };

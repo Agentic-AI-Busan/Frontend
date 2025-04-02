@@ -1,8 +1,14 @@
 import React, { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import travel_img1 from '../../assets/images/travel_img1.jpg';
 import AISidebar from '../../components/AISidebar';
 import EditingCard from '../../components/EditingCard';
+import { 
+  getDayDarkerTextColor, 
+  getDayVeryLightColor, 
+  getDayMediumColor 
+} from '../../components/Map/MapContent';
 
 interface VisitPlace {
     id: number;
@@ -20,6 +26,7 @@ interface DaySchedule {
 }
 
 const EditingPage = () => {
+    const navigate = useNavigate();
 
 // 초기 여행 데이터
 const [schedules, setSchedules] = useState<DaySchedule[]>([
@@ -420,7 +427,7 @@ return (
                     </DestinationDetails>
                 </DestinationTitle>
                 <ButtonContainer>
-                    <ViewMapButton onClick={() => window.location.href = '/map'}>
+                    <ViewMapButton onClick={() => navigate('/map')}>
                         <MapIcon>🗺️</MapIcon> 지도로 확인하기
                     </ViewMapButton>
                     <SaveButtonSmall onClick={saveMemo}>저장하기</SaveButtonSmall>
@@ -475,8 +482,8 @@ return (
                     }}
                 >
                     <AddPlaceButton onClick={() => addPlace(dayIndex)}>
-                    <PlusIcon>+</PlusIcon>
-                    <AddPlaceText>장소 추가</AddPlaceText>
+                      <PlusIcon>+</PlusIcon>
+                      <AddPlaceText>장소 추가</AddPlaceText>
                     </AddPlaceButton>
                     {schedule.places.map((place, placeIndex) => (
                       <EditingCard
@@ -537,7 +544,7 @@ const MainContainer = styled.div`
 
 const SaveButtonSmall = styled.button`
   padding: 10px 18px;
-  background-color: #3b82f6;
+  background-color: #3498db;
   color: white;
   border: none;
   border-radius: 8px;
@@ -556,7 +563,7 @@ const SaveButtonSmall = styled.button`
   }
   
   &:hover {
-    background-color: #2563eb;
+    background-color: #2980b9;
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
   }
@@ -636,9 +643,9 @@ const NavButton = styled.button`
   display: flex;
   align-items: center;
   padding: 8px 16px;
-  background-color: #3498db;
-  color: white;
-  border: none;
+  background-color: #ffffff;
+  color: #333333;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
@@ -646,11 +653,12 @@ const NavButton = styled.button`
   transition: all 0.2s;
   
   &:hover {
-    background-color: #2980b9;
+    background-color: #f9fafb;
   }
   
   &:disabled {
-    background-color: #cbd5e1;
+    background-color: #f3f4f6;
+    color: #9ca3af;
     cursor: not-allowed;
   }
 `;
@@ -683,24 +691,6 @@ const DayContainer = styled.div<{ active: boolean; dayNumber: number }>`
   margin-bottom: 10px;
   width: 100%;
   box-sizing: border-box;
-  border-top: 5px solid ${props => {
-    switch(props.dayNumber) {
-      case 1: return '#3498db'; // 파란색
-      case 2: return '#e74c3c'; // 빨간색
-      case 3: return '#2ecc71'; // 초록색
-      case 4: return '#f39c12'; // 주황색
-      default: return '#3498db';
-    }
-  }};
-  border-bottom: 5px solid ${props => {
-    switch(props.dayNumber) {
-      case 1: return '#3498db'; // 파란색
-      case 2: return '#e74c3c'; // 빨간색
-      case 3: return '#2ecc71'; // 초록색
-      case 4: return '#f39c12'; // 주황색
-      default: return '#3498db';
-    }
-  }};
   border-radius: 12px;
   background-color: white;
   padding: 20px;
@@ -754,36 +744,12 @@ const DayDate = styled.span<{ dayNumber: number }>`
   display: inline-block;
   font-size: 15px;
   font-weight: 600;
-  color: ${props => {
-    switch(props.dayNumber) {
-      case 1: return '#1e40af'; // 진한 파란색
-      case 2: return '#9f1239'; // 진한 빨간색
-      case 3: return '#166534'; // 진한 초록색
-      case 4: return '#854d0e'; // 진한 주황색
-      default: return '#1e40af';
-    }
-  }};
-  background-color: ${props => {
-    switch(props.dayNumber) {
-      case 1: return '#dbeafe'; // 연한 파란색
-      case 2: return '#fee2e2'; // 연한 빨간색
-      case 3: return '#dcfce7'; // 연한 초록색
-      case 4: return '#fef3c7'; // 연한 주황색
-      default: return '#dbeafe';
-    }
-  }};
+  color: ${props => getDayDarkerTextColor(props.dayNumber)};
+  background-color: ${props => getDayVeryLightColor(props.dayNumber)};
   padding: 5px 14px;
   border-radius: 20px;
   margin-left: 6px;
-  border: 1px solid ${props => {
-    switch(props.dayNumber) {
-      case 1: return '#bfdbfe'; // 중간 파란색
-      case 2: return '#fecaca'; // 중간 빨간색
-      case 3: return '#bbf7d0'; // 중간 초록색
-      case 4: return '#fde68a'; // 중간 주황색
-      default: return '#bfdbfe';
-    }
-  }};
+  border: 1px solid ${props => getDayMediumColor(props.dayNumber)};
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 `;
 
@@ -799,28 +765,34 @@ const AddPlaceButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
-  background-color: white;
-  border: 2px dashed #e2e8f0;
+  width: 100%;
+  padding: 14px 0;
+  margin-top: 15px;
+  background: rgba(148, 163, 184, 0.1);
+  color: #64748b;
+  border: 2px dashed #94a3b8;
   border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.3s;
   
   &:hover {
-    background-color: #f8fafc;
+    background: rgba(148, 163, 184, 0.2);
+    transform: translateY(-2px);
   }
 `;
 
 const PlusIcon = styled.span`
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 700;
   color: #64748b;
   margin-right: 8px;
 `;
 
 const AddPlaceText = styled.span`
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
   color: #64748b;
 `;
 

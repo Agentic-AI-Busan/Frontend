@@ -1,5 +1,10 @@
 import React from 'react';
 import styled, { keyframes } from 'styled-components';
+import { 
+    getDayColor, 
+    getDayLightColor, 
+    getDayTextColor 
+} from './MapContent';
 
 // 애니메이션 keyframe
 const fadeIn = keyframes`
@@ -15,12 +20,11 @@ const fadeIn = keyframes`
 
 // 사이드바 컨테이너
 const SidebarContainer = styled.div`
-    width: 350px;
-    height: calc(100vh - 60px);
+    width: 400px;
+    height: calc(100vh - 40px);
     background: #ffffff;
     border-right: 1px solid #e0e0e0;
     padding: 20px;
-    padding-bottom: 140px;
     display: flex;
     flex-direction: column;
     position: absolute;
@@ -54,8 +58,8 @@ const SidebarHeader = styled.div`
 `;
 
 // 여행 일자 뱃지
-const DayBadge = styled.div`
-    background-color: #3498db;
+const DayBadge = styled.div<{ day: number }>`
+    background-color: ${props => getDayColor(props.day)};
     color: white;
     font-weight: 600;
     font-size: 16px;
@@ -159,7 +163,7 @@ const PlacesList = styled.ul`
 `;
 
 // 장소 항목
-const PlaceItem = styled.li`
+const PlaceItem = styled.li<{ day: number }>`
     margin: 12px 0;
     background: #ffffff;
     border-radius: 10px;
@@ -183,7 +187,7 @@ const PlaceItem = styled.li`
         top: 0;
         height: 100%;
         width: 4px;
-        background: #3498db;
+        background: ${props => getDayColor(props.day)};
         border-radius: 10px 0 0 10px;
     }
 `;
@@ -268,10 +272,10 @@ const RouteLine = styled.div`
     margin: 10px 0;
 `;
 
-const RouteLineBar = styled.div`
+const RouteLineBar = styled.div<{ day: number }>`
     width: 3px;
     height: 40px;
-    background: #3498db;
+    background: ${props => getDayColor(props.day)};
     position: relative;
     
     &::after {
@@ -281,7 +285,7 @@ const RouteLineBar = styled.div`
         left: -3px;
         width: 9px;
         height: 9px;
-        background: #3498db;
+        background: ${props => getDayColor(props.day)};
         border-radius: 50%;
     }
 `;
@@ -296,31 +300,31 @@ const RouteLineBarSecond = styled(RouteLineBar)`
     }
 `;
 
-const RouteDistance = styled.div`
+const RouteDistance = styled.div<{ day: number }>`
     position: absolute;
     right: 55%;
     top: 50%;
     transform: translateY(-60%);
-    background: #edf7fd;
+    background: ${props => getDayLightColor(props.day)};
     border-radius: 4px;
     padding: 4px 8px;
     font-size: 11px;
-    color: #2980b9;
+    color: ${props => getDayTextColor(props.day)};
     font-weight: 500;
     box-shadow: 0 1px 2px rgba(52, 152, 219, 0.2);
     text-align: right;
 `;
 
-const RouteDuration = styled.div`
+const RouteDuration = styled.div<{ day: number }>`
     position: absolute;
     left: 55%;
     top: 50%;
     transform: translateY(-60%);
-    background: #edf7fd;
+    background: ${props => getDayLightColor(props.day)};
     border-radius: 4px;
     padding: 4px 8px;
     font-size: 11px;
-    color: #2980b9;
+    color: ${props => getDayTextColor(props.day)};
     font-weight: 500;
     box-shadow: 0 1px 2px rgba(52, 152, 219, 0.2);
     text-align: left;
@@ -462,7 +466,7 @@ const TravelRouteSidebar: React.FC<TravelRouteSidebarProps> = ({
     return (
         <SidebarContainer>
             <SidebarHeader>
-                <DayBadge>Day {activeDay}</DayBadge>
+                <DayBadge day={activeDay}>Day {activeDay}</DayBadge>
                 <TravelDate>{selectedDayData.date}</TravelDate>
             </SidebarHeader>
             
@@ -494,6 +498,7 @@ const TravelRouteSidebar: React.FC<TravelRouteSidebarProps> = ({
                     {selectedDayData.places.map((place, index) => (
                         <React.Fragment key={place.id}>
                             <PlaceItem 
+                                day={activeDay}
                                 onMouseEnter={() => onPlaceHover?.(place.id)}
                                 onMouseLeave={() => onPlaceHover?.(0)}
                             >
@@ -511,14 +516,14 @@ const TravelRouteSidebar: React.FC<TravelRouteSidebarProps> = ({
                             </PlaceItem>
                             {index !== selectedDayData.places.length - 1 && (
                                 <RouteLine>
-                                    <RouteLineBarFirst />
+                                    <RouteLineBarFirst day={activeDay} />
                                     {selectedDayData.routes && selectedDayData.routes[index] && (
                                         <>
-                                            <RouteDuration>⏱️ {selectedDayData.routes[index].duration}</RouteDuration>
-                                            <RouteDistance>🚗 {selectedDayData.routes[index].distance}</RouteDistance>
+                                            <RouteDuration day={activeDay}>⏱️ {selectedDayData.routes[index].duration}</RouteDuration>
+                                            <RouteDistance day={activeDay}>🚗 {selectedDayData.routes[index].distance}</RouteDistance>
                                         </>
                                     )}
-                                    <RouteLineBarSecond />
+                                    <RouteLineBarSecond day={activeDay} />
                                 </RouteLine>
                             )}
                         </React.Fragment>

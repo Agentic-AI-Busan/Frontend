@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import Modal from 'react-modal';
 import LoadingSpinner from '../../components/LoadingSpinner';
@@ -13,18 +14,46 @@ const MainContainer = styled.div`
     align-items: center;
     max-width: 1400px;
     margin: 0 auto;
-    padding: 20px;
-    position: relative;
+    padding: 10px 20px 20px;
+    position: fixed;
+    top: 40px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
     
     @media (max-width: 992px) {
         flex-direction: column;
         align-items: center;
+        overflow-y: auto;
+    }
+`;
+
+// 사이드바 래퍼 컴포넌트 추가
+const SidebarsWrapper = styled.div<{ showTravelSearch?: boolean; showRestaurantSearch?: boolean }>`
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    transition: transform 0.4s ease-out;
+    
+    ${props => props.showTravelSearch && `
+        transform: translateX(50px);
+    `}
+    
+    ${props => props.showRestaurantSearch && `
+        transform: translateX(-50px);
+    `}
+    
+    @media (max-width: 992px) {
+        flex-direction: column;
+        transform: none;
     }
 `;
 
 Modal.setAppElement('#root'); // 모달을 위한 설정
 
 const SelectionAdd: React.FC = () => {
+    const navigate = useNavigate();
     const [selectedPlaces, setSelectedPlaces] = useState({
         travel: [
             { id: 1, title: '광안대교' },
@@ -87,32 +116,40 @@ const SelectionAdd: React.FC = () => {
             // 3초 후에 로딩 종료 및 다음 페이지로 이동
             const timer = setTimeout(() => {
                 setIsLoading(false);
-                // 여기에 다음 페이지로 이동하는 코드 (예: navigate('/selection/result'))
-                console.log('선택 완료! 다음 페이지로 이동합니다.');
-                // window.location.href = '/selection/result'; // 실제 구현 시 사용
+                navigate('/map');
             }, 3000);
             
             return () => clearTimeout(timer);
         }
-    }, [isTravelComplete, isRestaurantComplete]);
+    }, [isTravelComplete, isRestaurantComplete, navigate]);
 
     // 선택 완료 핸들러
     const handleTravelComplete = () => {
         setIsClosingSearch(true);
         setTimeout(() => {
-            setIsTravelComplete(true);
+            // 검색 패널을 먼저 닫고
             setShowTravelSearch(false);
             setIsClosingSearch(false);
-        }, 300);
+            
+            // 약간의 지연 후 완료 상태로 전환하여 사이드바가 자연스럽게 중앙으로 이동하도록 함
+            setTimeout(() => {
+                setIsTravelComplete(true);
+            }, 100);
+        }, 400);
     };
 
     const handleRestaurantComplete = () => {
         setIsClosingSearch(true);
         setTimeout(() => {
-            setIsRestaurantComplete(true);
+            // 검색 패널을 먼저 닫고
             setShowRestaurantSearch(false);
             setIsClosingSearch(false);
-        }, 300);
+            
+            // 약간의 지연 후 완료 상태로 전환하여 사이드바가 자연스럽게 중앙으로 이동하도록 함
+            setTimeout(() => {
+                setIsRestaurantComplete(true);
+            }, 100);
+        }, 400);
     };
 
     // 다시 선택하기 핸들러
@@ -219,31 +256,35 @@ const SelectionAdd: React.FC = () => {
                     />
                 )}
 
-                {/* 선택한 여행지 사이드바 */}
-                <SelectionSidebar
-                    type="travel"
-                    title="성수립님이 선택한 여행지입니다."
-                    items={selectedPlaces.travel}
-                    isComplete={isTravelComplete}
-                    deletingItemId={deletingTravelId}
-                    onDelete={(id) => handleDelete('travel', id)}
-                    onShowSearch={handleShowTravelSearch}
-                    onComplete={handleTravelComplete}
-                    onReset={handleResetTravel}
-                />
-                
-                {/* 선택한 음식점 사이드바 */}
-                <SelectionSidebar
-                    type="restaurant"
-                    title="성수립님이 선택한 음식점입니다."
-                    items={selectedPlaces.restaurant}
-                    isComplete={isRestaurantComplete}
-                    deletingItemId={deletingRestaurantId}
-                    onDelete={(id) => handleDelete('restaurant', id)}
-                    onShowSearch={handleShowRestaurantSearch}
-                    onComplete={handleRestaurantComplete}
-                    onReset={handleResetRestaurant}
-                />
+                <SidebarsWrapper showTravelSearch={showTravelSearch} showRestaurantSearch={showRestaurantSearch}>
+                    {/* 선택한 여행지 사이드바 */}
+                    <SelectionSidebar
+                        type="travel"
+                        title="성수립님이 선택한 여행지입니다."
+                        items={selectedPlaces.travel}
+                        isComplete={isTravelComplete}
+                        deletingItemId={deletingTravelId}
+                        onDelete={(id) => handleDelete('travel', id)}
+                        onShowSearch={handleShowTravelSearch}
+                        onComplete={handleTravelComplete}
+                        onReset={handleResetTravel}
+                        buttonText="여행지 선택 완료"
+                    />
+                    
+                    {/* 선택한 음식점 사이드바 */}
+                    <SelectionSidebar
+                        type="restaurant"
+                        title="성수립님이 선택한 음식점입니다."
+                        items={selectedPlaces.restaurant}
+                        isComplete={isRestaurantComplete}
+                        deletingItemId={deletingRestaurantId}
+                        onDelete={(id) => handleDelete('restaurant', id)}
+                        onShowSearch={handleShowRestaurantSearch}
+                        onComplete={handleRestaurantComplete}
+                        onReset={handleResetRestaurant}
+                        buttonText="음식점 선택 완료"
+                    />
+                </SidebarsWrapper>
 
                 {/* 음식점 검색 컨테이너 - 버튼 클릭시에만 표시 */}
                 {showRestaurantSearch && (

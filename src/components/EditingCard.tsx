@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
+import { getDayColor } from './Map/MapContent';
 
 interface VisitPlace {
     id: number;
@@ -212,15 +213,7 @@ const PlaceNumberBadge = styled.div<{ dayNumber: number }>`
     align-items: center;
     width: 24px;
     height: 24px;
-    background-color: ${props => {
-        switch(props.dayNumber) {
-        case 1: return '#3498db'; // 파란색
-        case 2: return '#e74c3c'; // 빨간색
-        case 3: return '#2ecc71'; // 초록색
-        case 4: return '#f39c12'; // 주황색
-        default: return '#3498db';
-        }
-    }};
+    background-color: ${props => getDayColor(props.dayNumber)};
     color: white;
     border-radius: 50%;
     font-size: 12px;
@@ -318,10 +311,11 @@ const LocationIcon = styled.span`
 
 const MemoContainer = styled.div`
     margin-top: 12px;
+    padding: 0 4px;
 `;
 
 const MemoInput = styled.textarea`
-    width: calc(100% - 24px);
+    width: 100%;
     padding: 10px 12px;
     border: 1px solid #e2e8f0;
     border-radius: 6px;
