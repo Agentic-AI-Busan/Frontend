@@ -24,11 +24,12 @@ const ModalOverlay = styled.div`
 
 const ModalContent = styled.div<{ size?:'small' | 'medium' | 'large' }>`
     background-color: white;
-    padding: 2rem;
+    // padding: 2rem;
     border-radius: 8px;
     position: relative;
     max-height: 90vh;
     overflow-y: auto;
+    overflow: visible;
     
     ${props => {
         switch (props.size) {
@@ -44,7 +45,7 @@ const ModalContent = styled.div<{ size?:'small' | 'medium' | 'large' }>`
                 `;
             case 'large':
                 return `
-                    width: 600px;
+                    width: 800px;
                     max-width: 90%;
                 `;
         }
@@ -55,7 +56,6 @@ const ModalHeader = styled.div`
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-bottom: 1rem;
     position: relative;
 `;
 
@@ -67,20 +67,7 @@ const ModalTitle = styled.h2`
     text-align: center;
 `;
 
-const CloseButton = styled.button`
-    background: none;
-    border: none;
-    font-size: 2rem;
-    cursor: pointer;
-    padding: 0.5rem;
-    color: #666;
-    position: absolute;
-    right: 0;
-    
-    &:hover {
-        color: #000;
-    }
-`;
+
 
 const ModalFrame: React.FC<ModalFrameProps> = ({
     isOpen,
@@ -96,7 +83,6 @@ const ModalFrame: React.FC<ModalFrameProps> = ({
             <ModalContent size={size} onClick={(e) => e.stopPropagation()}>
                 <ModalHeader>
                     {title && <ModalTitle>{title}</ModalTitle>}
-                    <CloseButton onClick={onClose}>&times;</CloseButton>
                 </ModalHeader>
                 {children}
             </ModalContent>

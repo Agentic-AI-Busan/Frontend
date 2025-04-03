@@ -59,7 +59,7 @@ export namespace NaverMapTypes {
     }
     
     export interface Event {
-        addListener(instance: object, eventName: string, handler: () => void): EventListener;
+        addListener(instance: object, eventName: string, handler: Function): EventListener;
         removeListener(listener: EventListener): void;
         trigger(instance: object, eventName: string): void;
     }
@@ -77,32 +77,21 @@ export namespace NaverMapTypes {
         x: number;
         y: number;
     }
-}
-/* eslint-enable */
 
-// 전역 window 객체에 네이버 맵 추가
-declare global {
-    interface Window {
-        naver: {
-            maps: {
-                Map: new (elementId: HTMLElement | string, options: object) => NaverMapTypes.Map;
-                LatLng: new (lat: number, lng: number) => NaverMapTypes.LatLng;
-                LatLngBounds: new (sw: NaverMapTypes.LatLng, ne: NaverMapTypes.LatLng) => NaverMapTypes.LatLngBounds;
-                Marker: new (options: object) => NaverMapTypes.Marker;
-                InfoWindow: new (options: object) => NaverMapTypes.InfoWindow;
-                Polyline: new (options: object) => NaverMapTypes.Polyline;
-                Event: {
-                    addListener: (instance: object, eventName: string, handler: () => void) => NaverMapTypes.EventListener;
-                    removeListener: (listener: NaverMapTypes.EventListener) => void;
-                    trigger: (instance: object, eventName: string) => void;
-                };
-                Size: new (width: number, height: number) => NaverMapTypes.Size;
-                Point: new (x: number, y: number) => NaverMapTypes.Point;
-            }
-        };
-        initMap?: () => void;
+    // 네이버 맵스 API 타입 정의
+    export interface NaverMapsApi {
+        Map: new (elementId: HTMLElement | string, options: object) => Map;
+        LatLng: new (lat: number, lng: number) => LatLng;
+        LatLngBounds: new (sw: LatLng, ne: LatLng) => LatLngBounds;
+        Marker: new (options: object) => Marker;
+        InfoWindow: new (options: object) => InfoWindow;
+        Polyline: new (options: object) => Polyline;
+        Event: Event;
+        Size: new (width: number, height: number) => Size;
+        Point: new (x: number, y: number) => Point;
     }
 }
+/* eslint-enable */
 
 // 지도 컨테이너 스타일
 const MapContainer = styled.div`
@@ -138,13 +127,19 @@ const NaverMap: React.FC<NaverMapProps> = ({
     const markersRef = useRef<NaverMapTypes.Marker[]>([]);
     const activeMarkerRef = useRef<NaverMapTypes.Marker | null>(null); // 현재 활성화된 마커
 
+    // 네이버 맵스 객체를 위한 타입 안전 접근 도우미 함수
+    const getNaverMaps = (): NaverMapTypes.NaverMapsApi => {
+        return ((window.naver as unknown) as { maps: NaverMapTypes.NaverMapsApi }).maps;
+    };
+
     // 현재 일차에 해당하는 장소들의 경계에 맞게 지도 포커스 맞추기
     const fitBoundsToActivePlaces = (activePlaces: Place[]) => {
         if (!mapRef.current || activePlaces.length === 0) return;
         
         if (activePlaces.length === 1) {
             // 장소가 하나만 있는 경우 해당 위치로 중심 이동
-            const latLng = new window.naver.maps.LatLng(activePlaces[0].lat, activePlaces[0].lng);
+            const naverMaps = getNaverMaps();
+            const latLng = new naverMaps.LatLng(activePlaces[0].lat, activePlaces[0].lng);
             mapRef.current.panTo(latLng, {duration: 700, easing: 'easeOutCubic'});
             
             // 애니메이션 완료 후 줌 레벨 변경
@@ -180,7 +175,8 @@ const NaverMap: React.FC<NaverMapProps> = ({
         // 중간 위치를 계산하여 먼저 이동
         const centerLat = (minLat + maxLat) / 2;
         const centerLng = (minLng + maxLng) / 2;
-        const centerLatLng = new window.naver.maps.LatLng(centerLat, centerLng);
+        const naverMaps = getNaverMaps();
+        const centerLatLng = new naverMaps.LatLng(centerLat, centerLng);
         
         mapRef.current.panTo(centerLatLng, {duration: 700, easing: 'easeOutCubic'});
         
@@ -188,9 +184,9 @@ const NaverMap: React.FC<NaverMapProps> = ({
         setTimeout(() => {
             if (mapRef.current) {
                 // 지도를 경계에 맞게 조정
-                const bounds = new window.naver.maps.LatLngBounds(
-                    new window.naver.maps.LatLng(minLat, minLng),
-                    new window.naver.maps.LatLng(maxLat, maxLng)
+                const bounds = new naverMaps.LatLngBounds(
+                    new naverMaps.LatLng(minLat, minLng),
+                    new naverMaps.LatLng(maxLat, maxLng)
                 );
                 
                 mapRef.current.fitBounds(bounds);
@@ -235,8 +231,9 @@ const NaverMap: React.FC<NaverMapProps> = ({
             if (!mapElement.current || !window.naver || !window.naver.maps) return;
 
             // 기본 지도 생성
+            const naverMaps = getNaverMaps();
             const mapOptions = {
-                center: new window.naver.maps.LatLng(center.lat, center.lng),
+                center: new naverMaps.LatLng(center.lat, center.lng),
                 zoom: zoom,
                 // 로고 컨트롤 (왼쪽 하단 Naver Corp 텍스트) 숨기기
                 logoControl: false,
@@ -247,10 +244,11 @@ const NaverMap: React.FC<NaverMapProps> = ({
                 // 줌 컨트롤 (오른쪽 확대/축소 버튼) 숨기기
                 zoomControl: false,
                 // 지도 이동 애니메이션 활성화
-                disableKineticPan: false
+                disableKineticPan: false,
+                
             };
 
-            const map = new window.naver.maps.Map(mapElement.current, mapOptions);
+            const map = new naverMaps.Map(mapElement.current, mapOptions);
             mapRef.current = map;
 
             // 정보창 생성
@@ -259,7 +257,7 @@ const NaverMap: React.FC<NaverMapProps> = ({
             infoWindowRef.current = infoWindow;
 
             // 지도 클릭 이벤트 추가
-            window.naver.maps.Event.addListener(map, 'click', () => {
+            naverMaps.Event.addListener(map, 'click', () => {
                 closeInfoWindow();
             });
 
@@ -280,7 +278,7 @@ const NaverMap: React.FC<NaverMapProps> = ({
 
             // 마커들을 순서대로 연결하는 Polyline 생성
             const path = activePlaces.map(place => 
-                new window.naver.maps.LatLng(place.lat, place.lng)
+                new naverMaps.LatLng(place.lat, place.lng)
             );
 
             // 현재 일차에 맞는 색상 가져오기
@@ -295,7 +293,7 @@ const NaverMap: React.FC<NaverMapProps> = ({
                 map: map
             };
 
-            const polyline = new window.naver.maps.Polyline(polylineOptions);
+            const polyline = new naverMaps.Polyline(polylineOptions);
             polylineRef.current = polyline;
 
             // 장소마다 마커 생성 및 정보창 연결
@@ -313,7 +311,7 @@ const NaverMap: React.FC<NaverMapProps> = ({
                 markersRef.current.push(marker);
 
                 // 마커 클릭 이벤트 처리
-                window.naver.maps.Event.addListener(marker, 'click', () => {
+                naverMaps.Event.addListener(marker, 'click', () => {
                     // 이미 열려있는 마커를 다시 클릭한 경우 정보창 닫기
                     if (activeMarkerRef.current === marker) {
                         closeInfoWindow();
@@ -354,7 +352,8 @@ const NaverMap: React.FC<NaverMapProps> = ({
         // 위도에서 약간 뺀 값으로 설정하여 지도 중심이 마커보다 조금 아래에 오도록 함
         // 위도가 작아질수록 지도는 남쪽(아래쪽)으로 이동
         const offsetLat = place.lat + 0.005; // 약간 아래쪽으로 조정
-        const latLng = new window.naver.maps.LatLng(offsetLat, place.lng);
+        const naverMaps = getNaverMaps();
+        const latLng = new naverMaps.LatLng(offsetLat, place.lng);
         mapRef.current.panTo(latLng, {duration: 500, easing: 'easeOutCubic'});
         
         // 해당 마커 찾기

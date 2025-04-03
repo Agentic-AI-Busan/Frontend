@@ -10,6 +10,8 @@ interface TravelItem {
   image: string;
   title: string;
   description: string;
+  location?: string;
+  coordinates?: { lat: number; lng: number };
 }
 
 interface SelectedItem {

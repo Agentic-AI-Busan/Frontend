@@ -142,26 +142,41 @@ const TravelGrid = styled.div`
 // 여행 카드 컴포넌트
 const TravelCard = styled.div`
     position: relative;
-    border-radius: 10px;
+    border-radius: 12px;
     overflow: hidden;
-    border: 1px solid #f0f0f0;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
-    transition: all 0.3s ease;
+    border: 1px solid #eaeaea;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.04);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     height: 295px;
     background: #fff;
     display: flex;
     flex-direction: column;
     
     &:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.14);
+        transform: translateY(-5px);
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
         cursor: pointer;
-        background: #fafafa;
-        border-color: #e8e8e8;
+        border-color: #d9e8f6;
         
         img {
-            transform: scale(1.05);
+            transform: scale(1.07);
         }
+    }
+    
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(90deg, #3498db, #4dabf7);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    &:hover::before {
+        opacity: 1;
     }
 `;
 
@@ -177,43 +192,75 @@ const TravelCardImage = styled.div`
         bottom: 0;
         left: 0;
         right: 0;
-        height: 30px;
-        background: linear-gradient(to top, rgba(0, 0, 0, 0.2), transparent);
+        height: 40px;
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.25), transparent);
+        z-index: 1;
     }
     
     img {
         width: 100%;
         height: 100%;
         object-fit: cover;
-        transition: transform 0.5s ease;
+        transition: transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
     }
 `;
 
 const TravelCardContent = styled.div`
-    padding: 15px 16px 0;
+    padding: 16px 18px 0;
     flex-grow: 1;
+    position: relative;
+    
+    &::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 18px;
+        right: 18px;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, #f0f0f0, transparent);
+        opacity: 0.6;
+    }
     
     strong {
         display: block;
         font-size: 18px;
-        color: #333;
-        margin: 0 0 8px;
+        color: #1a3b5d;
+        margin: 0 0 10px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        font-weight: 600;
+        letter-spacing: -0.3px;
+        position: relative;
+        padding-left: 12px;
+        padding-bottom: 0;
+        
+        &::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 3px;
+            height: 100%;
+            background: #3498db;
+            border-radius: 1px;
+            opacity: 0.85;
+        }
     }
 
     div {
         display: block;
-        font-size: 14px;
-        color: #666;
+        font-size: 14.5px;
+        color: #4b5563;
         margin: 0 0 8px;
-        line-height: 1.4;
-        max-height: 40px;
+        line-height: 1.5;
+        max-height: 44px;
         overflow: hidden;
         display: -webkit-box;
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
+        word-break: keep-all;
+        text-overflow: ellipsis;
     }
 `;
 
@@ -252,6 +299,8 @@ interface TravelItem {
     image: string;
     title: string;
     description: string;
+    location?: string;
+    coordinates?: { lat: number; lng: number };
 }
 
 interface SelectedItem {
