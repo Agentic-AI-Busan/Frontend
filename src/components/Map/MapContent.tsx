@@ -327,20 +327,23 @@ export const generateInfoWindowContent = (place: Place): string => {
 export const createInfoWindow = () => {
     if (!window.naver || !window.naver.maps) return null;
     
-    return new window.naver.maps.InfoWindow({
+    // naver.maps를 NaverMapTypes.NaverMapsApi로 명시적 타입 캐스팅
+    const naverMaps = (window.naver.maps as unknown) as NaverMapTypes.NaverMapsApi;
+    
+    return new naverMaps.InfoWindow({
         content: '',
         maxWidth: infoWindowStyle.maxWidth,
         backgroundColor: infoWindowStyle.backgroundColor,
         borderColor: infoWindowStyle.borderColor,
         borderWidth: infoWindowStyle.borderWidth,
         borderRadius: '12px',
-        anchorSize: new window.naver.maps.Size(
+        anchorSize: new naverMaps.Size(
             infoWindowStyle.anchorSize.width, 
             infoWindowStyle.anchorSize.height
         ),
         anchorSkew: infoWindowStyle.anchorSkew,
         anchorColor: infoWindowStyle.anchorColor,
-        pixelOffset: new window.naver.maps.Point(
+        pixelOffset: new naverMaps.Point(
             infoWindowStyle.pixelOffset.x, 
             infoWindowStyle.pixelOffset.y
         ),
@@ -372,11 +375,14 @@ export const createMarker = (
 ) => {
     if (!window.naver || !window.naver.maps) return null;
     
+    // naver.maps를 NaverMapTypes.NaverMapsApi로 명시적 타입 캐스팅
+    const naverMaps = (window.naver.maps as unknown) as NaverMapTypes.NaverMapsApi;
+    
     // 색상이 제공되면 해당 색상 사용, 아니면 기본 일차별 색상 사용
     const markerColor = color || getDayColor(day);
     
     const markerOptions = {
-        position: new window.naver.maps.LatLng(position.lat, position.lng),
+        position: new naverMaps.LatLng(position.lat, position.lng),
         map: map,
         title: title,
         icon: {
@@ -408,12 +414,12 @@ export const createMarker = (
                     text-align: center;
                 ">${order}</div>
             </div>`,
-            size: new window.naver.maps.Size(32, 32),
-            anchor: new window.naver.maps.Point(16, 16)
+            size: new naverMaps.Size(32, 32),
+            anchor: new naverMaps.Point(16, 16)
         }
     };
     
-    return new window.naver.maps.Marker(markerOptions);
+    return new naverMaps.Marker(markerOptions);
 };
 
 // =============== React 컴포넌트 ===============
