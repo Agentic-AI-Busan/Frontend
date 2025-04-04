@@ -18,6 +18,7 @@ interface SimpleMapContentProps {
     center?: Coordinates;
     zoom?: number;
     places?: Place[];
+    style?: React.CSSProperties;
 }
 
 // 네이버 맵 타입 정의
@@ -83,7 +84,8 @@ const MapElement = styled.div`
 const SimpleMapContent: React.FC<SimpleMapContentProps> = ({
     center = { lat: 35.1796, lng: 129.0756 }, // 부산 해운대 좌표 기본값
     zoom = 15,
-    places = []
+    places = [],
+    style
 }) => {
     const mapRef = useRef<NaverMap | null>(null);
     const mapElement = useRef<HTMLDivElement>(null);
@@ -208,7 +210,7 @@ const SimpleMapContent: React.FC<SimpleMapContentProps> = ({
     }, [center, zoom, places]);
 
     return (
-        <MapContainer>
+        <MapContainer style={style}>
             <MapElement ref={mapElement} id="map" />
         </MapContainer>
     );

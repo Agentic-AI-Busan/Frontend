@@ -2,6 +2,7 @@ import React from 'react';
 import styled from 'styled-components';
 import ModalFrame from './ModalFrame';
 import SimpleMapContent from '../Map/SimpleMapContent';
+import img_3 from '../../assets/images/travel_img3.jpg'
 
 interface TravelItem {
     id: number;
@@ -10,6 +11,7 @@ interface TravelItem {
     description: string;
     location?: string;
     coordinates?: { lat: number; lng: number };
+    operatingHours?: string;
 }
 
 interface SelectionModalProps {
@@ -24,20 +26,19 @@ const ModalContent = styled.div`
     display: flex;
     flex-direction: row;
     height: 100%;
-    max-height: 90vh;
     overflow: hidden;
     background-color: white;
-    border-radius: 16px;
 `;
 
 // 지도 컨테이너
 const MapContainer = styled.div`
     width: 40%;
     position: relative;
-    border-radius: 16px;
     overflow: hidden;
-    height: 460px;
-    margin: 30px 0 30px 30px;
+    display: flex;
+    min-height: 500px;
+    padding: 30px 0 30px 30px;
+    box-sizing: border-box;
 `;
 
 // 정보 컨테이너 (오른쪽)
@@ -53,9 +54,9 @@ const InfoContainer = styled.div`
 // 이미지 헤더 컨테이너
 const ImageHeaderContainer = styled.div`
     position: relative;
-    margin-bottom: 10px;
+    margin-bottom: 20px;
     width: 100%;
-    height: 240px;
+    height: 220px;
     border-radius: 16px;
     overflow: hidden;
 `;
@@ -112,7 +113,6 @@ const ModalBody = styled.div`
 
 // 정보 섹션
 const InfoSection = styled.div`
-    margin-bottom: 20px;
     flex-grow: 1;
 `;
 
@@ -120,7 +120,7 @@ const InfoSection = styled.div`
 const SectionTitle = styled.h3`
     font-size: 18px;
     font-weight: 500;
-    margin-bottom: 12px;
+    margin-bottom: 5px;
     color: #333;
     position: relative;
     display: flex;
@@ -149,13 +149,34 @@ const ModalDescription = styled.p`
     margin: 0;
 `;
 
+// 운영시간 아이콘 컨테이너
+const TimeIconContainer = styled.div`
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    color: #555;
+    
+    svg {
+        min-width: 16px;
+        margin-right: 8px;
+        color: #3498db;
+    }
+`;
+
+// 운영시간 텍스트
+const OperatingHoursText = styled.span`
+    font-size: 15px;
+    color: #444;
+    line-height: 1.5;
+`;
+
 // 액션 영역
 const ActionSection = styled.div`
     display: flex;
     justify-content: center;
     gap: 15px;
-    margin-top: auto;
-    padding-top: 20px;
+    margin-top: 15px;
+    padding-top: 15px;
 `;
 
 // 모달 버튼 스타일 컴포넌트
@@ -234,13 +255,15 @@ const SelectionModal: React.FC<SelectionModalProps> = ({
                             places={mapPlaces}
                             center={selectedTravelItem.coordinates || defaultCoordinates}
                             zoom={15}
+                            style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }}
                         />
                     </MapContainer>
 
                     {/* 오른쪽 정보 영역 */}
                     <InfoContainer>
                         <ImageHeaderContainer>
-                            <ModalImage src={selectedTravelItem.image} alt={selectedTravelItem.title} />
+                            {/* <ModalImage src={selectedTravelItem.image} alt={selectedTravelItem.title} /> */}
+                            <ModalImage src={img_3} alt={selectedTravelItem.title} />
                             <ImageOverlay>
                                 <ModalTitle>{selectedTravelItem.title}</ModalTitle>
                                 <ModalLocation>
@@ -253,6 +276,19 @@ const SelectionModal: React.FC<SelectionModalProps> = ({
                         </ImageHeaderContainer>
                         
                         <ModalBody>
+                            <InfoSection>
+                                <SectionTitle>운영시간</SectionTitle>
+                                <TimeIconContainer>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M12 2C6.486 2 2 6.486 2 12C2 17.514 6.486 22 12 22C17.514 22 22 17.514 22 12C22 6.486 17.514 2 12 2ZM12 20C7.589 20 4 16.411 4 12C4 7.589 7.589 4 12 4C16.411 4 20 7.589 20 12C20 16.411 16.411 20 12 20Z" fill="currentColor"/>
+                                        <path d="M13 7H11V12.414L14.293 15.707L15.707 14.293L13 11.586V7Z" fill="currentColor"/>
+                                    </svg>
+                                    <OperatingHoursText>
+                                        {selectedTravelItem.operatingHours || "정보 없음"}
+                                    </OperatingHoursText>
+                                </TimeIconContainer>
+                            </InfoSection>
+
                             <InfoSection>
                                 <SectionTitle>상세 정보</SectionTitle>
                                 <ModalDescription>{selectedTravelItem.description}</ModalDescription>

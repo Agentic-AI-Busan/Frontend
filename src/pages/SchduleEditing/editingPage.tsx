@@ -13,6 +13,7 @@ import SearchModal, { Place as SearchPlace } from '../../components/Modal/Search
 import DeleteModal from '../../components/Modal/DeleteModal';
 import SaveModal from '../../components/Modal/SaveModal';
 
+// 타입 정의
 interface VisitPlace {
     id: number;
     name: string;
@@ -27,6 +28,15 @@ interface DaySchedule {
     day: number;
     date: string;
     places: VisitPlace[];
+}
+
+// AISidebar 컴포넌트에서 사용할 Place 타입을 SearchPlace와 호환되는 형태로 정의
+interface RecommendPlace {
+    id: number;
+    name: string;
+    address: string;
+    imageUrl?: string;
+    coordinates?: { lat: number; lng: number };
 }
 
 const EditingPage = () => {
@@ -71,6 +81,53 @@ const [schedules, setSchedules] = useState<DaySchedule[]>([
         ] 
         },
 ]);
+
+// AI 추천 장소를 추가하기 위한 함수
+const addRecommendedPlace = (place: RecommendPlace, targetDay?: number) => {
+    // 새 장소 객체 생성
+    const newPlace: VisitPlace = {
+        id: place.id || Date.now(),
+        name: place.name,
+        memo: '',
+        location: place.address,
+        imageUrl: place.imageUrl,
+        coordinates: place.coordinates,
+    };
+    
+    // 특정 일차가 지정된 경우
+    if (targetDay !== undefined) {
+        // targetDay가 1부터 시작한다고 가정하고, 배열 인덱스로 변환 (0부터 시작)
+        const dayIndex = targetDay - 1;
+        
+        // 유효한 일차인지 확인
+        if (dayIndex >= 0 && dayIndex < schedules.length) {
+            setSchedules(prev => prev.map((schedule, index) => 
+                index === dayIndex 
+                    ? { ...schedule, places: [...schedule.places, newPlace] }
+                    : schedule
+            ));
+            return true; // 성공적으로 추가됨
+        }
+        return false; // 유효하지 않은 일차
+    }
+    
+    // 일차를 지정하지 않은 경우, 가장 적합한 일차 선택 로직
+    // 1. 각 일차별 장소 개수 확인
+    const placeCounts = schedules.map(day => day.places.length);
+    
+    // 2. 가장 적은 장소를 가진 일차 찾기
+    const minPlacesCount = Math.min(...placeCounts);
+    const dayWithMinPlaces = placeCounts.findIndex(count => count === minPlacesCount);
+    
+    // 3. 가장 적은 장소를 가진 일차에 장소 추가
+    setSchedules(prev => prev.map((schedule, index) => 
+        index === dayWithMinPlaces 
+            ? { ...schedule, places: [...schedule.places, newPlace] }
+            : schedule
+    ));
+    
+    return true; // 성공적으로 추가됨
+};
 
 // 드래그 관련 상태
 const [draggedItem, setDraggedItem] = useState<{ dayIndex: number, placeIndex: number } | null>(null);
@@ -564,7 +621,7 @@ return (
         </MainContent>
     </MainContainer>
     
-    <AISidebar isOpen={true}/>
+    <AISidebar isOpen={true} addRecommendedPlace={addRecommendedPlace}/>
     
     {/* 장소 검색 모달 추가 */}
     <SearchModal
