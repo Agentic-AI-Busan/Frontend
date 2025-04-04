@@ -9,6 +9,9 @@ import {
   getDayVeryLightColor, 
   getDayMediumColor 
 } from '../../components/Map/MapContent';
+import SearchModal, { Place as SearchPlace } from '../../components/Modal/SearchModal';
+import DeleteModal from '../../components/Modal/DeleteModal';
+import SaveModal from '../../components/Modal/SaveModal';
 
 interface VisitPlace {
     id: number;
@@ -17,6 +20,7 @@ interface VisitPlace {
     time?: string;
     location?: string;
     imageUrl?: string;
+    coordinates?: { lat: number; lng: number };
 }
 
 interface DaySchedule {
@@ -92,18 +96,39 @@ const prevPage = () => {
   }
 };
 
+// 장소 검색 모달 상태
+const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null);
+
 const addPlace = (dayIndex: number) => {
+    // SearchModal을 열기 위한 상태 업데이트
+    setIsSearchModalOpen(true);
+    setSelectedDayIndex(dayIndex);
+};
+
+// SearchModal로부터 선택된 장소를 추가하는 함수
+const handleAddPlaceFromSearch = (place: SearchPlace) => {
+    if (selectedDayIndex === null) return;
+    
     const newPlace: VisitPlace = {
-    id: Date.now(),
-    name: '',
-    memo: '',
+        id: Date.now(),
+        name: place.name,
+        memo: '',
+        location: place.address,
+        imageUrl: place.imageUrl,
+        // 좌표 정보 추가
+        coordinates: place.coordinates,
     };
     
     setSchedules(prev => prev.map((schedule, index) => 
-    index === dayIndex 
-        ? { ...schedule, places: [...schedule.places, newPlace] }
-        : schedule
+        index === selectedDayIndex 
+            ? { ...schedule, places: [newPlace, ...schedule.places] }
+            : schedule
     ));
+    
+    // 모달 닫기
+    setIsSearchModalOpen(false);
+    setSelectedDayIndex(null);
 };
 
 const updatePlace = (dayIndex: number, placeId: number, field: keyof VisitPlace, value: string) => {
@@ -316,24 +341,49 @@ const handleDrop = (e: React.DragEvent) => {
     handleDragEnd(e);
 };
 
+// 삭제 모달 상태 추가
+const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+const [placeToDelete, setPlaceToDelete] = useState<{ dayIndex: number, placeId: number } | null>(null);
+
+// 저장 모달 상태 추가
+const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+
 // 메모 저장 함수
 const saveMemo = () => {
+    // 저장 모달 열기
+    setIsSaveModalOpen(true);
+};
+
+// 실제 저장 기능 수행 함수
+const handleSave = () => {
     console.log('메모 저장됨:', schedules);
     // 로컬 스토리지나 API를 통해 서버에 저장하는 로직 추가
+    setIsSaveModalOpen(false); // 모달 닫기
     alert('메모가 저장되었습니다.');
 };
 
 // 장소 삭제 함수 추가
 const deletePlace = (dayIndex: number, placeId: number) => {
-  if (window.confirm('이 장소를 삭제하시겠습니까?')) {
+  // 삭제 모달 열기
+  setPlaceToDelete({ dayIndex, placeId });
+  setIsDeleteModalOpen(true);
+};
+
+// 실제 삭제 기능 수행 함수
+const handleDelete = () => {
+  if (placeToDelete) {
     setSchedules(prev => prev.map((schedule, index) => 
-      index === dayIndex
+      index === placeToDelete.dayIndex
         ? {
             ...schedule,
-            places: schedule.places.filter(place => place.id !== placeId)
+            places: schedule.places.filter(place => place.id !== placeToDelete.placeId)
           }
         : schedule
     ));
+    
+    // 모달 상태 초기화
+    setIsDeleteModalOpen(false);
+    setPlaceToDelete(null);
   }
 };
 
@@ -483,7 +533,7 @@ return (
                 >
                     <AddPlaceButton onClick={() => addPlace(dayIndex)}>
                       <PlusIcon>+</PlusIcon>
-                      <AddPlaceText>장소 추가</AddPlaceText>
+                      <AddPlaceText>숙소 추가</AddPlaceText>
                     </AddPlaceButton>
                     {schedule.places.map((place, placeIndex) => (
                       <EditingCard
@@ -515,6 +565,29 @@ return (
     </MainContainer>
     
     <AISidebar isOpen={true}/>
+    
+    {/* 장소 검색 모달 추가 */}
+    <SearchModal
+        isOpen={isSearchModalOpen}
+        onClose={() => setIsSearchModalOpen(false)}
+        onAddPlace={handleAddPlaceFromSearch}
+    />
+    
+    {/* 삭제 확인 모달 추가 */}
+    <DeleteModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onDelete={handleDelete}
+        itemName={placeToDelete ? schedules[placeToDelete.dayIndex]?.places.find(p => p.id === placeToDelete.placeId)?.name || '장소' : '장소'}
+    />
+    
+    {/* 저장 확인 모달 추가 */}
+    <SaveModal
+        isOpen={isSaveModalOpen}
+        onClose={() => setIsSaveModalOpen(false)}
+        onSave={handleSave}
+        title="일정 저장"
+    />
     </PageLayout>
 );
 };
@@ -688,17 +761,12 @@ const ScheduleContainer = styled.div`
 
 const DayContainer = styled.div<{ active: boolean; dayNumber: number }>`
   display: ${props => props.active ? 'block' : 'none'};
-  margin-bottom: 10px;
   width: 100%;
   box-sizing: border-box;
-  border-radius: 12px;
   background-color: white;
   padding: 20px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
   height: 100%;
-  /* 스크롤바 제거 */
-  overflow-y: visible;
-  transition: transform 0.2s, box-shadow 0.2s;  
 `;
 
 const DayHeader = styled.div`

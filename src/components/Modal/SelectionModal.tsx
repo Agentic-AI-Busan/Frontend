@@ -26,7 +26,8 @@ const ModalContent = styled.div`
     height: 100%;
     max-height: 90vh;
     overflow: hidden;
-    padding: 2rem;
+    background-color: white;
+    border-radius: 16px;
 `;
 
 // 지도 컨테이너
@@ -36,8 +37,7 @@ const MapContainer = styled.div`
     border-radius: 16px;
     overflow: hidden;
     height: 460px;
-    margin-right: 20px;
-    // box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    margin: 30px 0 30px 30px;
 `;
 
 // 정보 컨테이너 (오른쪽)
@@ -46,6 +46,8 @@ const InfoContainer = styled.div`
     display: flex;
     flex-direction: column;
     overflow-y: auto;
+    padding: 30px 30px 30px 10px;
+    margin-left: 10px;
 `;
 
 // 이미지 헤더 컨테이너
@@ -258,7 +260,7 @@ const SelectionModal: React.FC<SelectionModalProps> = ({
                             
                             <ActionSection>
                                 <CancelButton onClick={onClose}>취소하기</CancelButton>
-                                <ModalButton onClick={onSelect}>선택하기</ModalButton>
+                                <ModalButton onClick={onSelect}>추가하기</ModalButton>
                             </ActionSection>
                         </ModalBody>
                     </InfoContainer>

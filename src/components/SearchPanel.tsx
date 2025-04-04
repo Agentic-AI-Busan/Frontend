@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
+import travel_img3 from '../assets/images/travel_img3.jpg';
+import SelectionModal from './Modal/SelectionModal';
 
 // 애니메이션 keyframe 정의
 const fadeIn = keyframes`
@@ -139,6 +141,7 @@ const SearchForm = styled.div`
     display: flex;
     gap: 10px;
     align-items: center;
+    margin-top: 10px;
 `;
 
 // 검색 입력창 스타일 컴포넌트
@@ -193,10 +196,11 @@ const SearchResults = styled.div`
 `;
 
 // 검색 결과 아이템 스타일 컴포넌트
-const SearchResultItem = styled.div`
+const SearchResultItem = styled.button`
     display: flex;
     justify-content: space-between;
     align-items: center;
+    width: 100%;
     padding: 14px 16px;
     margin: 10px 0;
     border-radius: 12px;
@@ -206,6 +210,8 @@ const SearchResultItem = styled.div`
     border: 1px solid #f0f0f0;
     transition: all 0.3s;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    cursor: pointer;
+    text-align: left;
     
     &:hover {
         background: #fafafa;
@@ -213,6 +219,24 @@ const SearchResultItem = styled.div`
         transform: translateY(-2px);
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.04);
     }
+`;
+
+// 장소 이미지 스타일 컴포넌트
+const PlaceImage = styled.div`
+    width: 50px;
+    height: 50px;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-right: 16px;
+    flex-shrink: 0;
+    background-color: #f4f4f4;
+`;
+
+// 이미지 스타일 컴포넌트
+const Image = styled.img`
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 `;
 
 // 장소 정보 스타일 컴포넌트
@@ -266,7 +290,7 @@ interface SearchPanelProps {
     searchTerm: string;
     onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onSearch: () => void;
-    searchResults: { id: number; name: string; address: string }[];
+    searchResults: { id: number; name: string; address: string; imageUrl?: string; coordinates?: { lat: number; lng: number } }[];
     onAddPlace: (place: { id: number; name: string }) => void;
 }
 
@@ -283,32 +307,93 @@ const SearchPanel: React.FC<SearchPanelProps> = ({
     const Container = type === 'travel' ? TravelSearchContainer : RestaurantSearchContainer;
     const title = type === 'travel' ? '여행지 검색' : '음식점 검색';
     const placeholder = type === 'travel' ? '여행지를 검색하세요' : '음식점을 검색하세요';
+    
+    // 모달 상태 관리
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedPlace, setSelectedPlace] = useState<null | {
+        id: number;
+        title: string;
+        image: string;
+        description: string;
+        location?: string;
+        coordinates?: { lat: number; lng: number }
+    }>(null);
+    
+    // 기본 이미지 URL
+    const defaultImage = travel_img3;
+    
+    // 장소 선택 처리
+    const handlePlaceClick = (place: { 
+        id: number; 
+        name: string; 
+        address: string; 
+        imageUrl?: string; 
+        coordinates?: { lat: number; lng: number } 
+    }) => {
+        setSelectedPlace({
+            id: place.id,
+            title: place.name,
+            image: place.imageUrl || defaultImage,
+            description: `${place.name}는 ${place.address}에 위치한 ${type === 'travel' ? '관광지' : '음식점'}입니다.`,
+            location: place.address,
+            coordinates: place.coordinates
+        });
+        setIsModalOpen(true);
+    };
+    
+    // 모달에서 장소 선택 시 처리
+    const handleSelectPlace = () => {
+        if (selectedPlace) {
+            onAddPlace({ id: selectedPlace.id, name: selectedPlace.title });
+        }
+        setIsModalOpen(false);
+    };
 
     return (
-        <Container isClosing={isClosing}>
-            <SearchTitle>{title}</SearchTitle>
-            <SearchForm>
-                <SearchInput 
-                    type="text" 
-                    placeholder={placeholder} 
-                    value={searchTerm}
-                    onChange={onSearchChange}
-                    onKeyPress={(e) => e.key === 'Enter' && onSearch()}
-                />
-                <SearchButton onClick={onSearch}>검색</SearchButton>
-            </SearchForm>
-            <SearchResults>
-                {searchResults.map(place => (
-                    <SearchResultItem key={place.id}>
-                        <PlaceInfo>
-                            <PlaceName>{place.name}</PlaceName>
-                            <PlaceAddress>{place.address}</PlaceAddress>
-                        </PlaceInfo>
-                        <AddButton onClick={() => onAddPlace(place)} isComplete={isComplete}>추가</AddButton>
-                    </SearchResultItem>
-                ))}
-            </SearchResults>
-        </Container>
+        <>
+            <Container isClosing={isClosing}>
+                <SearchTitle>{title}</SearchTitle>
+                <SearchForm>
+                    <SearchInput 
+                        type="text" 
+                        placeholder={placeholder} 
+                        value={searchTerm}
+                        onChange={onSearchChange}
+                        onKeyPress={(e) => e.key === 'Enter' && onSearch()}
+                    />
+                    <SearchButton onClick={onSearch}>검색</SearchButton>
+                </SearchForm>
+                <SearchResults>
+                    {searchResults.map(place => (
+                        <SearchResultItem 
+                            key={place.id} 
+                            onClick={() => handlePlaceClick(place)} 
+                            type="button"
+                        >
+                            <PlaceImage>
+                                <Image src={place.imageUrl || defaultImage} alt={place.name} />
+                            </PlaceImage>
+                            <PlaceInfo>
+                                <PlaceName>{place.name}</PlaceName>
+                                <PlaceAddress>{place.address}</PlaceAddress>
+                            </PlaceInfo>
+                            <AddButton onClick={(e) => {
+                                e.stopPropagation();
+                                onAddPlace(place);
+                            }} isComplete={isComplete}>선택</AddButton>
+                        </SearchResultItem>
+                    ))}
+                </SearchResults>
+            </Container>
+            
+            {/* 선택한 장소 정보 모달 */}
+            <SelectionModal 
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                selectedTravelItem={selectedPlace}
+                onSelect={handleSelectPlace}
+            />
+        </>
     );
 };
 

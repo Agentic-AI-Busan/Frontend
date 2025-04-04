@@ -24,7 +24,6 @@ const ModalOverlay = styled.div`
 
 const ModalContent = styled.div<{ size?:'small' | 'medium' | 'large' }>`
     background-color: white;
-    // padding: 2rem;
     border-radius: 8px;
     position: relative;
     max-height: 90vh;
@@ -35,7 +34,7 @@ const ModalContent = styled.div<{ size?:'small' | 'medium' | 'large' }>`
         switch (props.size) {
             case 'small':
                 return `
-                    width: 300px;
+                    width: 400px;
                     max-width: 90%;
                 `;
             case 'medium':
@@ -60,7 +59,7 @@ const ModalHeader = styled.div`
 `;
 
 const ModalTitle = styled.h2`
-    margin: 0;
+    margin-top: 20px;
     font-size: 1.5rem;
     font-weight: 600;
     color: #333;
