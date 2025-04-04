@@ -519,7 +519,7 @@ const TravelRouteSidebar: React.FC<TravelRouteSidebarProps> = ({
                                     <RouteLineBarFirst day={activeDay} />
                                     {selectedDayData.routes && selectedDayData.routes[index] && (
                                         <>
-                                            <RouteDuration day={activeDay}>⏱️ {selectedDayData.routes[index].duration}</RouteDuration>
+                                            <RouteDuration day={activeDay}>⏱ {selectedDayData.routes[index].duration}</RouteDuration>
                                             <RouteDistance day={activeDay}>🚗 {selectedDayData.routes[index].distance}</RouteDistance>
                                         </>
                                     )}

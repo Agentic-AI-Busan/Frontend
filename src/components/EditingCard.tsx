@@ -82,9 +82,18 @@ const EditingCard: React.FC<EditingCardProps> = ({
                 onMouseUp={handleOptionsMouseUp}
                 onMouseLeave={handleOptionsMouseUp}
             >
-                <OptionsDot />
-                <OptionsDot />
-                <OptionsDot />
+                <DotsContainer>
+                    <DotsRow>
+                        <OptionsDot />
+                        <OptionsDot />
+                        <OptionsDot />
+                    </DotsRow>
+                    <DotsRow>
+                        <OptionsDot />
+                        <OptionsDot />
+                        <OptionsDot />
+                    </DotsRow>
+                </DotsContainer>
             </OptionsButton>
             </OptionsContainer>
         </PlaceHeader>
@@ -204,7 +213,7 @@ const PlaceItem = styled.div`
 const PlaceHeader = styled.div`
     display: flex;
     align-items: center;
-    margin-bottom: 8px;
+    margin: 3px 3px 8px 3px;
 `;
 
 const PlaceNumberBadge = styled.div<{ dayNumber: number }>`
@@ -241,18 +250,21 @@ const DeleteButton = styled.button`
     justify-content: center;
     background: transparent;
     border: none;
-    padding: 4px;
+    padding: 4px 8px;
     cursor: pointer;
     border-radius: 4px;
+    transition: color 0.2s;
+    transform: translateY(1px);
+    color: #64748b;
     
     &:hover {
-        background-color: #fee2e2;
-        color: #b91c1c;
+        color: #e74c3c;
     }
 `;
 
 const DeleteIcon = styled.span`
     font-size: 14px;
+    font-weight: 500;
     margin-right: 4px;
 `;
 
@@ -260,9 +272,10 @@ const OptionsButton = styled.button`
     height: 25px;
     display: flex;
     align-items: center;
+    justify-content: center;
     background: transparent;
     border: none;
-    padding: 4px;
+    padding: 3px 8px;
     cursor: pointer;
     border-radius: 4px;
     
@@ -271,12 +284,24 @@ const OptionsButton = styled.button`
     }
 `;
 
+const DotsContainer = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+`;
+
+const DotsRow = styled.div`
+    display: flex;
+    flex-direction: row;
+    gap: 3px;
+`;
+
 const OptionsDot = styled.div`
     width: 4px;
     height: 4px;
     background-color: #64748b;
     border-radius: 50%;
-    margin: 0 2px;
+    margin: 0;
 `;
 
 const PlaceDetails = styled.div`
