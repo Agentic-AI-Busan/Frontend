@@ -20,7 +20,7 @@ const fadeIn = keyframes`
 
 // 사이드바 컨테이너
 const SidebarContainer = styled.div`
-    width: 400px;
+    width: 410px;
     height: calc(100vh - 40px);
     background: #ffffff;
     border-right: 1px solid #e0e0e0;
@@ -65,93 +65,155 @@ const DayBadge = styled.div<{ day: number }>`
     font-size: 16px;
     padding: 8px 16px;
     border-radius: 20px;
-    box-shadow: 0 2px 4px rgba(52, 152, 219, 0.2);
+    box-shadow: 0 2px 4px ${props => `${getDayColor(props.day)}33`};
 `;
 
 // 여행 날짜 표시
 const TravelDate = styled.div`
-    font-size: 15px;
+    font-size: 16px;
     color: #7f8c8d;
-    font-weight: 500;
+    font-weight: 600;
 `;
 
 // 요약 정보 컨테이너
 const SummaryContainer = styled.div`
-    background: #f5f9fc;
-    border-radius: 10px;
-    padding: 15px;
+    background: #f9f9f9;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    border-radius: 14px;
+    padding: 18px;
     margin-bottom: 20px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
+    width: 100%;
+    position: relative;
+    overflow: visible;
+    box-sizing: border-box;
 `;
 
 // 요약 정보 제목
-const SummaryTitle = styled.div`
+const SummaryTitle = styled.div<{ day?: number }>`
     font-size: 14px;
-    font-weight: 600;
-    color: #34495e;
-    margin-bottom: 12px;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 16px;
     display: flex;
     align-items: center;
+    position: relative;
+    padding-left: 12px;
     
     &:before {
         content: "📊";
         margin-right: 8px;
+        font-size: 16px;
+    }
+    
+    &:after {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 3px;
+        height: 18px;
+        background: ${props => getDayColor(props.day || 1)};
+        border-radius: 2px;
     }
 `;
 
 // 요약 정보 항목 컨테이너
 const SummaryItems = styled.div`
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 12px;
+    position: relative;
+    z-index: 1;
 `;
 
 // 요약 정보 항목
-const SummaryItem = styled.div`
+const SummaryItem = styled.div<{ day?: number }>`
     display: flex;
     flex-direction: column;
-    background: white;
-    padding: 10px;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    justify-content: center;
+    background: #ffffff;
+    padding: 14px 15px;
+    border-radius: 10px;
+    transition: all 0.2s ease;
+    min-height: 65px;
+    position: relative;
+    
+    &:hover {
+        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+        transform: translateY(-2px);
+    }
+    
+    &::before {
+        content: '';
+        position: absolute;
+        width: 100%;
+        height: 3px;
+        background: ${props => getDayColor(props.day || 1)};
+        left: 0;
+        top: 0;
+        border-radius: 10px 10px 0 0;
+        opacity: 0.7;
+    }
 `;
 
 // 항목 레이블
 const ItemLabel = styled.span`
     font-size: 12px;
-    color: #7f8c8d;
-    margin-bottom: 5px;
+    color: #95a5a6;
+    margin-bottom: 4px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
 `;
 
 // 항목 값
 const ItemValue = styled.span`
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 600;
-    color: #2c3e50;
+    color: #34495e;
+    letter-spacing: -0.3px;
 `;
 
 // 일차 컨테이너
 const DayContainer = styled.div`
-    margin-bottom: 20px;
+    margin-bottom: 10px;
     background: #f9f9f9;
     border-radius: 12px;
     padding: 15px;
+    width: 100%;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
     animation: ${fadeIn} 0.4s ease-out forwards;
+    box-sizing: border-box;
 `;
 
 // 장소 섹션 제목
-const PlacesSectionTitle = styled.div`
+const PlacesSectionTitle = styled.div<{ day?: number }>`
     font-size: 14px;
-    font-weight: 600;
-    color: #34495e;
-    margin-bottom: 15px;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 14px;
     display: flex;
     align-items: center;
+    position: relative;
+    padding-left: 12px;
     
     &:before {
         content: "📍";
         margin-right: 8px;
+        font-size: 16px;
+    }
+    
+    &:after {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 3px;
+        height: 18px;
+        background: ${props => getDayColor(props.day || 1)};
+        border-radius: 2px;
     }
 `;
 
@@ -164,48 +226,74 @@ const PlacesList = styled.ul`
 
 // 장소 항목
 const PlaceItem = styled.li<{ day: number }>`
-    margin: 12px 0;
+    margin: 8px 0;
     background: #ffffff;
     border-radius: 10px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     font-size: 14px;
     display: flex;
     flex-direction: row;
+    align-items: center;
     transition: all 0.2s;
     overflow: hidden;
     position: relative;
+    padding: 5px 10px;
+    min-height: 80px;
     
     &:hover {
         transform: translateX(3px);
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     }
+`;
 
-    &::before {
-        content: '';
-        position: absolute;
-        left: 0;
-        top: 0;
-        height: 100%;
-        width: 4px;
-        background: ${props => getDayColor(props.day)};
-        border-radius: 10px 0 0 10px;
-    }
+// 방문 순서 배지
+const PlaceOrderBadge = styled.div<{ day: number }>`
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: ${props => getDayColor(props.day)};
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    z-index: 2;
 `;
 
 // 장소 이미지
-const PlaceImage = styled.div<{ imageUrl: string }>`
-    width: 80px;
-    min-width: 80px;
-    height: 80px;
+const PlaceImage = styled.div<{ imageUrl: string, day: number }>`
+    width: 70px;
+    min-width: 70px;
+    height: 70px;
+    padding: 0;
+    margin: 5px 5px 5px 0;
     background-image: url(${props => props.imageUrl});
     background-size: cover;
     background-position: center;
+    background-repeat: no-repeat;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    align-self: center;
 `;
 
 // 장소 정보 컨테이너 (이미지 옆 내용)
 const PlaceContent = styled.div`
-    padding: 12px 15px;
+    padding: 10px;
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 80px;
+    box-sizing: border-box;
 `;
 
 // 장소 상단 정보 컨테이너
@@ -223,13 +311,6 @@ const PlaceName = styled.span`
     font-size: 15px;
 `;
 
-// 장소 시간
-const PlaceTime = styled.span`
-    font-size: 12px;
-    color: #7f8c8d;
-    font-weight: 500;
-`;
-
 // 장소 추가 정보 컨테이너
 const PlaceDetails = styled.div`
     font-size: 12px;
@@ -245,7 +326,7 @@ const PlaceHours = styled.div`
     align-items: center;
     
     &:before {
-        content: "⏰";
+        content: "🕒";
         margin-right: 5px;
         font-size: 11px;
     }
@@ -269,12 +350,12 @@ const RouteLine = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin: 10px 0;
+    margin: 0;
 `;
 
 const RouteLineBar = styled.div<{ day: number }>`
     width: 3px;
-    height: 40px;
+    height: 30px;
     background: ${props => getDayColor(props.day)};
     position: relative;
     
@@ -304,14 +385,14 @@ const RouteDistance = styled.div<{ day: number }>`
     position: absolute;
     right: 55%;
     top: 50%;
-    transform: translateY(-60%);
+    transform: translateY(-50%);
     background: ${props => getDayLightColor(props.day)};
     border-radius: 4px;
+    border: 1px solid ${props => getDayColor(props.day)};
     padding: 4px 8px;
     font-size: 11px;
     color: ${props => getDayTextColor(props.day)};
     font-weight: 500;
-    box-shadow: 0 1px 2px rgba(52, 152, 219, 0.2);
     text-align: right;
 `;
 
@@ -319,14 +400,14 @@ const RouteDuration = styled.div<{ day: number }>`
     position: absolute;
     left: 55%;
     top: 50%;
-    transform: translateY(-60%);
+    transform: translateY(-50%);
     background: ${props => getDayLightColor(props.day)};
     border-radius: 4px;
+    border: 1px solid ${props => getDayColor(props.day)};
     padding: 4px 8px;
     font-size: 11px;
     color: ${props => getDayTextColor(props.day)};
     font-weight: 500;
-    box-shadow: 0 1px 2px rgba(52, 152, 219, 0.2);
     text-align: left;
 `;
 
@@ -341,7 +422,6 @@ const ActionButtonsContainer = styled.div`
 
 // 액션 버튼
 const ActionButton = styled.button`
-    background: #3498db;
     color: white;
     border: none;
     border-radius: 8px;
@@ -353,12 +433,6 @@ const ActionButton = styled.button`
     display: flex;
     align-items: center;
     justify-content: center;
-    
-    &:hover {
-        background: #2980b9;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
-    }
     
     &:active {
         transform: translateY(0);
@@ -401,8 +475,8 @@ const ShareButton = styled(ActionButton)`
 interface Place {
     id: number;
     title: string;
-    time: string;
     hours?: string;
+    time?: string;
     location?: string;
     imageUrl?: string;
 }
@@ -438,6 +512,29 @@ interface TravelRouteSidebarProps {
     onPlaceHover?: (placeId: number) => void;
 }
 
+// 날씨 상태에 따른 이모지를 반환하는 함수
+const getWeatherEmoji = (condition: string): string => {
+    const lowerCondition = condition.toLowerCase();
+    
+    if (lowerCondition.includes('맑음') || lowerCondition.includes('sunny')) {
+        return '☀️';
+    } else if (lowerCondition.includes('구름') || lowerCondition.includes('cloudy')) {
+        return '☁️';
+    } else if (lowerCondition.includes('흐림') || lowerCondition.includes('overcast')) {
+        return '🌥️';
+    } else if (lowerCondition.includes('비') || lowerCondition.includes('rain')) {
+        return '🌧️';
+    } else if (lowerCondition.includes('눈') || lowerCondition.includes('snow')) {
+        return '❄️';
+    } else if (lowerCondition.includes('안개') || lowerCondition.includes('fog')) {
+        return '🌫️';
+    } else if (lowerCondition.includes('천둥') || lowerCondition.includes('번개') || lowerCondition.includes('thunder')) {
+        return '⚡';
+    } else {
+        return '🌡️'; // 기본 날씨 이모지
+    }
+};
+
 const TravelRouteSidebar: React.FC<TravelRouteSidebarProps> = ({ 
     routes, 
     activeDay,
@@ -463,6 +560,9 @@ const TravelRouteSidebar: React.FC<TravelRouteSidebarProps> = ({
         endTime: lastPlaceTime
     };
     
+    // 날씨 이모지 가져오기
+    const weatherEmoji = getWeatherEmoji(selectedDayData.weather.condition);
+    
     return (
         <SidebarContainer>
             <SidebarHeader>
@@ -471,21 +571,29 @@ const TravelRouteSidebar: React.FC<TravelRouteSidebarProps> = ({
             </SidebarHeader>
             
             <SummaryContainer>
-                <SummaryTitle>일정 요약</SummaryTitle>
+                <SummaryTitle day={activeDay}>일정 요약</SummaryTitle>
                 <SummaryItems>
-                    <SummaryItem>
+                    <SummaryItem day={activeDay}>
                         <ItemLabel>총 이동 거리</ItemLabel>
                         <ItemValue>{summary.totalDistance}</ItemValue>
                     </SummaryItem>
-                    <SummaryItem>
+                    <SummaryItem day={activeDay}>
                         <ItemLabel>총 소요 시간</ItemLabel>
                         <ItemValue>{summary.totalTime}</ItemValue>
                     </SummaryItem>
-                    <SummaryItem>
+                    <SummaryItem day={activeDay}>
+                        <ItemLabel>날씨</ItemLabel>
+                        <ItemValue>{weatherEmoji} {selectedDayData.weather.temperature} </ItemValue>
+                    </SummaryItem>
+                    <SummaryItem day={activeDay}>
+                        <ItemLabel>방문 장소</ItemLabel>
+                        <ItemValue>{selectedDayData.places.length} Places</ItemValue>
+                    </SummaryItem>
+                    <SummaryItem day={activeDay}>
                         <ItemLabel>시작 시간</ItemLabel>
                         <ItemValue>{summary.startTime}</ItemValue>
                     </SummaryItem>
-                    <SummaryItem>
+                    <SummaryItem day={activeDay}>
                         <ItemLabel>종료 시간</ItemLabel>
                         <ItemValue>{summary.endTime}</ItemValue>
                     </SummaryItem>
@@ -493,7 +601,7 @@ const TravelRouteSidebar: React.FC<TravelRouteSidebarProps> = ({
             </SummaryContainer>
             
             <DayContainer>
-                <PlacesSectionTitle>방문 장소 ({selectedDayData.places.length})</PlacesSectionTitle>
+                <PlacesSectionTitle day={activeDay}>방문 장소 </PlacesSectionTitle>
                 <PlacesList>
                     {selectedDayData.places.map((place, index) => (
                         <React.Fragment key={place.id}>
@@ -502,11 +610,11 @@ const TravelRouteSidebar: React.FC<TravelRouteSidebarProps> = ({
                                 onMouseEnter={() => onPlaceHover?.(place.id)}
                                 onMouseLeave={() => onPlaceHover?.(0)}
                             >
-                                <PlaceImage imageUrl={place.imageUrl || defaultImageUrl} />
+                                <PlaceOrderBadge day={activeDay}>{index + 1}</PlaceOrderBadge>
+                                <PlaceImage imageUrl={place.imageUrl || defaultImageUrl} day={activeDay} />
                                 <PlaceContent>
                                     <PlaceTopInfo>
                                         <PlaceName>{place.title}</PlaceName>
-                                        <PlaceTime>{place.time}</PlaceTime>
                                     </PlaceTopInfo>
                                     <PlaceDetails>
                                         {place.hours && <PlaceHours>{place.hours}</PlaceHours>}

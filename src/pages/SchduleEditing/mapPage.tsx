@@ -42,7 +42,7 @@ const DayButtonsContainer = styled.div`
   right: 20px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   z-index: 100;
 `;
 
@@ -50,40 +50,48 @@ const DayButtonsContainer = styled.div`
 const DayButton = styled.button<{ isActive: boolean; day: number }>`
   width: 60px;
   height: 60px;
-  border-radius: 50%;
+  border-radius: 12px;
   background: ${props => {
     if (props.isActive) {
       return getDayColor(props.day);
     } else {
-      return '#ffffff';
+      return 'rgba(255, 255, 255, 0.9)';
     }
   }};
-  color: ${({ isActive }) => (isActive ? '#ffffff' : '#2c3e50')};
-  border: 2px solid ${props => {
-    if (props.isActive) {
-      return getDayColor(props.day);
-    } else {
-      return '#e0e0e0';
-    }
-  }};
+  color: ${({ isActive, day }) => (isActive ? '#ffffff' : getDayColor(day))};
+  border: 1px solid ${({ isActive, day }) => (isActive ? '#ffffff' : getDayColor(day))};
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 600;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
-  transition: all 0.2s ease;
+  box-shadow: ${({ isActive }) => 
+    isActive 
+      ? '0 8px 20px rgba(0, 0, 0, 0.15)' 
+      : '0 6px 15px rgba(0, 0, 0, 0.08)'
+  };
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  position: relative;
+  
+  &::before {
+    content: "DAY";
+    display: block;
+    font-size: 10px;
+    font-weight: 500;
+    margin-bottom: 2px;
+    opacity: 0.8;
+  }
   
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
-    border-color: ${props => getDayColor(props.day)};
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
   }
   
   &:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    transform: translateY(0) scale(0.98);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
   }
 `;
 
@@ -543,7 +551,7 @@ const MapPage = () => {
               isActive={activeDay === route.day}
               onClick={() => handleDaySelect(route.day)}
             >
-              Day {route.day}
+              {route.day}
             </DayButton>
           ))}
         </DayButtonsContainer>

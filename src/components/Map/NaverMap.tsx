@@ -245,7 +245,10 @@ const NaverMap: React.FC<NaverMapProps> = ({
                 zoomControl: false,
                 // 지도 이동 애니메이션 활성화
                 disableKineticPan: false,
-                
+                // 스크롤 휠 확대/축소 감도 조절 (값이 낮을수록 스크롤 시 확대/축소 정도가 작아짐, 기본값은 1)
+                scrollWheel: 0.3,
+                // 스크롤 휠 한 번에 확대/축소되는 단계 제한 (값이 작을수록 부드러운 확대/축소, 기본값은 3)
+                scrollWheelZoom: 0.3
             };
 
             const map = new naverMaps.Map(mapElement.current, mapOptions);
