@@ -1,127 +1,148 @@
-import React from 'react';
-import styled, { keyframes } from 'styled-components';
 import { Place, NaverMapTypes } from './NaverMap';
 import travel_img1 from '../../assets/images/travel_img1.jpg';
 
-// =============== 애니메이션 keyframes 정의 ===============
-const fadeInSlide = keyframes`
-    from {
+// =============== 정보창 스타일 정의 ===============
+const infoWindowStyles = {
+    container: `
+        width: 300px;
+        font-family: 'Noto Sans KR', sans-serif;
         opacity: 0;
-        transform: translateY(15px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-`;
-
-// =============== 스타일드 컴포넌트 정의 ===============
-const ContentContainer = styled.div`
-    padding: 0;
-    width: 320px;
-    font-family: 'Noto Sans KR', sans-serif;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    animation: ${fadeInSlide} 0.35s ease-out forwards;
-`;
-
-const PlaceImage = styled.div<{ imageUrl: string }>`
-    width: 100%;
-    height: 180px;
-    background-image: url(${props => props.imageUrl});
-    background-size: cover;
-    background-position: center;
-    position: relative;
-
-    &:after {
-        content: '';
+        animation: infoWindowFadeIn 0.3s ease-out forwards;
+        animation-delay: 0.05s;
+        will-change: opacity;
+        background: #ffffff;
+        overflow: initial;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+    `,
+    imageContainer: `
+        width: 100%;
+        height: 180px;
+        background-size: cover;
+        background-position: center;
+        position: relative;
+    `,
+    imageOverlay: `
         position: absolute;
         bottom: 0;
         left: 0;
         right: 0;
-        height: 60%;
-        background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
-    }
-`;
-
-const PlaceName = styled.h3`
-    position: absolute;
-    bottom: 15px;
-    left: 20px;
-    margin: 0;
-    font-size: 24px;
-    font-weight: 700;
-    color: #ffffff;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-`;
-
-const PlaceDescription = styled.p`
-    margin: 0 0 16px 0;
-    font-size: 15px;
-    line-height: 1.6;
-    color: #444;
-`;
-
-const InfoSection = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px solid #f0f0f0;
-`;
-
-const InfoItem = styled.div`
-    display: flex;
-    align-items: center;
-    font-size: 14px;
-    color: #666;
-    background: #f8f9fa;
-    padding: 10px 15px;
-    border-radius: 8px;
-    
-    &:before {
-        margin-right: 10px;
-        font-size: 16px;
-    }
-`;
-
-const OperatingHours = styled(InfoItem)`
-    &:before {
-        content: "⏰";
-    }
-`;
-
-const Visitors = styled(InfoItem)`
-    &:before {
-        content: "👥";
-    }
-`;
+        height: 75%;
+        background: linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0.4) 60%, transparent);
+    `,
+    titleContainer: `
+        position: absolute;
+        bottom: 16px;
+        left: 24px;
+        right: 24px;
+    `,
+    title: `
+        margin: 0;
+        font-size: 24px;
+        font-weight: 700;
+        color: #ffffff;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.4);
+        line-height: 1.3;
+        letter-spacing: -0.02em;
+    `,
+    contentContainer: `
+        padding: 16px 20px;
+        background: #ffffff;
+        position: relative;
+    `,
+    description: `
+        margin: 0 0 14px 0;
+        font-size: 14px;
+        line-height: 1.7;
+        color: #2D3748;
+        font-weight: 400;
+        letter-spacing: -0.01em;
+        position: relative;
+        padding-left: 14px;
+        border-left: 2px solid #E2E8F0;
+    `,
+    infoSection: `
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding-top: 14px;
+        border-top: 1px solid #E2E8F0;
+    `,
+    infoItem: `
+        display: flex;
+        align-items: center;
+        font-size: 14px;
+        color: #4A5568;
+        background: #F7FAFC;
+        padding: 10px 14px;
+        border-radius: 10px;
+        transition: all 0.2s ease;
+    `,
+    iconBox: `
+        width: 32px;
+        height: 32px;
+        background: #ffffff;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 14px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    `,
+    icon: `
+        font-size: 18px;
+    `,
+    infoLabel: `
+        font-size: 12px;
+        color: #718096;
+        margin-bottom: 2px;
+    `,
+    infoValue: `
+        font-size: 13px;
+        color: #2D3748;
+        font-weight: 500;
+    `,
+    animation: `
+        @keyframes infoWindowFadeIn {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+        }
+    `
+};
 
 // =============== 마커 및 정보창 스타일 옵션 ===============
+
+/**
+ * 정보창 앵커 스타일
+ */
+export const anchorStyle = {
+    anchor: `
+        position: absolute;
+        bottom: -15px;
+        left: 122px;
+        transform: translateX(-60%);
+        width: 35px;
+        height: 35px;
+        background-color: #ffffff;
+        transform: rotate(45deg);
+        box-shadow: 5px 5px 10px rgba(0,0,0,0.08);
+        z-index: -1;
+    `
+}
 
 /**
  * 정보창 스타일 옵션
  */
 export const infoWindowStyle = {
-    maxWidth: 320,
+    maxWidth: 340,
     backgroundColor: "#ffffff",
-    borderColor: "#e0e0e0",
-    borderWidth: 1,
-    borderRadius: "12px",
+    borderColor: "#ffffff",
+    borderWidth: 0,
     padding: 0,
-    anchorSize: {
-        width: 12,
-        height: 12
-    },
-    anchorSkew: true,
-    anchorColor: "#ffffff",
     pixelOffset: {
         x: 10,
-        y: -20
+        y: -24  // 앵커를 포함할 공간 확보를 위해 y값 조정
     },
-    boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)"
+    boxShadow: "0 10px 25px rgba(0, 0, 0, 0.08)",
 };
 
 // 마커 색상 정의 - 앱 전체에서 사용하는 일차별 색상
@@ -276,11 +297,6 @@ export const markerStyle = {
     },
 };
 
-// =============== 컴포넌트 인터페이스 ===============
-interface MapContentProps {
-    place: Place;
-}
-
 // =============== 유틸리티 함수 ===============
 
 /**
@@ -290,28 +306,37 @@ interface MapContentProps {
  */
 export const generateInfoWindowContent = (place: Place): string => {
     return `
-        <div style="padding:0; width:320px; font-family:'Noto Sans KR', sans-serif; border-radius:12px; overflow:hidden; opacity: 0; animation: infoWindowFadeIn 0.3s ease-out forwards; animation-delay: 0.05s; will-change: opacity;">
-            <style>
-                @keyframes infoWindowFadeIn {
-                    from { opacity: 0; }
-                    to { opacity: 1; }
-                }
-            </style>
+        <div style="${infoWindowStyles.container}">
+            <style>${infoWindowStyles.animation}</style>
             <div style="width:100%; position:relative;">
-                <div style="width:100%; height:180px; background-image:url('${place.imageUrl || travel_img1}'); background-size:cover; background-position:center; position:relative;">
-                    <div style="position:absolute; bottom:0; left:0; right:0; height:60%; background:linear-gradient(to top, rgba(0,0,0,0.7), transparent);"></div>
-                    <h3 style="position:absolute; bottom:15px; left:20px; margin:0; font-size:24px; font-weight:700; color:#ffffff; text-shadow:0 2px 4px rgba(0,0,0,0.3);">${place.name}</h3>
+                <!-- 커스텀 앵커 추가 -->
+                <div style="${anchorStyle.anchor}"></div>
+                <div style="${infoWindowStyles.imageContainer} background-image:url('${place.imageUrl || travel_img1}');">
+                    <div style="${infoWindowStyles.imageOverlay}"></div>
+                    <div style="${infoWindowStyles.titleContainer}">
+                        <h3 style="${infoWindowStyles.title}">${place.name}</h3>
+                    </div>
                 </div>
-                <div style="padding:20px; background:#ffffff; position:relative;">
-                    <p style="margin:0 0 16px 0; font-size:15px; line-height:1.6; color:#444;">${place.description}</p>
-                    <div style="display:flex; flex-direction:column; gap:12px; margin-top:16px; padding-top:16px; border-top:1px solid #f0f0f0;">
-                        <div style="display:flex; align-items:center; font-size:14px; color:#666; background:#f8f9fa; padding:10px 15px; border-radius:8px;">
-                            <span style="margin-right:10px; font-size:16px;">⏰</span>
-                            ${place.operatingHours || '운영시간 정보 없음'}
+                <div style="${infoWindowStyles.contentContainer}">
+                    <p style="${infoWindowStyles.description}">${place.description}</p>
+                    <div style="${infoWindowStyles.infoSection}">
+                        <div style="${infoWindowStyles.infoItem}">
+                            <div style="${infoWindowStyles.iconBox}">
+                                <span style="${infoWindowStyles.icon}">🕒</span>
+                            </div>
+                            <div>
+                                <div style="${infoWindowStyles.infoLabel}">운영시간</div>
+                                <div style="${infoWindowStyles.infoValue}">${place.operatingHours || '운영시간 정보 없음'}</div>
+                            </div>
                         </div>
-                        <div style="display:flex; align-items:center; font-size:14px; color:#666; background:#f8f9fa; padding:10px 15px; border-radius:8px;">
-                            <span style="margin-right:10px; font-size:16px;">👥</span>
-                            ${place.visitors || 0}명 방문
+                        <div style="${infoWindowStyles.infoItem}">
+                            <div style="${infoWindowStyles.iconBox}">
+                                <span style="${infoWindowStyles.icon}">👥</span>
+                            </div>
+                            <div>
+                                <div style="${infoWindowStyles.infoLabel}">방문자 수</div>
+                                <div style="${infoWindowStyles.infoValue}">${place.visitors || 0}명</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -336,21 +361,14 @@ export const createInfoWindow = () => {
         backgroundColor: infoWindowStyle.backgroundColor,
         borderColor: infoWindowStyle.borderColor,
         borderWidth: infoWindowStyle.borderWidth,
-        borderRadius: '12px',
-        anchorSize: new naverMaps.Size(
-            infoWindowStyle.anchorSize.width, 
-            infoWindowStyle.anchorSize.height
-        ),
-        anchorSkew: infoWindowStyle.anchorSkew,
-        anchorColor: infoWindowStyle.anchorColor,
         pixelOffset: new naverMaps.Point(
             infoWindowStyle.pixelOffset.x, 
             infoWindowStyle.pixelOffset.y
         ),
-        disableAnchor: false,
+        disableAnchor: true,  // 기본 앵커 비활성화
         zIndex: 150,
         cssStyle: {
-            boxShadow: '0 8px 20px rgba(0, 0, 0, 0.15)'
+            boxShadow: infoWindowStyle.boxShadow
         }
     });
 };
@@ -421,25 +439,3 @@ export const createMarker = (
     
     return new naverMaps.Marker(markerOptions);
 };
-
-// =============== React 컴포넌트 ===============
-
-/**
- * 정보창 컨텐츠 컴포넌트
- * (React 컴포넌트로 사용할 경우를 위해 제공)
- */
-const MapContent: React.FC<MapContentProps> = ({ place }) => {
-    return (
-        <ContentContainer>
-            <PlaceImage imageUrl={place.imageUrl || travel_img1} />
-            <PlaceName>{place.name}</PlaceName>
-            <PlaceDescription>{place.description}</PlaceDescription>
-            <InfoSection>
-                <OperatingHours>{place.operatingHours || '운영시간 정보 없음'}</OperatingHours>
-                <Visitors>{place.visitors || 0}명 방문</Visitors>
-            </InfoSection>
-        </ContentContainer>
-    );
-};
-
-export default MapContent;
