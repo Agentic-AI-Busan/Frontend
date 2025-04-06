@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import logoImage from '../assets/images/t_logo.png';
@@ -61,6 +61,11 @@ const MenuButton = styled.button`
     }
 `;
 
+const UserButtonWrapper = styled.div`
+    position: relative;
+    display: inline-block;
+`;
+
 const UserButton = styled.button`
     display: flex;
     align-items: center;
@@ -74,6 +79,7 @@ const UserButton = styled.button`
     transition: all 0.3s ease;
     line-height: 1.5;
     height: 40px;
+    white-space: nowrap;
     
     img {
         display: inline-block;
@@ -89,11 +95,55 @@ const UserButton = styled.button`
     }
 `;
 
+const DropdownMenu = styled.div<{ isVisible: boolean }>`
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 8px 0;
+    min-width: 100%;
+    opacity: ${props => props.isVisible ? 1 : 0};
+    visibility: ${props => props.isVisible ? 'visible' : 'hidden'};
+    transform: translateY(${props => props.isVisible ? '0' : '-10px'});
+    transition: all 0.2s ease;
+    z-index: 1000;
+`;
+
+const DropdownItem = styled.button`
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 12px 16px;
+    border: none;
+    background: none;
+    color: #333;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+
+    svg {
+        margin-right: 8px;
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+    }
+
+    &:hover {
+        background-color: #f8f9fa;
+        color: #007bff;
+    }
+`;
+
 const Navbar: React.FC<NavbarProps> = ({ userName = 'Seongsurib' }) => {
     const navigate = useNavigate();
+    const [showDropdown, setShowDropdown] = useState(false);
     
     const handleNavigation = (path: string) => {
         navigate(path);
+        setShowDropdown(false);
     };
     
     return (
@@ -121,9 +171,28 @@ const Navbar: React.FC<NavbarProps> = ({ userName = 'Seongsurib' }) => {
                         </MenuButton>
                     </MenuItem>
                 </MenuList>
-                <UserButton onClick={() => handleNavigation('/mypage')}>
-                    <img src={userImage} alt="user"></img>{userName}
-                </UserButton>
+                <UserButtonWrapper 
+                    onMouseEnter={() => setShowDropdown(true)}
+                    onMouseLeave={() => setShowDropdown(false)}
+                >
+                    <UserButton>
+                        <img src={userImage} alt="user" />{userName}
+                    </UserButton>
+                    <DropdownMenu isVisible={showDropdown}>
+                        <DropdownItem onClick={() => handleNavigation('/myPage')}>
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                            </svg>
+                            사용자 정보
+                        </DropdownItem>
+                        <DropdownItem onClick={() => handleNavigation('/myGuide')}>
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
+                            </svg>
+                            나의 여행
+                        </DropdownItem>
+                    </DropdownMenu>
+                </UserButtonWrapper>
             </MenuWrapper>
         </HeaderContainer>
     );
