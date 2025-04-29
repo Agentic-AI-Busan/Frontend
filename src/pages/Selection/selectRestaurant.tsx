@@ -1,16 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SelectMain from './selectMain';
-import travelImage1 from '../../assets/images/travel_img1.jpg';
-import travelImage2 from '../../assets/images/travel_img2.jpg';
-import travelImage3 from '../../assets/images/travel_img3.jpg';
+import { authenticatedFetch } from '../../services/api';
+
+interface ApiAttraction {
+  attractionId: number;
+  name: string;
+  imageUrl: string;
+  address: string;
+  operatingHours: string;
+  title: string;
+  latitude: number;
+  longitude: number;
+}
 
 interface TravelItem {
   restaurantId: number;
-  imageUrl: string;
   name: string;
-  title: string;
+  imageUrl: string;
   address?: string;
+  operatingHours?: string;
+  title: string;
   latitude?: number;
   longitude?: number;
 }
@@ -22,27 +32,69 @@ interface SelectedItem {
 
 const SelectRestaurant: React.FC = () => {
   const navigate = useNavigate();
+  const tripPlansId = '14';
   const [userName] = useState<string>("성수립");
-  const [restaurantItems] = useState<TravelItem[]>([
-    {
-      restaurantId: 1,
-      imageUrl: travelImage1,
-      name: '부산 어묵',
-      title: '부산의 대표적인 길거리 음식'
-    },
-    {
-      restaurantId: 2,
-      imageUrl: travelImage2,
-      name: '돼지국밥',
-      title: '부산 사람들의 소울푸드'
-    },
-    {
-      restaurantId: 3,
-      imageUrl: travelImage3,
-      name: '해운대 회센터',
-      title: '신선한 회를 즐길 수 있는 곳'
-    }
-  ]);
+  const [restaurantItems, setRestaurantItems] = useState<TravelItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchRestaurants = async () => {
+      if (!tripPlansId) {
+        setError('여행 계획 ID가 없습니다.');
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await authenticatedFetch(`/api/trip-plans/${tripPlansId}/restaurants`, {
+          method: 'GET',
+        });
+
+        if (!response.ok) {
+          let errorMsg = `HTTP error! status: ${response.status}`;
+          try {
+            const errorData = await response.json();
+            errorMsg = errorData.message || errorMsg;
+          } catch {
+            console.log('Error response body is not valid JSON for restaurants.');
+          }
+          throw new Error(errorMsg);
+        }
+        const data = await response.json();
+
+        if (data.isSuccess && data.result && data.result.restaurants) {
+          const fetchedItems: TravelItem[] = data.result.restaurants.map((item: ApiAttraction) => ({
+            restaurantId: item.attractionId,
+            imageUrl: item.imageUrl,
+            name: item.name,
+            title: item.title,
+            address: item.address,
+            latitude: item.latitude,
+            longitude: item.longitude,
+            operatingHours: item.operatingHours
+          }));
+          setRestaurantItems(fetchedItems);
+        } else {
+          throw new Error(data.message || 'Restaurant API 응답 형식이 올바르지 않습니다.');
+        }
+      } catch (err) {
+        console.error("Error fetching restaurants:", err);
+        if (err instanceof Error && err.message === 'Authentication required') {
+            setError('로그인이 필요합니다.');
+        } else {
+            setError(err instanceof Error ? err.message : '데이터를 불러오는 중 오류가 발생했습니다.');
+        }
+        setRestaurantItems([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRestaurants();
+  }, [tripPlansId]);
 
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
 
@@ -61,11 +113,17 @@ const SelectRestaurant: React.FC = () => {
   };
 
   const handleSave = () => {
-    // 음식점 저장 로직 구현
     console.log('Saving restaurants:', selectedItems);
-    // selectionAdd 페이지로 이동
-    navigate('/selectionAdd');
+    navigate(`/selectionAdd/${tripPlansId}`);
   };
+
+  if (loading) {
+    return <div>로딩 중...</div>;
+  }
+
+  if (error) {
+    return <div>오류: {error}</div>;
+  }
 
   return (
     <SelectMain
