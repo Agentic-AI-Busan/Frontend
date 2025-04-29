@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import SelectMain from './selectMain';
 import { authenticatedFetch } from '../../services/api';
 
-interface ApiAttraction {
-  attractionId: number;
+interface ApiRestaurant {
+  restaurantId: number;
   name: string;
   imageUrl: string;
   address: string;
@@ -32,6 +32,8 @@ interface SelectedItem {
 
 const SelectRestaurant: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const selectedDestinations = location.state?.selectedDestinations || [];
   const tripPlansId = '14';
   const [userName] = useState<string>("성수립");
   const [restaurantItems, setRestaurantItems] = useState<TravelItem[]>([]);
@@ -66,8 +68,8 @@ const SelectRestaurant: React.FC = () => {
         const data = await response.json();
 
         if (data.isSuccess && data.result && data.result.restaurants) {
-          const fetchedItems: TravelItem[] = data.result.restaurants.map((item: ApiAttraction) => ({
-            restaurantId: item.attractionId,
+          const fetchedItems: TravelItem[] = data.result.restaurants.map((item: ApiRestaurant) => ({
+            restaurantId: item.restaurantId,
             imageUrl: item.imageUrl,
             name: item.name,
             title: item.title,
@@ -114,7 +116,12 @@ const SelectRestaurant: React.FC = () => {
 
   const handleSave = () => {
     console.log('Saving restaurants:', selectedItems);
-    navigate(`/selectionAdd/${tripPlansId}`);
+    navigate(`/selectionAdd`, {
+      state: {
+        selectedDestinations: selectedDestinations,
+        selectedRestaurants: selectedItems
+      }
+    });
   };
 
   if (loading) {

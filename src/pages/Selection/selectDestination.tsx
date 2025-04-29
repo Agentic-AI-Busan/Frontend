@@ -42,52 +42,6 @@ const SelectDestination: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // // 더미 데이터 - API 호출 전까지 사용
-  // const [travelItems] = useState<TravelItem[]>([
-  //   {
-  //     attractionId: 1,
-  //     imageUrl: travelImage1,
-  //     name: '광안대교',
-  //     title: '광안리의 밤은 당신의 낮보다 아름답다'
-  //   },
-  //   {
-  //     attractionId: 2,
-  //     imageUrl: travelImage2,
-  //     name: '마린시티',
-  //     title: '바다에서 불어오는 바람을 가장 먼저 맞는 곳'
-  //   },
-  //   {
-  //     attractionId: 3,
-  //     imageUrl: travelImage3,
-  //     name: '해운대해수욕장',
-  //     title: '부산하면 가장 먼저 떠오르는 것, 바다!'
-  //   },
-  //   {
-  //     attractionId: 4,
-  //     imageUrl: travelImage1,
-  //     name: '우리집',
-  //     title: '하루종일 자고 싶다'
-  //   },
-  //   {
-  //     attractionId: 5,
-  //     imageUrl: travelImage2,
-  //     name: '너네집',
-  //     title: '할거 존나 많아'
-  //   },
-  //   {
-  //     attractionId: 6,
-  //     imageUrl: travelImage3,
-  //     name: '캡스톤 시발',
-  //     title: '존나하기 싫다'
-  //   },
-  //   {
-  //     attractionId: 7,
-  //     imageUrl: travelImage3,
-  //     name: '캡스톤 시발',
-  //     title: '존나하기 싫다'
-  //   }
-  // ]);
-
   useEffect(() => {
     const fetchAttractions = async () => {
       // tripPlansId가 유효하지 않으면 API 호출 중단
@@ -169,11 +123,11 @@ const SelectDestination: React.FC = () => {
     setSelectedItems(selectedItems.filter(item => item.id !== id));
   };
 
-  // handleSave에서 navigate 경로 수정 필요
+  // handleSave에서 navigate 경로 수정 및 상태 전달
   const handleSave = () => {
     console.log('Saving destinations:', selectedItems);
-    // tripPlansId가 문자열이므로 실제 ID를 사용하거나 라우팅 구조에 맞게 수정
-    navigate(`/selectionRestaurant`);
+    // selectedItems를 state로 전달
+    navigate(`/selectionRestaurant`, { state: { selectedDestinations: selectedItems } });
   };
 
   // 로딩 중일 때 표시할 UI
