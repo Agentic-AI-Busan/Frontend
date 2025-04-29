@@ -5,12 +5,14 @@ import SimpleMapContent from '../Map/SimpleMapContent';
 import img_3 from '../../assets/images/travel_img3.jpg'
 
 interface TravelItem {
-    id: number;
-    image: string;
+    attractionId?: number;
+    restaurantId?: number;
+    imageUrl: string;
+    name: string;
     title: string;
-    description: string;
-    location?: string;
-    coordinates?: { lat: number; lng: number };
+    address?: string;
+    latitude?: number;
+    longitude?: number;
     operatingHours?: string;
 }
 
@@ -230,13 +232,19 @@ const SelectionModal: React.FC<SelectionModalProps> = ({
     const defaultCoordinates = { lat: 35.1796, lng: 129.0756 }; // 부산 해운대 좌표
     
     // 간단한 지도 표시용 장소 데이터 생성 (SimpleNaverMap용)
+    const getItemId = (): number => {
+        if (selectedTravelItem?.attractionId) return selectedTravelItem.attractionId;
+        if (selectedTravelItem?.restaurantId) return selectedTravelItem.restaurantId;
+        return 0; // 기본값
+    };
+
     const mapPlaces = selectedTravelItem
         ? [{
-            id: selectedTravelItem.id,
-            name: selectedTravelItem.title,
-            lat: selectedTravelItem.coordinates?.lat || defaultCoordinates.lat,
-            lng: selectedTravelItem.coordinates?.lng || defaultCoordinates.lng,
-            location: selectedTravelItem.location || '부산 해운대',
+            id: getItemId(),
+            name: selectedTravelItem.name,
+            lat: selectedTravelItem.latitude || defaultCoordinates.lat,
+            lng: selectedTravelItem.longitude || defaultCoordinates.lng,
+            location: selectedTravelItem.address || '부산 해운대',
         }]
         : [];
 
@@ -253,7 +261,10 @@ const SelectionModal: React.FC<SelectionModalProps> = ({
                     <MapContainer>
                         <SimpleMapContent 
                             places={mapPlaces}
-                            center={selectedTravelItem.coordinates || defaultCoordinates}
+                            center={{
+                                lat: selectedTravelItem.latitude || defaultCoordinates.lat,
+                                lng: selectedTravelItem.longitude || defaultCoordinates.lng
+                            }}
                             zoom={15}
                             style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }}
                         />
@@ -263,14 +274,14 @@ const SelectionModal: React.FC<SelectionModalProps> = ({
                     <InfoContainer>
                         <ImageHeaderContainer>
                             {/* <ModalImage src={selectedTravelItem.image} alt={selectedTravelItem.title} /> */}
-                            <ModalImage src={img_3} alt={selectedTravelItem.title} />
+                            <ModalImage src={img_3} alt={selectedTravelItem.name} />
                             <ImageOverlay>
-                                <ModalTitle>{selectedTravelItem.title}</ModalTitle>
+                                <ModalTitle>{selectedTravelItem.name}</ModalTitle>
                                 <ModalLocation>
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="#FFFFFF" xmlns="http://www.w3.org/2000/svg">
                                         <path d="M12 2C8.13 2 5 5.13 5 9C5 14.25 12 22 12 22C12 22 19 14.25 19 9C19 5.13 15.87 2 12 2ZM12 11.5C10.62 11.5 9.5 10.38 9.5 9C9.5 7.62 10.62 6.5 12 6.5C13.38 6.5 14.5 7.62 14.5 9C14.5 10.38 13.38 11.5 12 11.5Z" fill="currentColor"/>
                                     </svg>
-                                    {selectedTravelItem.location || (selectedTravelItem.coordinates ? "" : "부산 해운대 (기본 위치)")}
+                                    {selectedTravelItem.address || ((selectedTravelItem.latitude && selectedTravelItem.longitude) ? "" : "부산 해운대 (기본 위치)")}
                                 </ModalLocation>
                             </ImageOverlay>
                         </ImageHeaderContainer>
@@ -291,7 +302,7 @@ const SelectionModal: React.FC<SelectionModalProps> = ({
 
                             <InfoSection>
                                 <SectionTitle>상세 정보</SectionTitle>
-                                <ModalDescription>{selectedTravelItem.description}</ModalDescription>
+                                <ModalDescription>{selectedTravelItem.title}</ModalDescription>
                             </InfoSection>
                             
                             <ActionSection>

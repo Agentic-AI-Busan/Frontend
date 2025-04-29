@@ -6,12 +6,13 @@ import travelImage2 from '../../assets/images/travel_img2.jpg';
 import travelImage3 from '../../assets/images/travel_img3.jpg';
 
 interface TravelItem {
-  id: number;
-  image: string;
+  restaurantId: number;
+  imageUrl: string;
+  name: string;
   title: string;
-  description: string;
-  location?: string;
-  coordinates?: { lat: number; lng: number };
+  address?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 interface SelectedItem {
@@ -24,22 +25,22 @@ const SelectRestaurant: React.FC = () => {
   const [userName] = useState<string>("성수립");
   const [restaurantItems] = useState<TravelItem[]>([
     {
-      id: 1,
-      image: travelImage1,
-      title: '부산 어묵',
-      description: '부산의 대표적인 길거리 음식'
+      restaurantId: 1,
+      imageUrl: travelImage1,
+      name: '부산 어묵',
+      title: '부산의 대표적인 길거리 음식'
     },
     {
-      id: 2,
-      image: travelImage2,
-      title: '돼지국밥',
-      description: '부산 사람들의 소울푸드'
+      restaurantId: 2,
+      imageUrl: travelImage2,
+      name: '돼지국밥',
+      title: '부산 사람들의 소울푸드'
     },
     {
-      id: 3,
-      image: travelImage3,
-      title: '해운대 회센터',
-      description: '신선한 회를 즐길 수 있는 곳'
+      restaurantId: 3,
+      imageUrl: travelImage3,
+      name: '해운대 회센터',
+      title: '신선한 회를 즐길 수 있는 곳'
     }
   ]);
 
@@ -48,9 +49,9 @@ const SelectRestaurant: React.FC = () => {
   const handleSelectItem = (id: number) => {
     const isAlreadySelected = selectedItems.some(item => item.id === id);
     if (!isAlreadySelected) {
-      const itemToAdd = restaurantItems.find(item => item.id === id);
+      const itemToAdd = restaurantItems.find(item => item.restaurantId === id);
       if (itemToAdd) {
-        setSelectedItems([...selectedItems, { id: itemToAdd.id, title: itemToAdd.title }]);
+        setSelectedItems([...selectedItems, { id: itemToAdd.restaurantId, title: itemToAdd.name }]);
       }
     }
   };

@@ -6,12 +6,13 @@ import travelImage2 from '../../assets/images/travel_img2.jpg';
 import travelImage3 from '../../assets/images/travel_img3.jpg';
 
 interface TravelItem {
-  id: number;
-  image: string;
+  attractionId: number;
+  imageUrl: string;
+  name: string;
   title: string;
-  description: string;
-  location?: string;
-  coordinates?: { lat: number; lng: number };
+  address?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 interface SelectedItem {
@@ -24,46 +25,46 @@ const SelectDestination: React.FC = () => {
   const [userName] = useState<string>("성수립");
   const [travelItems] = useState<TravelItem[]>([
     {
-      id: 1,
-      image: travelImage1,
-      title: '광안대교',
-      description: '광안리의 밤은 당신의 낮보다 아름답다'
+      attractionId: 1,
+      imageUrl: travelImage1,
+      name: '광안대교',
+      title: '광안리의 밤은 당신의 낮보다 아름답다'
     },
     {
-      id: 2,
-      image: travelImage2,
-      title: '마린시티',
-      description: '바다에서 불어오는 바람을 가장 먼저 맞는 곳'
+      attractionId: 2,
+      imageUrl: travelImage2,
+      name: '마린시티',
+      title: '바다에서 불어오는 바람을 가장 먼저 맞는 곳'
     },
     {
-      id: 3,
-      image: travelImage3,
-      title: '해운대해수욕장',
-      description: '부산하면 가장 먼저 떠오르는 것, 바다!'
+      attractionId: 3,
+      imageUrl: travelImage3,
+      name: '해운대해수욕장',
+      title: '부산하면 가장 먼저 떠오르는 것, 바다!'
     },
     {
-      id: 4,
-      image: travelImage1,
-      title: '우리집',
-      description: '하루종일 자고 싶다'
+      attractionId: 4,
+      imageUrl: travelImage1,
+      name: '우리집',
+      title: '하루종일 자고 싶다'
     },
     {
-      id: 5,
-      image: travelImage2,
-      title: '너네집',
-      description: '할거 존나 많아'
+      attractionId: 5,
+      imageUrl: travelImage2,
+      name: '너네집',
+      title: '할거 존나 많아'
     },
     {
-      id: 6,
-      image: travelImage3,
-      title: '캡스톤 시발',
-      description: '존나하기 싫다'
+      attractionId: 6,
+      imageUrl: travelImage3,
+      name: '캡스톤 시발',
+      title: '존나하기 싫다'
     },
     {
-      id: 7,
-      image: travelImage3,
-      title: '캡스톤 시발',
-      description: '존나하기 싫다'
+      attractionId: 7,
+      imageUrl: travelImage3,
+      name: '캡스톤 시발',
+      title: '존나하기 싫다'
     }
   ]);
 
@@ -72,9 +73,9 @@ const SelectDestination: React.FC = () => {
   const handleSelectItem = (id: number) => {
     const isAlreadySelected = selectedItems.some(item => item.id === id);
     if (!isAlreadySelected) {
-      const itemToAdd = travelItems.find(item => item.id === id);
+      const itemToAdd = travelItems.find(item => item.attractionId === id);
       if (itemToAdd) {
-        setSelectedItems([...selectedItems, { id: itemToAdd.id, title: itemToAdd.title }]);
+        setSelectedItems([...selectedItems, { id: itemToAdd.attractionId, title: itemToAdd.name }]);
       }
     }
   };

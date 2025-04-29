@@ -295,12 +295,14 @@ const SelectButton = styled.button`
 `;
 
 interface TravelItem {
-    id: number;
-    image: string;
+    attractionId?: number;
+    restaurantId?: number;
+    imageUrl: string;
+    name: string;
     title: string;
-    description: string;
-    location?: string;
-    coordinates?: { lat: number; lng: number };
+    address?: string;
+    latitude?: number;
+    longitude?: number;
 }
 
 interface SelectedItem {
@@ -368,14 +370,24 @@ const SelectMain: React.FC<SelectMainProps> = ({
     // 모달 선택 함수
     const handleModalSelect = () => {
         if (selectedTravelItem) {
-            onSelectItem(selectedTravelItem.id);
-            handleModalClose();
+            const itemId = selectedTravelItem.attractionId || selectedTravelItem.restaurantId;
+            if (itemId !== undefined) {
+                onSelectItem(itemId);
+                handleModalClose();
+            }
         }
     };
 
     const handleSelectButtonClick = (id: number, e: React.MouseEvent) => {
         e.stopPropagation();
         onSelectItem(id);
+    };
+
+    // 아이템 ID를 가져오는 함수
+    const getItemId = (item: TravelItem): number => {
+        if (item.attractionId !== undefined) return item.attractionId;
+        if (item.restaurantId !== undefined) return item.restaurantId;
+        return 0; // 기본값
     };
 
     return (
@@ -390,39 +402,42 @@ const SelectMain: React.FC<SelectMainProps> = ({
                     </PageHeader>
                     
                     <TravelGrid>
-                        {items.map((item) => (
-                            <TravelCard 
-                                key={item.id} 
-                                onClick={() => handleCardClick(item)}
-                                role="button"
-                                aria-label={`여행지: ${item.title}`}
-                            >
-                                <TravelCardImage>
-                                    <img 
-                                        src={item.image} 
-                                        alt={`${item.title} 이미지`} 
-                                        onError={(e) => {
-                                            const target = e.target as HTMLImageElement;
-                                            target.src = 'https://via.placeholder.com/300x180?text=이미지+없음';
-                                        }} 
-                                    />
-                                </TravelCardImage>
+                        {items.map((item) => {
+                            const itemId = getItemId(item);
+                            return (
+                                <TravelCard 
+                                    key={itemId} 
+                                    onClick={() => handleCardClick(item)}
+                                    role="button"
+                                    aria-label={`여행지: ${item.name}`}
+                                >
+                                    <TravelCardImage>
+                                        <img 
+                                            src={item.imageUrl} 
+                                            alt={`${item.name} 이미지`} 
+                                            onError={(e) => {
+                                                const target = e.target as HTMLImageElement;
+                                                target.src = 'https://via.placeholder.com/300x180?text=이미지+없음';
+                                            }} 
+                                        />
+                                    </TravelCardImage>
 
-                                <TravelCardContent>
-                                    <strong>{item.title}</strong>
-                                    <div>{item.description}</div>
-                                </TravelCardContent>
+                                    <TravelCardContent>
+                                        <strong>{item.name}</strong>
+                                        <div>{item.title}</div>
+                                    </TravelCardContent>
 
-                                <CardButtonWrapper>
-                                    <SelectButton 
-                                        onClick={(e) => handleSelectButtonClick(item.id, e)}
-                                        aria-label={`${item.title} 선택하기`}
-                                    >
-                                        선택
-                                    </SelectButton>
-                                </CardButtonWrapper>
-                            </TravelCard>
-                        ))}
+                                    <CardButtonWrapper>
+                                        <SelectButton 
+                                            onClick={(e) => handleSelectButtonClick(itemId, e)}
+                                            aria-label={`${item.name} 선택하기`}
+                                        >
+                                            선택
+                                        </SelectButton>
+                                    </CardButtonWrapper>
+                                </TravelCard>
+                            );
+                        })}
                     </TravelGrid>
                 </TravelListContainer>
 
