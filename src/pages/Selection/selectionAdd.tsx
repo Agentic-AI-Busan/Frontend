@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import Modal from 'react-modal';
 import LoadingSpinner from '../../components/LoadingSpinner';
@@ -52,22 +52,24 @@ const SidebarsWrapper = styled.div<{ showTravelSearch?: boolean; showRestaurantS
 
 Modal.setAppElement('#root'); // 모달을 위한 설정
 
+// 선택된 항목의 타입을 정의 (id와 title 포함)
+interface SelectedPlaceItem {
+  id: number;
+  title: string;
+}
+
 const SelectionAdd: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation(); // useLocation 훅 사용
+
+    // 이전 페이지에서 전달받은 상태 읽기
+    const passedDestinations: SelectedPlaceItem[] = location.state?.selectedDestinations || [];
+    const passedRestaurants: SelectedPlaceItem[] = location.state?.selectedRestaurants || [];
+
+    // 상태 초기화 시 전달받은 데이터 사용
     const [selectedPlaces, setSelectedPlaces] = useState({
-        travel: [
-            { id: 1, title: '광안대교' },
-            { id: 2, title: '마린시티' },
-            { id: 3, title: '해운대해수욕장' },
-            { id: 4, title: '우리집' },
-            { id: 5, title: '너네집' },
-            { id: 6, title: '캡스톤 시발' },
-        ],
-        restaurant: [
-            { id: 1, title: '부산 어묵' },
-            { id: 2, title: '돼지국밥' },
-            { id: 3, title: '해운대 회센터' }
-        ]
+        travel: passedDestinations,
+        restaurant: passedRestaurants
     });
 
     // 검색을 위한 상태 관리
@@ -110,6 +112,14 @@ const SelectionAdd: React.FC = () => {
 
     // 두 선택이 모두 완료되었을 때 로딩 시작
     useEffect(() => {
+        // 컴포넌트 마운트 시, 전달받은 데이터가 있으면 완료 상태로 간주할 수 있음
+        if (passedDestinations.length > 0) {
+          // setIsTravelComplete(true); // 필요에 따라 초기 완료 상태 설정
+        }
+        if (passedRestaurants.length > 0) {
+          // setIsRestaurantComplete(true);
+        }
+
         if (isTravelComplete && isRestaurantComplete) {
             setIsLoading(true);
             
@@ -121,7 +131,7 @@ const SelectionAdd: React.FC = () => {
             
             return () => clearTimeout(timer);
         }
-    }, [isTravelComplete, isRestaurantComplete, navigate]);
+    }, [isTravelComplete, isRestaurantComplete, navigate, passedDestinations.length, passedRestaurants.length]);
 
     // 선택 완료 핸들러
     const handleTravelComplete = () => {

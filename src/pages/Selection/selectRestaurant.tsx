@@ -1,17 +1,28 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import SelectMain from './selectMain';
-import travelImage1 from '../../assets/images/travel_img1.jpg';
-import travelImage2 from '../../assets/images/travel_img2.jpg';
-import travelImage3 from '../../assets/images/travel_img3.jpg';
+import { authenticatedFetch } from '../../services/api';
+
+interface ApiRestaurant {
+  restaurantId: number;
+  name: string;
+  imageUrl: string;
+  address: string;
+  operatingHours: string;
+  title: string;
+  latitude: number;
+  longitude: number;
+}
 
 interface TravelItem {
-  id: number;
-  image: string;
+  restaurantId: number;
+  name: string;
+  imageUrl: string;
+  address?: string;
+  operatingHours?: string;
   title: string;
-  description: string;
-  location?: string;
-  coordinates?: { lat: number; lng: number };
+  latitude?: number;
+  longitude?: number;
 }
 
 interface SelectedItem {
@@ -21,36 +32,80 @@ interface SelectedItem {
 
 const SelectRestaurant: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const selectedDestinations = location.state?.selectedDestinations || [];
+  const tripPlansId = '14';
   const [userName] = useState<string>("성수립");
-  const [restaurantItems] = useState<TravelItem[]>([
-    {
-      id: 1,
-      image: travelImage1,
-      title: '부산 어묵',
-      description: '부산의 대표적인 길거리 음식'
-    },
-    {
-      id: 2,
-      image: travelImage2,
-      title: '돼지국밥',
-      description: '부산 사람들의 소울푸드'
-    },
-    {
-      id: 3,
-      image: travelImage3,
-      title: '해운대 회센터',
-      description: '신선한 회를 즐길 수 있는 곳'
-    }
-  ]);
+  const [restaurantItems, setRestaurantItems] = useState<TravelItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchRestaurants = async () => {
+      if (!tripPlansId) {
+        setError('여행 계획 ID가 없습니다.');
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await authenticatedFetch(`/api/trip-plans/${tripPlansId}/restaurants`, {
+          method: 'GET',
+        });
+
+        if (!response.ok) {
+          let errorMsg = `HTTP error! status: ${response.status}`;
+          try {
+            const errorData = await response.json();
+            errorMsg = errorData.message || errorMsg;
+          } catch {
+            console.log('Error response body is not valid JSON for restaurants.');
+          }
+          throw new Error(errorMsg);
+        }
+        const data = await response.json();
+
+        if (data.isSuccess && data.result && data.result.restaurants) {
+          const fetchedItems: TravelItem[] = data.result.restaurants.map((item: ApiRestaurant) => ({
+            restaurantId: item.restaurantId,
+            imageUrl: item.imageUrl,
+            name: item.name,
+            title: item.title,
+            address: item.address,
+            latitude: item.latitude,
+            longitude: item.longitude,
+            operatingHours: item.operatingHours
+          }));
+          setRestaurantItems(fetchedItems);
+        } else {
+          throw new Error(data.message || 'Restaurant API 응답 형식이 올바르지 않습니다.');
+        }
+      } catch (err) {
+        console.error("Error fetching restaurants:", err);
+        if (err instanceof Error && err.message === 'Authentication required') {
+            setError('로그인이 필요합니다.');
+        } else {
+            setError(err instanceof Error ? err.message : '데이터를 불러오는 중 오류가 발생했습니다.');
+        }
+        setRestaurantItems([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRestaurants();
+  }, [tripPlansId]);
 
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
 
   const handleSelectItem = (id: number) => {
     const isAlreadySelected = selectedItems.some(item => item.id === id);
     if (!isAlreadySelected) {
-      const itemToAdd = restaurantItems.find(item => item.id === id);
+      const itemToAdd = restaurantItems.find(item => item.restaurantId === id);
       if (itemToAdd) {
-        setSelectedItems([...selectedItems, { id: itemToAdd.id, title: itemToAdd.title }]);
+        setSelectedItems([...selectedItems, { id: itemToAdd.restaurantId, title: itemToAdd.name }]);
       }
     }
   };
@@ -60,11 +115,22 @@ const SelectRestaurant: React.FC = () => {
   };
 
   const handleSave = () => {
-    // 음식점 저장 로직 구현
     console.log('Saving restaurants:', selectedItems);
-    // selectionAdd 페이지로 이동
-    navigate('/selectionAdd');
+    navigate(`/selectionAdd`, {
+      state: {
+        selectedDestinations: selectedDestinations,
+        selectedRestaurants: selectedItems
+      }
+    });
   };
+
+  if (loading) {
+    return <div>로딩 중...</div>;
+  }
+
+  if (error) {
+    return <div>오류: {error}</div>;
+  }
 
   return (
     <SelectMain
