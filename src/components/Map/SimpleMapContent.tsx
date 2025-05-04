@@ -99,6 +99,7 @@ const SimpleMapContent: React.FC<SimpleMapContentProps> = ({
             position: new window.naver.maps.LatLng(position.lat, position.lng),
             map: map,
             title: title,
+            /* // 기본 마커 사용을 위해 icon 옵션 주석 처리
             icon: {
                 content: `
                 <div style="
@@ -139,8 +140,9 @@ const SimpleMapContent: React.FC<SimpleMapContentProps> = ({
                     ">${title}</div>
                 </div>`,
                 size: new window.naver.maps.Size(40, 60),
-                anchor: new window.naver.maps.Point(15, 42)
+                anchor: new window.naver.maps.Point(20, 37)
             }
+            */
         };
         
         return new window.naver.maps.Marker(markerOptions);
