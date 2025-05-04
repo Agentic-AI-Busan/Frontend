@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import SelectionModal from '../../components/Modal/SelectionModal';
 import SelectionSidebar from '../../components/SelectionSidebar';
+import nullPlaceImage from '../../assets/images/null_place.png';
 
 // 페이지 레이아웃 컴포넌트를 중앙 정렬로 수정
 const ContentWrapper = styled.div`
@@ -417,7 +418,8 @@ const SelectMain: React.FC<SelectMainProps> = ({
                                             alt={`${item.name} 이미지`} 
                                             onError={(e) => {
                                                 const target = e.target as HTMLImageElement;
-                                                target.src = 'https://via.placeholder.com/300x180?text=이미지+없음';
+                                                target.onerror = null;
+                                                target.src = nullPlaceImage;
                                             }} 
                                         />
                                     </TravelCardImage>
