@@ -54,7 +54,7 @@ export const loginUser = async (email: string, password: string): Promise<boolea
     export const authenticatedFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
     // <<---!!! 개발용 임시 코드 시작 !!!--->>
     // 1. 여기에 발급받은 실제 JWT 토큰 문자열을 붙여넣으세요.
-    const hardcodedToken = "eyJhbGciOiJIUzUxMiJ9.eyJ1c2VySWQiOjEsImlhdCI6MTc0NTkwMTg1OCwiZXhwIjoxNzQ1OTg4MjU4fQ.YVljdqaLcEt3Yc2P4yTwxAwm_hJHsfbMzYJ_iwSzMnNYkZ2WO5Z6654zEmVDO_-yf5aT-_gnNyyvOw58o2vDUA";
+    const hardcodedToken = "eyJhbGciOiJIUzUxMiJ9.eyJ1c2VySWQiOjEsImlhdCI6MTc0NjMyNDc2OCwiZXhwIjoxNzQ2NDExMTY4fQ.Z0pAUNOA_YcAZaFm7zvM7wB8h6Kjb4E4WHcioJxaSU77u9bLeer-kagNpnjkBdTL9LGIweGhL0feCATpXCro0w ";
     // const token = localStorage.getItem('authToken'); // 원래 코드 주석 처리
     const token = hardcodedToken; // 임시로 하드코딩된 토큰 사용
     // <<---!!! 개발용 임시 코드 끝 !!!--->>

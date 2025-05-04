@@ -2,7 +2,8 @@ import React from 'react';
 import styled from 'styled-components';
 import ModalFrame from './ModalFrame';
 import SimpleMapContent from '../Map/SimpleMapContent';
-import img_3 from '../../assets/images/travel_img3.jpg'
+import nullPlaceImage from '../../assets/images/null_place.png'; // null_place.png 이미지 임포트
+// import img_3 from '../../assets/images/travel_img3.jpg'
 
 interface TravelItem {
     attractionId?: number;
@@ -14,6 +15,7 @@ interface TravelItem {
     latitude?: number;
     longitude?: number;
     operatingHours?: string;
+    phoneNumber?: string;
 }
 
 interface SelectionModalProps {
@@ -274,7 +276,15 @@ const SelectionModal: React.FC<SelectionModalProps> = ({
                     <InfoContainer>
                         <ImageHeaderContainer>
                             {/* <ModalImage src={selectedTravelItem.image} alt={selectedTravelItem.title} /> */}
-                            <ModalImage src={img_3} alt={selectedTravelItem.name} />
+                            <ModalImage 
+                                src={selectedTravelItem.imageUrl} 
+                                alt={selectedTravelItem.name} 
+                                onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.onerror = null; // 무한 루프 방지
+                                    target.src = nullPlaceImage; // 실패 시 대체 이미지
+                                }}
+                            />
                             <ImageOverlay>
                                 <ModalTitle>{selectedTravelItem.name}</ModalTitle>
                                 <ModalLocation>
