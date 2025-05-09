@@ -5,6 +5,7 @@ import Modal from 'react-modal';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import SearchPanel from '../../components/SearchPanel';
 import SelectionSidebar from '../../components/SelectionSidebar';
+import { authenticatedFetch } from '../../services/api';
 
 // 메인 컨테이너 스타일 컴포넌트
 const MainContainer = styled.div`
@@ -54,8 +55,8 @@ Modal.setAppElement('#root'); // 모달을 위한 설정
 
 // 선택된 항목의 타입을 정의 (id와 title 포함)
 interface SelectedPlaceItem {
-  id: number;
-  title: string;
+    id: number;
+    title: string;
 }
 
 const SelectionAdd: React.FC = () => {
@@ -110,6 +111,8 @@ const SelectionAdd: React.FC = () => {
 
     const [isClosingSearch, setIsClosingSearch] = useState(false);
 
+    const tripPlansId = '14'; // tripPlansId 고정
+
     // 두 선택이 모두 완료되었을 때 로딩 시작
     useEffect(() => {
         // 컴포넌트 마운트 시, 전달받은 데이터가 있으면 완료 상태로 간주할 수 있음
@@ -134,32 +137,80 @@ const SelectionAdd: React.FC = () => {
     }, [isTravelComplete, isRestaurantComplete, navigate, passedDestinations.length, passedRestaurants.length]);
 
     // 선택 완료 핸들러
-    const handleTravelComplete = () => {
+    const handleTravelComplete = async () => {
         setIsClosingSearch(true);
-        setTimeout(() => {
-            // 검색 패널을 먼저 닫고
-            setShowTravelSearch(false);
-            setIsClosingSearch(false);
-            
-            // 약간의 지연 후 완료 상태로 전환하여 사이드바가 자연스럽게 중앙으로 이동하도록 함
+        // API 요청 로직 추가
+        try {
+            const attractionIds = selectedPlaces.travel.map(place => place.id);
+            const response = await authenticatedFetch(`/api/trip-plans/${tripPlansId}/attractions/final`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ attractionIds: attractionIds }), // 요청 본문 형식 수정
+            });
+
+            if (!response.ok) {
+                // API 에러 처리 (필요에 따라 더 구체적인 에러 핸들링 추가)
+                const errorData = await response.json().catch(() => ({ message: 'Failed to submit attractions and parse error response.' }));
+                console.error('Error submitting attractions:', errorData);
+                alert(`여행지 전송에 실패했습니다: ${errorData.message || response.statusText}`);
+                setIsClosingSearch(false); // 애니메이션 초기화
+                return; // 실패 시 아래 로직 실행 안 함
+            }
+
+            // API 호출 성공 후 기존 로직 실행
             setTimeout(() => {
-                setIsTravelComplete(true);
-            }, 100);
-        }, 400);
+                setShowTravelSearch(false);
+                setIsClosingSearch(false);
+                setTimeout(() => {
+                    setIsTravelComplete(true);
+                }, 100);
+            }, 400);
+
+        } catch (error) {
+            console.error('Failed to submit attractions:', error);
+            alert('여행지 전송 중 오류가 발생했습니다.');
+            setIsClosingSearch(false); // 애니메이션 초기화
+        }
     };
 
-    const handleRestaurantComplete = () => {
+    const handleRestaurantComplete = async () => {
         setIsClosingSearch(true);
-        setTimeout(() => {
-            // 검색 패널을 먼저 닫고
-            setShowRestaurantSearch(false);
-            setIsClosingSearch(false);
-            
-            // 약간의 지연 후 완료 상태로 전환하여 사이드바가 자연스럽게 중앙으로 이동하도록 함
+        // API 요청 로직 추가
+        try {
+            const restaurantIds = selectedPlaces.restaurant.map(place => place.id);
+            const response = await authenticatedFetch(`/api/trip-plans/${tripPlansId}/restaurants/final`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ restaurantIds: restaurantIds }), // 요청 본문 형식에 맞게 수정
+            });
+
+            if (!response.ok) {
+                // API 에러 처리
+                const errorData = await response.json().catch(() => ({ message: 'Failed to submit restaurants and parse error response.' }));
+                console.error('Error submitting restaurants:', errorData);
+                alert(`음식점 전송에 실패했습니다: ${errorData.message || response.statusText}`);
+                setIsClosingSearch(false); // 애니메이션 초기화
+                return; // 실패 시 아래 로직 실행 안 함
+            }
+
+            // API 호출 성공 후 기존 로직 실행
             setTimeout(() => {
-                setIsRestaurantComplete(true);
-            }, 100);
-        }, 400);
+                setShowRestaurantSearch(false);
+                setIsClosingSearch(false);
+                setTimeout(() => {
+                    setIsRestaurantComplete(true);
+                }, 100);
+            }, 400);
+
+        } catch (error) {
+            console.error('Failed to submit restaurants:', error);
+            alert('음식점 전송 중 오류가 발생했습니다.');
+            setIsClosingSearch(false); // 애니메이션 초기화
+        }
     };
 
     // 다시 선택하기 핸들러
