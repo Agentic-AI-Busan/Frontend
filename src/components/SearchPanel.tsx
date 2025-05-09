@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
-import travel_img3 from '../assets/images/travel_img3.jpg';
-import SelectionModal from './Modal/SelectionModal';
+import nullPlaceImage from '../assets/images/null_place.png'; // 폴백 이미지 import
+import SelectionModal from './Modal/SelectionModal'; // SelectionModal 임포트 확인
 
 // 애니메이션 keyframe 정의
 const fadeIn = keyframes`
@@ -26,7 +26,6 @@ const fadeOut = keyframes`
     }
 `;
 
-// 슬라이드 인 애니메이션 수정
 const slideInLeft = keyframes`
     from {
         opacity: 0;
@@ -49,7 +48,6 @@ const slideInRight = keyframes`
     }
 `;
 
-// 슬라이드 아웃 애니메이션 수정
 const slideOutLeft = keyframes`
     from {
         opacity: 1;
@@ -283,6 +281,15 @@ const AddButton = styled.button<{ isComplete?: boolean }>`
     }
 `;
 
+// 로딩 및 에러 메시지 스타일
+const MessageText = styled.p`
+  text-align: center;
+  color: #555;
+  padding: 20px;
+  font-size: 14px;
+`;
+
+// SearchPanelProps 인터페이스 업데이트
 interface SearchPanelProps {
     type: 'travel' | 'restaurant';
     isClosing: boolean;
@@ -292,6 +299,23 @@ interface SearchPanelProps {
     onSearch: () => void;
     searchResults: { id: number; name: string; address: string; imageUrl?: string; coordinates?: { lat: number; lng: number } }[];
     onAddPlace: (place: { id: number; name: string }) => void;
+    isLoading?: boolean; // 로딩 상태 prop 추가
+    error?: string | null; // 에러 메시지 prop 추가
+}
+
+// SelectionModal에 전달될 데이터 타입 (TravelItem과 유사하게)
+// 이 타입은 SelectionModal 컴포넌트의 selectedTravelItem prop 타입과 호환되어야 합니다.
+interface ModalDisplayData {
+    attractionId?: number;
+    restaurantId?: number;
+    imageUrl: string;
+    name: string;
+    title: string; 
+    address?: string;
+    // SelectionModal에서 사용하지 않는다면 description은 없어도 됨
+    // description?: string; 
+    latitude?: number;
+    longitude?: number;
 }
 
 const SearchPanel: React.FC<SearchPanelProps> = ({
@@ -302,27 +326,20 @@ const SearchPanel: React.FC<SearchPanelProps> = ({
     onSearchChange,
     onSearch,
     searchResults,
-    onAddPlace
+    onAddPlace,
+    isLoading,
+    error
 }) => {
     const Container = type === 'travel' ? TravelSearchContainer : RestaurantSearchContainer;
-    const title = type === 'travel' ? '여행지 검색' : '음식점 검색';
+    const titleText = type === 'travel' ? '여행지 검색' : '음식점 검색';
     const placeholder = type === 'travel' ? '여행지를 검색하세요' : '음식점을 검색하세요';
     
-    // 모달 상태 관리
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedPlace, setSelectedPlace] = useState<null | {
-        id: number;
-        title: string;
-        image: string;
-        description: string;
-        location?: string;
-        coordinates?: { lat: number; lng: number }
-    }>(null);
+    const [selectedPlace, setSelectedPlace] = useState<ModalDisplayData | null>(null);
     
-    // 기본 이미지 URL
-    const defaultImage = travel_img3;
-    
-    // 장소 선택 처리
+    // 새로운 상태: 현재 검색어에 대한 검색 시도 여부
+    const [searchAttempted, setSearchAttempted] = useState(false);
+        
     const handlePlaceClick = (place: { 
         id: number; 
         name: string; 
@@ -330,71 +347,123 @@ const SearchPanel: React.FC<SearchPanelProps> = ({
         imageUrl?: string; 
         coordinates?: { lat: number; lng: number } 
     }) => {
-        setSelectedPlace({
-            id: place.id,
-            title: place.name,
-            image: place.imageUrl || defaultImage,
-            description: `${place.name}는 ${place.address}에 위치한 ${type === 'travel' ? '관광지' : '음식점'}입니다.`,
-            location: place.address,
-            coordinates: place.coordinates
-        });
+        const placeDataForModal: ModalDisplayData = {
+            // type에 따라 attractionId 또는 restaurantId 설정
+            ...(type === 'travel' ? { attractionId: place.id } : { restaurantId: place.id }),
+            name: place.name,
+            title: place.name, // SelectionModal에서 title을 사용하므로 name과 동일하게 설정
+            imageUrl: place.imageUrl || nullPlaceImage, // imageUrl 사용, 없으면 nullPlaceImage
+            address: place.address,
+            // description은 ModalDisplayData에 포함시키지 않음 (SelectionModal이 사용 안 함 가정)
+            latitude: place.coordinates?.lat,
+            longitude: place.coordinates?.lng,
+        };
+        setSelectedPlace(placeDataForModal);
         setIsModalOpen(true);
     };
     
-    // 모달에서 장소 선택 시 처리
     const handleSelectPlace = () => {
         if (selectedPlace) {
-            onAddPlace({ id: selectedPlace.id, name: selectedPlace.title });
+            // onAddPlace는 id와 name만 필요로 함
+            // selectedPlace에서 id를 가져올 때 attractionId 또는 restaurantId 확인
+            const id = selectedPlace.attractionId || selectedPlace.restaurantId;
+            if (id !== undefined) { // id가 유효한지 확인
+                onAddPlace({ id: id, name: selectedPlace.name });
+            }
         }
         setIsModalOpen(false);
+    };
+
+    const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+        e.currentTarget.src = nullPlaceImage;
+    };
+
+    // 검색어 입력창 변경 시 호출될 내부 핸들러
+    const handleInternalSearchTermChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        onSearchChange(e); // 부모의 searchTerm 상태 업데이트
+        setSearchAttempted(false); // 검색어가 변경되었으므로, 검색 시도 상태 초기화
+    };
+
+    // 검색 버튼 클릭 또는 Enter 시 호출될 내부 핸들러
+    const handleInternalSearch = () => {
+        if (searchTerm.trim() !== '') {
+            setSearchAttempted(true); // 유효한 검색어로 검색 시도
+        } else {
+            setSearchAttempted(false); // 빈 검색어로는 시도하지 않음 (또는 결과 없음으로 간주 안함)
+            // 부모의 onSearch는 빈 검색어일 때 알아서 결과를 비우거나 할 것임
+        }
+        onSearch(); // 부모의 검색 실행 로직 호출
     };
 
     return (
         <>
             <Container isClosing={isClosing}>
-                <SearchTitle>{title}</SearchTitle>
+                <SearchTitle>{titleText}</SearchTitle>
                 <SearchForm>
                     <SearchInput 
                         type="text" 
                         placeholder={placeholder} 
                         value={searchTerm}
-                        onChange={onSearchChange}
-                        onKeyPress={(e) => e.key === 'Enter' && onSearch()}
+                        onChange={handleInternalSearchTermChange}
+                        onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                                handleInternalSearch();
+                            }
+                        }}
+                        disabled={isLoading} 
                     />
-                    <SearchButton onClick={onSearch}>검색</SearchButton>
+                    <SearchButton onClick={handleInternalSearch} disabled={isLoading}>
+                        검색
+                    </SearchButton>
                 </SearchForm>
                 <SearchResults>
-                    {searchResults.map(place => (
+                    {isLoading && <MessageText>검색 중입니다...</MessageText>}
+                    {error && <MessageText>오류: {error}</MessageText>}
+                    {searchAttempted && !isLoading && !error && searchResults.length === 0 && searchTerm.trim() !== '' && (
+                        <MessageText>검색 결과가 없습니다. 다른 키워드로 시도해 보세요.</MessageText>
+                    )}
+                    {!isLoading && !error && searchResults.map(place => (
                         <SearchResultItem 
                             key={place.id} 
                             onClick={() => handlePlaceClick(place)} 
                             type="button"
                         >
                             <PlaceImage>
-                                <Image src={place.imageUrl || defaultImage} alt={place.name} />
+                                <Image 
+                                    src={place.imageUrl || nullPlaceImage} 
+                                    alt={place.name} 
+                                    onError={handleImageError}
+                                />
                             </PlaceImage>
                             <PlaceInfo>
                                 <PlaceName>{place.name}</PlaceName>
                                 <PlaceAddress>{place.address}</PlaceAddress>
                             </PlaceInfo>
-                            <AddButton onClick={(e) => {
-                                e.stopPropagation();
-                                onAddPlace(place);
-                            }} isComplete={isComplete}>선택</AddButton>
+                            <AddButton 
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onAddPlace({ id: place.id, name: place.name });
+                                }} 
+                                isComplete={isComplete}
+                                disabled={isComplete}
+                            >
+                                선택
+                            </AddButton>
                         </SearchResultItem>
                     ))}
                 </SearchResults>
             </Container>
             
-            {/* 선택한 장소 정보 모달 */}
-            <SelectionModal 
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                selectedTravelItem={selectedPlace}
-                onSelect={handleSelectPlace}
-            />
+            {selectedPlace && (
+                <SelectionModal 
+                    isOpen={isModalOpen}
+                    onClose={() => setIsModalOpen(false)}
+                    selectedTravelItem={selectedPlace}
+                    onSelect={handleSelectPlace}
+                />
+            )}
         </>
     );
 };
 
-export default SearchPanel; 
+export default SearchPanel;

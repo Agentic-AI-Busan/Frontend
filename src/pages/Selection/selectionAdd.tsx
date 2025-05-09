@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect} from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import Modal from 'react-modal';
@@ -57,6 +57,30 @@ Modal.setAppElement('#root'); // 모달을 위한 설정
 interface SelectedPlaceItem {
     id: number;
     title: string;
+}
+
+// API로부터 받는 여행지 검색 결과 항목의 예상 타입
+interface ApiSearchAttraction {
+    attractionId: number;
+    name: string;
+    address: string;
+    imageUrl?: string;
+}
+
+// API로부터 받는 음식점 검색 결과 항목의 예상 타입 (여행지와 유사할 수 있음)
+interface ApiSearchRestaurant {
+    restaurantId: number;
+    name: string;
+    address: string;
+    imageUrl?: string;
+}
+
+// SearchPanel에 전달될 공통 검색 결과 항목 타입
+interface SearchResultItem {
+    id: number;
+    name: string;
+    address: string;
+    imageUrl?: string;
 }
 
 const STORAGE_KEY_DESTINATIONS_PREFIX = 'selectedDestinations_';
@@ -119,16 +143,15 @@ const SelectionAdd: React.FC = () => {
     const [showTravelSearch, setShowTravelSearch] = useState(false);
     const [showRestaurantSearch, setShowRestaurantSearch] = useState(false);
     
-    // 검색 결과를 위한 상태 관리 (API 연동 시 변경 필요)
-    const [travelSearchResults] = useState([
-        { id: 101, name: '부산타워', address: '부산 중구 용두산길 37-55' },
-        { id: 102, name: '해동용궁사', address: '부산 기장군 기장읍 기장해안로 86' },
-    ]);
+    // 여행지 검색 결과 상태
+    const [travelSearchResults, setTravelSearchResults] = useState<SearchResultItem[]>([]);
+    const [isSearchingTravel, setIsSearchingTravel] = useState(false);
+    const [travelSearchError, setTravelSearchError] = useState<string | null>(null);
     
-    const [restaurantSearchResults] = useState([
-        { id: 201, name: '자갈치 시장', address: '부산 중구 자갈치해안로 52' },
-        { id: 202, name: '가야밀면', address: '부산 진구 가야대로 507' },
-    ]);
+    // 음식점 검색 결과 상태 (API로부터 받아옴)
+    const [restaurantSearchResults, setRestaurantSearchResults] = useState<SearchResultItem[]>([]); // 빈 배열로 초기화
+    const [isSearchingRestaurant, setIsSearchingRestaurant] = useState(false);
+    const [restaurantSearchError, setRestaurantSearchError] = useState<string | null>(null);
 
     // 선택 완료 상태 관리
     const [isTravelComplete, setIsTravelComplete] = useState(false);
@@ -273,13 +296,95 @@ const SelectionAdd: React.FC = () => {
         setRestaurantSearchTerm(e.target.value);
     };
 
-    // 검색 버튼 클릭 핸들러 (실제 검색 로직 필요)
-    const handleTravelSearch = () => {
-        console.log('여행지 검색:', travelSearchTerm);
+    // 여행지 검색 버튼 클릭 핸들러
+    const handleTravelSearch = async () => {
+        if (!travelSearchTerm.trim()) {
+            setTravelSearchResults([]);
+            setTravelSearchError(null);
+            return;
+        }
+        setIsSearchingTravel(true);
+        setTravelSearchError(null);
+        try {
+            const response = await authenticatedFetch(`/api/trip-plans/attractions/search?keyword=${encodeURIComponent(travelSearchTerm)}`);
+            if (!response.ok) {
+                let errorMsg = `HTTP error! status: ${response.status}`;
+                try {
+                    const errorData = await response.json();
+                    errorMsg = errorData.message || errorMsg;
+                } catch { /* ignore */ }
+                throw new Error(errorMsg);
+            }
+            const data = await response.json();
+            if (data.isSuccess && data.result && Array.isArray(data.result.attractions)) {
+                const formattedResults: SearchResultItem[] = data.result.attractions.map((item: ApiSearchAttraction) => ({
+                    id: item.attractionId,
+                    name: item.name,
+                    address: item.address,
+                    imageUrl: item.imageUrl,
+                }));
+                setTravelSearchResults(formattedResults);
+            } else {
+                setTravelSearchResults([]);
+                // setTravelSearchError(data.message || 'No results or incorrect format');
+            }
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : '여행지 검색 중 오류가 발생했습니다.';
+            setTravelSearchError(errorMessage);
+            setTravelSearchResults([]);
+        } finally {
+            setIsSearchingTravel(false);
+        }
     };
 
-    const handleRestaurantSearch = () => {
-        console.log('음식점 검색:', restaurantSearchTerm);
+    // 음식점 검색 버튼 클릭 핸들러
+    const handleRestaurantSearch = async () => {
+        if (!restaurantSearchTerm.trim()) {
+            setRestaurantSearchResults([]); // 검색어가 없으면 결과 초기화
+            setRestaurantSearchError(null); // 에러도 초기화
+            return;
+        }
+        setIsSearchingRestaurant(true);
+        setRestaurantSearchError(null);
+        try {
+            const response = await authenticatedFetch(`/api/trip-plans/restaurants/search?keyword=${encodeURIComponent(restaurantSearchTerm)}`, {
+                method: 'GET',
+            });
+
+            if (!response.ok) {
+                let errorMsg = `HTTP error! status: ${response.status}`;
+                try {
+                    const errorData = await response.json();
+                    errorMsg = errorData.message || errorMsg;
+                } catch {
+                    console.log('Error response body is not valid JSON for restaurant search.');
+                }
+                throw new Error(errorMsg);
+            }
+            const data = await response.json();
+
+            if (data.isSuccess && data.result && Array.isArray(data.result.restaurants)) {
+                const formattedResults: SearchResultItem[] = data.result.restaurants.map((restaurant: ApiSearchRestaurant) => ({
+                    id: restaurant.restaurantId, // API 응답에 따라 restaurant.id일 수도 있음
+                    name: restaurant.name,
+                    address: restaurant.address,
+                    imageUrl: restaurant.imageUrl,
+                }));
+                setRestaurantSearchResults(formattedResults);
+            } else {
+                console.warn('Restaurant search API response format is incorrect or no results:', data.message);
+                setRestaurantSearchResults([]); 
+                // 필요하다면 data.message를 setRestaurantSearchError로 사용자에게 표시
+                // setRestaurantSearchError(data.message || '검색 결과가 없거나 형식이 맞지 않습니다.');
+            }
+        } catch (err) {
+            console.error("Error fetching restaurant search results:", err);
+            const errorMessage = err instanceof Error ? err.message : '음식점 검색 중 오류가 발생했습니다.';
+            setRestaurantSearchError(errorMessage);
+            setRestaurantSearchResults([]);
+        } finally {
+            setIsSearchingRestaurant(false);
+        }
     };
 
     // 여행지/음식점 추가 버튼 핸들러
@@ -327,6 +432,8 @@ const SelectionAdd: React.FC = () => {
                         onSearch={handleTravelSearch}
                         searchResults={travelSearchResults}
                         onAddPlace={handleAddTravel}
+                        isLoading={isSearchingTravel}
+                        error={travelSearchError}
                     />
                 )}
 
@@ -368,6 +475,8 @@ const SelectionAdd: React.FC = () => {
                         onSearch={handleRestaurantSearch}
                         searchResults={restaurantSearchResults}
                         onAddPlace={handleAddRestaurant}
+                        isLoading={isSearchingRestaurant}
+                        error={restaurantSearchError}
                     />
                 )}
             </MainContainer>
