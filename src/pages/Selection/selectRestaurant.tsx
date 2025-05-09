@@ -30,15 +30,53 @@ interface SelectedItem {
   title: string;
 }
 
+const STORAGE_KEY_DESTINATIONS_PREFIX = 'selectedDestinations_';
+const STORAGE_KEY_RESTAURANTS_PREFIX = 'selectedRestaurants_';
+
 const SelectRestaurant: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const selectedDestinations = location.state?.selectedDestinations || [];
-  const tripPlansId = '14';
+
+  // 이전 페이지(selectDestination)에서 전달된 tripPlansId를 우선 사용, 없으면 기본값 '14' 사용
+  // 또는 location.state에서 selectedDestinations가 없을 경우를 대비하여 tripPlansId를 가져옴
+  const passedTripPlansId = location.state?.tripPlansId || '14'; 
+  const tripPlansId = passedTripPlansId;
+
+  const getDestinationsStorageKey = () => `${STORAGE_KEY_DESTINATIONS_PREFIX}${tripPlansId}`;
+  const getRestaurantsStorageKey = () => `${STORAGE_KEY_RESTAURANTS_PREFIX}${tripPlansId}`;
+
+  // selectedDestinations는 location.state 또는 localStorage에서 가져옴
+  const initialSelectedDestinations = (): SelectedItem[] => {
+    const stateDestinations = location.state?.selectedDestinations;
+    if (stateDestinations && stateDestinations.length > 0) {
+      return stateDestinations;
+    }
+    if (tripPlansId) {
+        const savedDestinations = localStorage.getItem(getDestinationsStorageKey());
+        if (savedDestinations) return JSON.parse(savedDestinations);
+    }
+    return [];
+  };
+  const selectedDestinations = initialSelectedDestinations();
+
   const [userName] = useState<string>("성수립");
   const [restaurantItems, setRestaurantItems] = useState<TravelItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+
+  // localStorage에서 선택된 음식점 초기 데이터 로드
+  const [selectedItems, setSelectedItems] = useState<SelectedItem[]>(() => {
+    if (!tripPlansId) return [];
+    const savedItems = localStorage.getItem(getRestaurantsStorageKey());
+    return savedItems ? JSON.parse(savedItems) : [];
+  });
+
+  // selectedItems(음식점)가 변경될 때마다 localStorage에 저장
+  useEffect(() => {
+    if (tripPlansId) {
+      localStorage.setItem(getRestaurantsStorageKey(), JSON.stringify(selectedItems));
+    }
+  }, [selectedItems, tripPlansId]);
 
   useEffect(() => {
     const fetchRestaurants = async () => {
@@ -98,28 +136,28 @@ const SelectRestaurant: React.FC = () => {
     fetchRestaurants();
   }, [tripPlansId]);
 
-  const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
-
   const handleSelectItem = (id: number) => {
     const isAlreadySelected = selectedItems.some(item => item.id === id);
     if (!isAlreadySelected) {
       const itemToAdd = restaurantItems.find(item => item.restaurantId === id);
       if (itemToAdd) {
-        setSelectedItems([...selectedItems, { id: itemToAdd.restaurantId, title: itemToAdd.name }]);
+        setSelectedItems(prevItems => [...prevItems, { id: itemToAdd.restaurantId, title: itemToAdd.name }]);
       }
     }
   };
 
   const handleRemoveItem = (id: number) => {
-    setSelectedItems(selectedItems.filter(item => item.id !== id));
+    setSelectedItems(prevItems => prevItems.filter(item => item.id !== id));
   };
 
   const handleSave = () => {
     console.log('Saving restaurants:', selectedItems);
+    // selectedDestinations는 localStorage 또는 이전 state에서, selectedItems(음식점)는 현재 state(localStorage와 동기화됨)에서 가져옴
     navigate(`/selectionAdd`, {
       state: {
-        selectedDestinations: selectedDestinations,
-        selectedRestaurants: selectedItems
+        selectedDestinations: selectedDestinations, 
+        selectedRestaurants: selectedItems,
+        tripPlansId: tripPlansId // 다음 페이지에서도 tripPlansId를 사용할 수 있도록 전달
       }
     });
   };
@@ -135,7 +173,7 @@ const SelectRestaurant: React.FC = () => {
   return (
     <SelectMain
       items={restaurantItems}
-      selectedItems={selectedItems}
+      selectedItems={selectedItems} // 현재 페이지에서 선택/관리하는 음식점 목록
       onSelectItem={handleSelectItem}
       onRemoveItem={handleRemoveItem}
       onSave={handleSave}

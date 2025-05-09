@@ -33,6 +33,8 @@ interface SelectedItem {
   title: string;
 }
 
+const STORAGE_KEY_DESTINATIONS_PREFIX = 'selectedDestinations_';
+
 const SelectDestination: React.FC = () => {
   const navigate = useNavigate();
   // const { tripPlansId } = useParams<{ tripPlansId: string }>(); // 원래 코드: URL 파라미터에서 가져옵니다.
@@ -41,6 +43,22 @@ const SelectDestination: React.FC = () => {
   const [travelItems, setTravelItems] = useState<TravelItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+
+  const getStorageKey = () => `${STORAGE_KEY_DESTINATIONS_PREFIX}${tripPlansId}`;
+
+  // localStorage에서 초기 데이터 로드
+  const [selectedItems, setSelectedItems] = useState<SelectedItem[]>(() => {
+    if (!tripPlansId) return [];
+    const savedItems = localStorage.getItem(getStorageKey());
+    return savedItems ? JSON.parse(savedItems) : [];
+  });
+
+  // selectedItems가 변경될 때마다 localStorage에 저장
+  useEffect(() => {
+    if (tripPlansId) {
+      localStorage.setItem(getStorageKey(), JSON.stringify(selectedItems));
+    }
+  }, [selectedItems, tripPlansId]);
 
   useEffect(() => {
     const fetchAttractions = async () => {
@@ -105,29 +123,27 @@ const SelectDestination: React.FC = () => {
         };
 
         fetchAttractions();
-      }, [tripPlansId]);
-
-  const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
+      }, [tripPlansId]); // tripPlansId 변경 시 fetchAttractions 다시 호출
 
   const handleSelectItem = (id: number) => {
     const isAlreadySelected = selectedItems.some(item => item.id === id);
     if (!isAlreadySelected) {
       const itemToAdd = travelItems.find(item => item.attractionId === id);
       if (itemToAdd) {
-        setSelectedItems([...selectedItems, { id: itemToAdd.attractionId, title: itemToAdd.name }]);
+        setSelectedItems(prevItems => [...prevItems, { id: itemToAdd.attractionId, title: itemToAdd.name }]);
       }
     }
   };
 
   const handleRemoveItem = (id: number) => {
-    setSelectedItems(selectedItems.filter(item => item.id !== id));
+    setSelectedItems(prevItems => prevItems.filter(item => item.id !== id));
   };
 
   // handleSave에서 navigate 경로 수정 및 상태 전달
   const handleSave = () => {
     console.log('Saving destinations:', selectedItems);
-    // selectedItems를 state로 전달
-    navigate(`/selectionRestaurant`, { state: { selectedDestinations: selectedItems } });
+    // selectedItems를 state로 전달 (localStorage에도 이미 저장됨)
+    navigate(`/selectionRestaurant`, { state: { selectedDestinations: selectedItems, tripPlansId: tripPlansId } });
   };
 
   // 로딩 중일 때 표시할 UI

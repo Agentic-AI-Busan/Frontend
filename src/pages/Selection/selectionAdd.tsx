@@ -5,6 +5,7 @@ import Modal from 'react-modal';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import SearchPanel from '../../components/SearchPanel';
 import SelectionSidebar from '../../components/SelectionSidebar';
+import { authenticatedFetch } from '../../services/api';
 
 // 메인 컨테이너 스타일 컴포넌트
 const MainContainer = styled.div`
@@ -54,23 +55,61 @@ Modal.setAppElement('#root'); // 모달을 위한 설정
 
 // 선택된 항목의 타입을 정의 (id와 title 포함)
 interface SelectedPlaceItem {
-  id: number;
-  title: string;
+    id: number;
+    title: string;
 }
+
+const STORAGE_KEY_DESTINATIONS_PREFIX = 'selectedDestinations_';
+const STORAGE_KEY_RESTAURANTS_PREFIX = 'selectedRestaurants_';
 
 const SelectionAdd: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation(); // useLocation 훅 사용
 
-    // 이전 페이지에서 전달받은 상태 읽기
-    const passedDestinations: SelectedPlaceItem[] = location.state?.selectedDestinations || [];
-    const passedRestaurants: SelectedPlaceItem[] = location.state?.selectedRestaurants || [];
+    // 이전 페이지에서 전달된 tripPlansId 또는 기본값 '14' 사용
+    const passedTripPlansId = location.state?.tripPlansId || '14';
+    const currentTripPlansId = passedTripPlansId;
 
-    // 상태 초기화 시 전달받은 데이터 사용
-    const [selectedPlaces, setSelectedPlaces] = useState({
-        travel: passedDestinations,
-        restaurant: passedRestaurants
+    const getDestinationsStorageKey = () => `${STORAGE_KEY_DESTINATIONS_PREFIX}${currentTripPlansId}`;
+    const getRestaurantsStorageKey = () => `${STORAGE_KEY_RESTAURANTS_PREFIX}${currentTripPlansId}`;
+
+    // 상태 초기화 시 localStorage 우선, 그 다음 location.state, 마지막으로 빈 배열
+    const [selectedPlaces, setSelectedPlaces] = useState(() => {
+        let destinations: SelectedPlaceItem[] = [];
+        let restaurants: SelectedPlaceItem[] = [];
+
+        if (currentTripPlansId) {
+            const savedDestinations = localStorage.getItem(getDestinationsStorageKey());
+            if (savedDestinations) destinations = JSON.parse(savedDestinations);
+            
+            const savedRestaurants = localStorage.getItem(getRestaurantsStorageKey());
+            if (savedRestaurants) restaurants = JSON.parse(savedRestaurants);
+        }
+        
+        // localStorage에 데이터가 없다면 location.state에서 가져오려고 시도
+        if (destinations.length === 0) {
+            destinations = location.state?.selectedDestinations || [];
+        }
+        if (restaurants.length === 0) {
+            restaurants = location.state?.selectedRestaurants || [];
+        }
+
+        return { travel: destinations, restaurant: restaurants };
     });
+
+    // selectedPlaces.travel이 변경될 때마다 localStorage에 저장
+    useEffect(() => {
+        if (currentTripPlansId) {
+            localStorage.setItem(getDestinationsStorageKey(), JSON.stringify(selectedPlaces.travel));
+        }
+    }, [selectedPlaces.travel, currentTripPlansId]);
+
+    // selectedPlaces.restaurant가 변경될 때마다 localStorage에 저장
+    useEffect(() => {
+        if (currentTripPlansId) {
+            localStorage.setItem(getRestaurantsStorageKey(), JSON.stringify(selectedPlaces.restaurant));
+        }
+    }, [selectedPlaces.restaurant, currentTripPlansId]);
 
     // 검색을 위한 상태 관리
     const [travelSearchTerm, setTravelSearchTerm] = useState('');
@@ -80,21 +119,15 @@ const SelectionAdd: React.FC = () => {
     const [showTravelSearch, setShowTravelSearch] = useState(false);
     const [showRestaurantSearch, setShowRestaurantSearch] = useState(false);
     
-    // 검색 결과를 위한 상태 관리
+    // 검색 결과를 위한 상태 관리 (API 연동 시 변경 필요)
     const [travelSearchResults] = useState([
         { id: 101, name: '부산타워', address: '부산 중구 용두산길 37-55' },
         { id: 102, name: '해동용궁사', address: '부산 기장군 기장읍 기장해안로 86' },
-        { id: 103, name: '태종대', address: '부산 영도구 전망로 24' },
-        { id: 104, name: '감천문화마을', address: '부산 사하구 감내2로 203' },
-        { id: 105, name: '오륙도', address: '부산 남구 오륙도로 137' }
     ]);
     
     const [restaurantSearchResults] = useState([
         { id: 201, name: '자갈치 시장', address: '부산 중구 자갈치해안로 52' },
         { id: 202, name: '가야밀면', address: '부산 진구 가야대로 507' },
-        { id: 203, name: '삼진어묵', address: '부산 남구 분포로 66' },
-        { id: 204, name: '송정 가마솥 국밥', address: '부산 해운대구 송정구서로 21' },
-        { id: 205, name: '원조할매국밥', address: '부산 동구 중앙대로 526' }
     ]);
 
     // 선택 완료 상태 관리
@@ -112,54 +145,101 @@ const SelectionAdd: React.FC = () => {
 
     // 두 선택이 모두 완료되었을 때 로딩 시작
     useEffect(() => {
-        // 컴포넌트 마운트 시, 전달받은 데이터가 있으면 완료 상태로 간주할 수 있음
-        if (passedDestinations.length > 0) {
-          // setIsTravelComplete(true); // 필요에 따라 초기 완료 상태 설정
-        }
-        if (passedRestaurants.length > 0) {
-          // setIsRestaurantComplete(true);
-        }
-
         if (isTravelComplete && isRestaurantComplete) {
             setIsLoading(true);
-            
-            // 3초 후에 로딩 종료 및 다음 페이지로 이동
             const timer = setTimeout(() => {
                 setIsLoading(false);
+                // 다음 페이지로 이동 시 localStorage 데이터 삭제 여부 결정 필요
+                // 예: localStorage.removeItem(getDestinationsStorageKey());
+                // 예: localStorage.removeItem(getRestaurantsStorageKey());
                 navigate('/map');
             }, 3000);
-            
             return () => clearTimeout(timer);
         }
-    }, [isTravelComplete, isRestaurantComplete, navigate, passedDestinations.length, passedRestaurants.length]);
+    }, [isTravelComplete, isRestaurantComplete, navigate, currentTripPlansId]); // currentTripPlansId 의존성 추가
 
-    // 선택 완료 핸들러
-    const handleTravelComplete = () => {
+    // 선택 완료 핸들러 (여행지)
+    const handleTravelComplete = async () => {
+        if (!currentTripPlansId) {
+            alert('여행 계획 ID가 유효하지 않습니다.');
+            return;
+        }
         setIsClosingSearch(true);
-        setTimeout(() => {
-            // 검색 패널을 먼저 닫고
-            setShowTravelSearch(false);
-            setIsClosingSearch(false);
-            
-            // 약간의 지연 후 완료 상태로 전환하여 사이드바가 자연스럽게 중앙으로 이동하도록 함
+        try {
+            const attractionIds = selectedPlaces.travel.map(place => place.id);
+            const response = await authenticatedFetch(`/api/trip-plans/${currentTripPlansId}/attractions/final`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ attractionIds: attractionIds }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ message: 'Failed to submit attractions and parse error response.' }));
+                console.error('Error submitting attractions:', errorData);
+                alert(`여행지 전송에 실패했습니다: ${errorData.message || response.statusText}`);
+                setIsClosingSearch(false);
+                return;
+            }
+            const responseData = await response.json().catch(() => ({ message: 'Successfully submitted but no JSON response or failed to parse.' }));
+            console.log('Successfully submitted attractions. Server response:', responseData);
+
             setTimeout(() => {
-                setIsTravelComplete(true);
-            }, 100);
-        }, 400);
+                setShowTravelSearch(false);
+                setIsClosingSearch(false);
+                setTimeout(() => {
+                    setIsTravelComplete(true);
+                }, 100);
+            }, 400);
+
+        } catch (error) {
+            console.error('Failed to submit attractions:', error);
+            alert('여행지 전송 중 오류가 발생했습니다.');
+            setIsClosingSearch(false);
+        }
     };
 
-    const handleRestaurantComplete = () => {
+    // 선택 완료 핸들러 (음식점)
+    const handleRestaurantComplete = async () => {
+        if (!currentTripPlansId) {
+            alert('여행 계획 ID가 유효하지 않습니다.');
+            return;
+        }
         setIsClosingSearch(true);
-        setTimeout(() => {
-            // 검색 패널을 먼저 닫고
-            setShowRestaurantSearch(false);
-            setIsClosingSearch(false);
-            
-            // 약간의 지연 후 완료 상태로 전환하여 사이드바가 자연스럽게 중앙으로 이동하도록 함
+        try {
+            const restaurantIds = selectedPlaces.restaurant.map(place => place.id);
+            const response = await authenticatedFetch(`/api/trip-plans/${currentTripPlansId}/restaurants/final`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ restaurantIds: restaurantIds }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ message: 'Failed to submit restaurants and parse error response.' }));
+                console.error('Error submitting restaurants:', errorData);
+                alert(`음식점 전송에 실패했습니다: ${errorData.message || response.statusText}`);
+                setIsClosingSearch(false);
+                return;
+            }
+            const responseData = await response.json().catch(() => ({ message: 'Successfully submitted but no JSON response or failed to parse.' }));
+            console.log('Successfully submitted restaurants. Server response:', responseData);
+
             setTimeout(() => {
-                setIsRestaurantComplete(true);
-            }, 100);
-        }, 400);
+                setShowRestaurantSearch(false);
+                setIsClosingSearch(false);
+                setTimeout(() => {
+                    setIsRestaurantComplete(true);
+                }, 100);
+            }, 400);
+
+        } catch (error) {
+            console.error('Failed to submit restaurants:', error);
+            alert('음식점 전송 중 오류가 발생했습니다.');
+            setIsClosingSearch(false);
+        }
     };
 
     // 다시 선택하기 핸들러
@@ -171,47 +251,34 @@ const SelectionAdd: React.FC = () => {
         setIsRestaurantComplete(false);
     };
 
+    // 삭제 핸들러 (setSelectedPlaces 호출 시 자동으로 localStorage 업데이트 됨 by useEffect)
     const handleDelete = (type: 'travel' | 'restaurant', id: number) => {
-        if (type === 'travel') {
-            setDeletingTravelId(id);
-            setTimeout(() => {
-                setSelectedPlaces(prev => ({
-                    ...prev,
-                    [type]: prev[type].filter(item => item.id !== id)
-                }));
-                setDeletingTravelId(null);
-            }, 300);
-        } else {
-            setDeletingRestaurantId(id);
-            setTimeout(() => {
-                setSelectedPlaces(prev => ({
-                    ...prev,
-                    [type]: prev[type].filter(item => item.id !== id)
-                }));
-                setDeletingRestaurantId(null);
-            }, 300);
-        }
+        const setter = type === 'travel' ? setDeletingTravelId : setDeletingRestaurantId;
+        setter(id);
+        setTimeout(() => {
+            setSelectedPlaces(prev => ({
+                ...prev,
+                [type]: prev[type].filter(item => item.id !== id)
+            }));
+            setter(null);
+        }, 300);
     };
 
     // 검색어 변경 핸들러
     const handleTravelSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setTravelSearchTerm(e.target.value);
-        // 실제 구현에서는 여기서 API 호출이나 필터링 로직을 추가
     };
 
     const handleRestaurantSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setRestaurantSearchTerm(e.target.value);
-        // 실제 구현에서는 여기서 API 호출이나 필터링 로직을 추가
     };
 
-    // 검색 버튼 클릭 핸들러
+    // 검색 버튼 클릭 핸들러 (실제 검색 로직 필요)
     const handleTravelSearch = () => {
-        // 실제 구현에서는 여기서 API 호출이나 필터링 로직을 추가
         console.log('여행지 검색:', travelSearchTerm);
     };
 
     const handleRestaurantSearch = () => {
-        // 실제 구현에서는 여기서 API 호출이나 필터링 로직을 추가
         console.log('음식점 검색:', restaurantSearchTerm);
     };
 
@@ -226,10 +293,9 @@ const SelectionAdd: React.FC = () => {
         setShowTravelSearch(false);
     };
 
-    // 장소 추가 핸들러
+    // 장소 추가 핸들러 (setSelectedPlaces 호출 시 자동으로 localStorage 업데이트 됨 by useEffect)
     const handleAddTravel = (place: { id: number, name: string }) => {
-        if (isTravelComplete) return; // 선택 완료 상태면 추가하지 않음
-        // 중복 체크
+        if (isTravelComplete) return;
         if (!selectedPlaces.travel.some(item => item.id === place.id)) {
             setSelectedPlaces(prev => ({
                 ...prev,
@@ -239,8 +305,7 @@ const SelectionAdd: React.FC = () => {
     };
 
     const handleAddRestaurant = (place: { id: number, name: string }) => {
-        if (isRestaurantComplete) return; // 선택 완료 상태면 추가하지 않음
-        // 중복 체크
+        if (isRestaurantComplete) return;
         if (!selectedPlaces.restaurant.some(item => item.id === place.id)) {
             setSelectedPlaces(prev => ({
                 ...prev,
@@ -252,7 +317,6 @@ const SelectionAdd: React.FC = () => {
     return (
         <>
             <MainContainer>
-                {/* 여행지 검색 컨테이너 - 버튼 클릭시에만 표시 */}
                 {showTravelSearch && (
                     <SearchPanel
                         type="travel"
@@ -267,7 +331,6 @@ const SelectionAdd: React.FC = () => {
                 )}
 
                 <SidebarsWrapper showTravelSearch={showTravelSearch} showRestaurantSearch={showRestaurantSearch}>
-                    {/* 선택한 여행지 사이드바 */}
                     <SelectionSidebar
                         type="travel"
                         title="성수립님이 선택한 여행지입니다."
@@ -281,7 +344,6 @@ const SelectionAdd: React.FC = () => {
                         buttonText="여행지 선택 완료"
                     />
                     
-                    {/* 선택한 음식점 사이드바 */}
                     <SelectionSidebar
                         type="restaurant"
                         title="성수립님이 선택한 음식점입니다."
@@ -296,7 +358,6 @@ const SelectionAdd: React.FC = () => {
                     />
                 </SidebarsWrapper>
 
-                {/* 음식점 검색 컨테이너 - 버튼 클릭시에만 표시 */}
                 {showRestaurantSearch && (
                     <SearchPanel
                         type="restaurant"
@@ -311,7 +372,6 @@ const SelectionAdd: React.FC = () => {
                 )}
             </MainContainer>
             
-            {/* 로딩 스피너 */}
             {isLoading && (
                 <LoadingSpinner message="가이드가 최적의 여행 계획을 작성 중입니다..." />
             )}
