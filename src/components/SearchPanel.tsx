@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import nullPlaceImage from '../assets/images/null_place.png'; // 폴백 이미지 import
-import SelectionModal from './Modal/SelectionModal'; // SelectionModal 임포트 확인
 
 // 애니메이션 keyframe 정의
 const fadeIn = keyframes`
@@ -283,10 +282,10 @@ const AddButton = styled.button<{ isComplete?: boolean }>`
 
 // 로딩 및 에러 메시지 스타일
 const MessageText = styled.p`
-  text-align: center;
-  color: #555;
-  padding: 20px;
-  font-size: 14px;
+    text-align: center;
+    color: #555;
+    padding: 20px;
+    font-size: 14px;
 `;
 
 // SearchPanelProps 인터페이스 업데이트
@@ -297,25 +296,11 @@ interface SearchPanelProps {
     searchTerm: string;
     onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onSearch: () => void;
-    searchResults: { id: number; name: string; address: string; imageUrl?: string; coordinates?: { lat: number; lng: number } }[];
+    searchResults: { id: number; name: string; address: string; imageUrl?: string; }[];
     onAddPlace: (place: { id: number; name: string }) => void;
     isLoading?: boolean; // 로딩 상태 prop 추가
     error?: string | null; // 에러 메시지 prop 추가
-}
-
-// SelectionModal에 전달될 데이터 타입 (TravelItem과 유사하게)
-// 이 타입은 SelectionModal 컴포넌트의 selectedTravelItem prop 타입과 호환되어야 합니다.
-interface ModalDisplayData {
-    attractionId?: number;
-    restaurantId?: number;
-    imageUrl: string;
-    name: string;
-    title: string; 
-    address?: string;
-    // SelectionModal에서 사용하지 않는다면 description은 없어도 됨
-    // description?: string; 
-    latitude?: number;
-    longitude?: number;
+    onItemSelect: (id: number, type: 'travel' | 'restaurant') => void; // 상세 정보 로드를 위한 콜백 추가
 }
 
 const SearchPanel: React.FC<SearchPanelProps> = ({
@@ -328,50 +313,20 @@ const SearchPanel: React.FC<SearchPanelProps> = ({
     searchResults,
     onAddPlace,
     isLoading,
-    error
+    error,
+    onItemSelect
 }) => {
     const Container = type === 'travel' ? TravelSearchContainer : RestaurantSearchContainer;
     const titleText = type === 'travel' ? '여행지 검색' : '음식점 검색';
     const placeholder = type === 'travel' ? '여행지를 검색하세요' : '음식점을 검색하세요';
-    
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedPlace, setSelectedPlace] = useState<ModalDisplayData | null>(null);
     
     // 새로운 상태: 현재 검색어에 대한 검색 시도 여부
     const [searchAttempted, setSearchAttempted] = useState(false);
         
     const handlePlaceClick = (place: { 
         id: number; 
-        name: string; 
-        address: string; 
-        imageUrl?: string; 
-        coordinates?: { lat: number; lng: number } 
     }) => {
-        const placeDataForModal: ModalDisplayData = {
-            // type에 따라 attractionId 또는 restaurantId 설정
-            ...(type === 'travel' ? { attractionId: place.id } : { restaurantId: place.id }),
-            name: place.name,
-            title: place.name, // SelectionModal에서 title을 사용하므로 name과 동일하게 설정
-            imageUrl: place.imageUrl || nullPlaceImage, // imageUrl 사용, 없으면 nullPlaceImage
-            address: place.address,
-            // description은 ModalDisplayData에 포함시키지 않음 (SelectionModal이 사용 안 함 가정)
-            latitude: place.coordinates?.lat,
-            longitude: place.coordinates?.lng,
-        };
-        setSelectedPlace(placeDataForModal);
-        setIsModalOpen(true);
-    };
-    
-    const handleSelectPlace = () => {
-        if (selectedPlace) {
-            // onAddPlace는 id와 name만 필요로 함
-            // selectedPlace에서 id를 가져올 때 attractionId 또는 restaurantId 확인
-            const id = selectedPlace.attractionId || selectedPlace.restaurantId;
-            if (id !== undefined) { // id가 유효한지 확인
-                onAddPlace({ id: id, name: selectedPlace.name });
-            }
-        }
-        setIsModalOpen(false);
+        onItemSelect(place.id, type); // 부모에게 id와 type 전달
     };
 
     const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
@@ -425,7 +380,7 @@ const SearchPanel: React.FC<SearchPanelProps> = ({
                     {!isLoading && !error && searchResults.map(place => (
                         <SearchResultItem 
                             key={place.id} 
-                            onClick={() => handlePlaceClick(place)} 
+                            onClick={() => handlePlaceClick(place)}
                             type="button"
                         >
                             <PlaceImage>
@@ -453,15 +408,6 @@ const SearchPanel: React.FC<SearchPanelProps> = ({
                     ))}
                 </SearchResults>
             </Container>
-            
-            {selectedPlace && (
-                <SelectionModal 
-                    isOpen={isModalOpen}
-                    onClose={() => setIsModalOpen(false)}
-                    selectedTravelItem={selectedPlace}
-                    onSelect={handleSelectPlace}
-                />
-            )}
         </>
     );
 };

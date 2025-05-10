@@ -6,6 +6,7 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 import SearchPanel from '../../components/SearchPanel';
 import SelectionSidebar from '../../components/SelectionSidebar';
 import { authenticatedFetch } from '../../services/api';
+import SelectionModal from '../../components/Modal/SelectionModal';
 
 // 메인 컨테이너 스타일 컴포넌트
 const MainContainer = styled.div`
@@ -59,7 +60,7 @@ interface SelectedPlaceItem {
     title: string;
 }
 
-// API로부터 받는 여행지 검색 결과 항목의 예상 타입
+// 검색 결과로부터 받는 여행지 검색 결과 항목의 예상 타입
 interface ApiSearchAttraction {
     attractionId: number;
     name: string;
@@ -67,7 +68,7 @@ interface ApiSearchAttraction {
     imageUrl?: string;
 }
 
-// API로부터 받는 음식점 검색 결과 항목의 예상 타입 (여행지와 유사할 수 있음)
+// 검색 결과로부터 받는 음식점 검색 결과 항목의 예상 타입
 interface ApiSearchRestaurant {
     restaurantId: number;
     name: string;
@@ -81,6 +82,46 @@ interface SearchResultItem {
     name: string;
     address: string;
     imageUrl?: string;
+}
+
+// 상세 정보 API 응답 (여행지)
+interface ApiAttractionDetail {
+    attractionId: number;
+    name: string;
+    address: string;
+    imageUrl?: string;
+    phone?: string;
+    title?: string;
+    operatingHours?: string;
+    latitude?: number;
+    longitude?: number;
+}
+
+// 상세 정보 API 응답 (음식점)
+interface ApiRestaurantDetail {
+    restaurantId: number;
+    name: string;
+    address: string;
+    imageUrl?: string;
+    phone?: string;
+    title?: string;
+    operatingHours?: string;
+    latitude?: number;
+    longitude?: number;
+}
+
+// SelectionModal에 전달될 데이터 타입
+interface ModalDisplayData {
+    id: number; // 공통 ID
+    type: 'travel' | 'restaurant';
+    name: string;
+    imageUrl?: string;
+    address?: string;
+    phone?: string; 
+    title?: string; 
+    operatingHours?: string;
+    latitude?: number;
+    longitude?: number;
 }
 
 const STORAGE_KEY_DESTINATIONS_PREFIX = 'selectedDestinations_';
@@ -165,6 +206,12 @@ const SelectionAdd: React.FC = () => {
     const [deletingRestaurantId, setDeletingRestaurantId] = useState<number | null>(null);
 
     const [isClosingSearch, setIsClosingSearch] = useState(false);
+
+    // 모달 관련 상태
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [modalData, setModalData] = useState<ModalDisplayData | null>(null);
+    const [isLoadingModalData, setIsLoadingModalData] = useState(false);
+    const [modalError, setModalError] = useState<string | null>(null);
 
     // 두 선택이 모두 완료되었을 때 로딩 시작
     useEffect(() => {
@@ -317,6 +364,7 @@ const SelectionAdd: React.FC = () => {
             }
             const data = await response.json();
             if (data.isSuccess && data.result && Array.isArray(data.result.attractions)) {
+                // ApiSearchAttraction에서 SearchResultItem으로 매핑 시, SearchPanel의 props에 맞게 필드 조정
                 const formattedResults: SearchResultItem[] = data.result.attractions.map((item: ApiSearchAttraction) => ({
                     id: item.attractionId,
                     name: item.name,
@@ -326,7 +374,6 @@ const SelectionAdd: React.FC = () => {
                 setTravelSearchResults(formattedResults);
             } else {
                 setTravelSearchResults([]);
-                // setTravelSearchError(data.message || 'No results or incorrect format');
             }
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : '여행지 검색 중 오류가 발생했습니다.';
@@ -340,8 +387,8 @@ const SelectionAdd: React.FC = () => {
     // 음식점 검색 버튼 클릭 핸들러
     const handleRestaurantSearch = async () => {
         if (!restaurantSearchTerm.trim()) {
-            setRestaurantSearchResults([]); // 검색어가 없으면 결과 초기화
-            setRestaurantSearchError(null); // 에러도 초기화
+            setRestaurantSearchResults([]);
+            setRestaurantSearchError(null);
             return;
         }
         setIsSearchingRestaurant(true);
@@ -364,18 +411,16 @@ const SelectionAdd: React.FC = () => {
             const data = await response.json();
 
             if (data.isSuccess && data.result && Array.isArray(data.result.restaurants)) {
+                 // ApiSearchRestaurant에서 SearchResultItem으로 매핑 시, SearchPanel의 props에 맞게 필드 조정
                 const formattedResults: SearchResultItem[] = data.result.restaurants.map((restaurant: ApiSearchRestaurant) => ({
-                    id: restaurant.restaurantId, // API 응답에 따라 restaurant.id일 수도 있음
+                    id: restaurant.restaurantId,
                     name: restaurant.name,
                     address: restaurant.address,
                     imageUrl: restaurant.imageUrl,
                 }));
                 setRestaurantSearchResults(formattedResults);
             } else {
-                console.warn('Restaurant search API response format is incorrect or no results:', data.message);
                 setRestaurantSearchResults([]); 
-                // 필요하다면 data.message를 setRestaurantSearchError로 사용자에게 표시
-                // setRestaurantSearchError(data.message || '검색 결과가 없거나 형식이 맞지 않습니다.');
             }
         } catch (err) {
             console.error("Error fetching restaurant search results:", err);
@@ -419,6 +464,67 @@ const SelectionAdd: React.FC = () => {
         }
     };
 
+    // 상세 정보 로드 및 모달 표시 함수
+    const handleLoadAndShowPlaceDetails = async (id: number, type: 'travel' | 'restaurant') => {
+        setIsLoadingModalData(true);
+        setModalError(null);
+        setModalData(null);
+
+        try {
+            const endpoint = type === 'travel' 
+                ? `/api/trip-plans/attractions/${id}` 
+                : `/api/trip-plans/restaurants/${id}`;
+            const response = await authenticatedFetch(endpoint);
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ message: 'Failed to fetch details and parse error response.' }));
+                throw new Error(errorData.message || `Failed to fetch ${type} details`);
+            }
+            
+            const result = await response.json();
+            // API 응답 구조가 { isSuccess: boolean, result: DetailObject } 형태라고 가정
+            if (result.isSuccess && result.result) {
+                const detailData = result.result;
+                const commonModalData: ModalDisplayData = {
+                    id: type === 'travel' ? (detailData as ApiAttractionDetail).attractionId : (detailData as ApiRestaurantDetail).restaurantId,
+                    type: type,
+                    name: detailData.name,
+                    imageUrl: detailData.imageUrl,
+                    address: detailData.address,
+                    phone: detailData.phone, // phone 필드 사용
+                    title: detailData.title,
+                    operatingHours: detailData.operatingHours,
+                    latitude: detailData.latitude,
+                    longitude: detailData.longitude,
+                };
+                setModalData(commonModalData);
+                setIsModalOpen(true);
+            } else {
+                throw new Error(`Could not retrieve details for the selected ${type}.`);
+            }
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : '상세 정보를 불러오는 중 오류가 발생했습니다.';
+            setModalError(errorMessage);
+            // 에러 발생 시에도 모달을 열어 에러 메시지를 보여줄 수 있음 (선택 사항)
+            // setIsModalOpen(true); 
+        } finally {
+            setIsLoadingModalData(false);
+        }
+    };
+
+    // 모달에서 장소 "추가하기" 버튼 클릭 시 핸들러
+    const handleAddPlaceFromModal = () => {
+        if (modalData) {
+            if (modalData.type === 'travel') {
+                handleAddTravel({ id: modalData.id, name: modalData.name });
+            } else {
+                handleAddRestaurant({ id: modalData.id, name: modalData.name });
+            }
+        }
+        setIsModalOpen(false); // 모달 닫기
+        setModalData(null); // 모달 데이터 초기화
+    };
+
     return (
         <>
             <MainContainer>
@@ -434,6 +540,7 @@ const SelectionAdd: React.FC = () => {
                         onAddPlace={handleAddTravel}
                         isLoading={isSearchingTravel}
                         error={travelSearchError}
+                        onItemSelect={handleLoadAndShowPlaceDetails}
                     />
                 )}
 
@@ -477,12 +584,47 @@ const SelectionAdd: React.FC = () => {
                         onAddPlace={handleAddRestaurant}
                         isLoading={isSearchingRestaurant}
                         error={restaurantSearchError}
+                        onItemSelect={handleLoadAndShowPlaceDetails}
                     />
                 )}
             </MainContainer>
             
             {isLoading && (
                 <LoadingSpinner message="가이드가 최적의 여행 계획을 작성 중입니다..." />
+            )}
+
+            {/* SelectionModal 렌더링 */}
+            {isModalOpen && modalData && (
+                <SelectionModal
+                    isOpen={isModalOpen}
+                    onClose={() => {
+                        setIsModalOpen(false);
+                        setModalData(null);
+                        setModalError(null);
+                    }}
+                    selectedTravelItem={{
+                        // SelectionModal의 TravelItem이 id, name, imageUrl, title, address, operatingHours, latitude, longitude, phone 등을 직접 받을 수 있도록 가정
+                        ...(modalData.type === 'travel' ? { attractionId: modalData.id } : { restaurantId: modalData.id }),
+                        name: modalData.name,
+                        imageUrl: modalData.imageUrl || '', // null일 경우 빈 문자열 또는 폴백 이미지 경로
+                        title: modalData.title || '', // title이 undefined일 경우 name 또는 빈 문자열 사용
+                        address: modalData.address,
+                        operatingHours: modalData.operatingHours,
+                        latitude: modalData.latitude,
+                        longitude: modalData.longitude,
+                        phoneNumber: modalData.phone, // phone을 phoneNumber로 변경
+                    }}
+                    onSelect={handleAddPlaceFromModal}
+                    // isLoading, error 등의 prop도 SelectionModal에 필요하다면 추가
+                />
+            )}
+            {/* 모달 로딩 또는 에러 상태를 표시할 수 있습니다. */}
+            {isLoadingModalData && <LoadingSpinner message="상세 정보 로딩 중..." />}
+            {!isLoadingModalData && modalError && !isModalOpen && (
+                <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 0 10px rgba(0,0,0,0.2)', zIndex: 1001 }}>
+                    <p>오류: {modalError}</p>
+                    <button onClick={() => setModalError(null)}>닫기</button>
+                </div>
             )}
         </>
     );
