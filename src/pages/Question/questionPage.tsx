@@ -832,9 +832,12 @@ const getQuestion = (userName: string) => [
     `이번 여행에서 ${userName}님의 가이드를 맞게된 ###입니다!`,
     `여행 가이드에 앞서 몇가지 질문을 받아 ${userName}님의 취향을 분석하여 최적의 가이드를 진행하려고 합니다!`,
     `${userName}님의 여행기간은 언제인가요?`,
+    `함께 여행가는 인원을 말씀해주세요!`,
+    `함께 여행가는 인원들의 연령대를 말씀해주세요!`,
     `${userName}님은 어떤 종류의 활동을 선호하시나요?`,
     `${userName}님은 어떤 종류의 음식을 선호하시나요?`,
     `${userName}님은 못먹는 종류의 음식이 있으신가요?`,
+    `${userName}님은 어떤 교통수단을 이용하시나요?`,
     "추가적으로 반영하고 싶은 내용이 있나요?",
     `${userName}님의 답변 내용을 바탕으로 여행지를 추천해드리겠습니다!`,
     "잠시만 기다려주세요!"
@@ -866,10 +869,13 @@ const QuestionPage: React.FC = () => {
             start: "",
             end: ""
         },
+        numberOfPeople: "",
+        ageRange: "",
         activities: "",
         foodPreferences: "",
         foodRestrictions: "",
-        additionalRequests: ""
+        additionalRequests: "",
+        transport: ""
     });
 
     // 임시 날짜 범위 저장
@@ -1017,6 +1023,12 @@ const QuestionPage: React.FC = () => {
         setTimeout(() => {
             if (currentQuestion.includes("여행기간은 언제인가요") && response === '네') {
                 setVisibleSections(prev => [...prev, "dateRange"]);
+            } else if (currentQuestion.includes("함께 여행가는 인원을 말씀해주세요")) {
+                setVisibleSections(prev => [...prev, "numberOfPeople"]);
+                setUserAnswers(prev => ({ ...prev, numberOfPeople: response }));
+            } else if (currentQuestion.includes("함께 여행가는 인원들의 연령대를 말씀해주세요")) {
+                setVisibleSections(prev => [...prev, "ageRange"]);
+                setUserAnswers(prev => ({ ...prev, ageRange: response }));
             } else if (currentQuestion.includes("활동을 선호하시나요")) {
                 setVisibleSections(prev => [...prev, "activities"]);
                 setUserAnswers(prev => ({ ...prev, activities: response }));
@@ -1026,10 +1038,13 @@ const QuestionPage: React.FC = () => {
             } else if (currentQuestion.includes("못먹는 종류의 음식이 있으신가요")) {
                 setVisibleSections(prev => [...prev, "foodRestrictions"]);
                 setUserAnswers(prev => ({ ...prev, foodRestrictions: response }));
+            } else if (currentQuestion.includes("교통수단을 이용하시나요")) {
+                setVisibleSections(prev => [...prev, "transport"]);
+                setUserAnswers(prev => ({ ...prev, transport: response }));
             } else if (currentQuestion.includes("추가적으로 반영하고 싶은 내용이 있나요")) {
                 setVisibleSections(prev => [...prev, "additionalRequests"]);
                 setUserAnswers(prev => ({ ...prev, additionalRequests: response }));
-            }
+            } 
         }, 500); // 500ms 지연으로 자연스러운 업데이트
     };
 
@@ -1354,6 +1369,22 @@ const QuestionPage: React.FC = () => {
                                     </DateRangeField>
                                 </li>
                             )}
+                            {visibleSections.includes("numberOfPeople") && (
+                                <li className="visible">
+                                    <strong>여행 인원</strong>
+                                    <ResponseField className={!userAnswers.numberOfPeople ? "empty" : ""}>
+                                        <p>{userAnswers.numberOfPeople || "아직 입력되지 않았습니다."}</p>
+                                    </ResponseField>
+                                </li>
+                            )}
+                            {visibleSections.includes("ageRange") && (
+                                <li className="visible">
+                                    <strong>여행 인원 연령대</strong>
+                                    <ResponseField className={!userAnswers.ageRange ? "empty" : ""}>
+                                        <p>{userAnswers.ageRange || "아직 입력되지 않았습니다."}</p>
+                                    </ResponseField>
+                                </li>
+                            )}
                             {visibleSections.includes("activities") && (
                                 <li className="visible">
                                     <strong>선호 활동</strong>
@@ -1375,6 +1406,14 @@ const QuestionPage: React.FC = () => {
                                     <strong>못 먹는 음식</strong>
                                     <ResponseField className={!userAnswers.foodRestrictions ? "empty" : ""}>
                                         <p>{userAnswers.foodRestrictions || "아직 입력되지 않았습니다."}</p>
+                                    </ResponseField>
+                            </li>
+                            )}
+                            {visibleSections.includes("transport") && (
+                                <li className="visible">
+                                    <strong>교통수단</strong>
+                                    <ResponseField className={!userAnswers.transport ? "empty" : ""}>
+                                        <p>{userAnswers.transport || "아직 입력되지 않았습니다."}</p>
                                     </ResponseField>
                             </li>
                             )}
