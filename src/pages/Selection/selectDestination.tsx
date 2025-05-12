@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import SelectMain from './selectMain';
 import { authenticatedFetch } from '../../services/api'; // authenticatedFetch 임포트
 // import travelImage1 from '../../assets/images/travel_img1.jpg';
@@ -37,8 +37,11 @@ const STORAGE_KEY_DESTINATIONS_PREFIX = 'selectedDestinations_';
 
 const SelectDestination: React.FC = () => {
   const navigate = useNavigate();
-  // const { tripPlansId } = useParams<{ tripPlansId: string }>(); // 원래 코드: URL 파라미터에서 가져옵니다.
-  const tripPlansId = '14'; // 임시 코드: 테스트를 위해 ID를 14로 고정합니다.
+  const location = useLocation();
+
+  const passedTripPlansId = location.state?.tripPlansId || '14'; 
+  const tripPlansId = passedTripPlansId;
+
   const [userName] = useState<string>("성수립");
   const [travelItems, setTravelItems] = useState<TravelItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -55,6 +58,7 @@ const SelectDestination: React.FC = () => {
 
   // selectedItems가 변경될 때마다 localStorage에 저장
   useEffect(() => {
+    console.log('Current tripPlansId:', tripPlansId);
     if (tripPlansId) {
       localStorage.setItem(getStorageKey(), JSON.stringify(selectedItems));
     }

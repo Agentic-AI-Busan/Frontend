@@ -9,6 +9,9 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 import profileImg from "../../assets/images/profile_img.png";
 import icoNext from "../../assets/images/ico_cal_next.png";
 
+import { authenticatedFetch } from '../../services/api';
+
+
 const GlobalStyle = createGlobalStyle`
     html, body {
         overflow: hidden;
@@ -850,6 +853,14 @@ interface Message {
     isResponse: boolean;  // true면 사용자 응답, false면 질문자 메시지
 }
 
+// 날짜를 YYYY-MM-DD 형식으로 변환하는 함수 추가
+function formatDateToYMD(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 const QuestionPage: React.FC = () => {
     const navigate = useNavigate();
     // 상태 관리
@@ -861,21 +872,20 @@ const QuestionPage: React.FC = () => {
     const [inputValue, setInputValue] = useState("");
     const [isQuestionInProgress, setIsQuestionInProgress] = useState(true);
     const [isComplete, setIsComplete] = useState(false);
-    
+
+    const [styleId, setStyleId] = useState<number | null>(null);
     // 사용자 응답 데이터 관리
     const [userAnswers, setUserAnswers] = useState({
-        destination: "부산",
-        dateRange: {
-            start: "",
-            end: ""
-        },
-        numberOfPeople: "",
+        city: "",
+        startDate: "",
+        endDate: "",
+        preferActivity: "",
+        preferFood: "",
+        dislikedFood: "",
+        requirement: "",
         ageRange: "",
-        activities: "",
-        foodPreferences: "",
-        foodRestrictions: "",
-        additionalRequests: "",
-        transport: ""
+        numberOfPeople: "",
+        transportation: ""
     });
 
     // 임시 날짜 범위 저장
@@ -885,7 +895,7 @@ const QuestionPage: React.FC = () => {
     });
 
     // 보여질 섹션 관리
-    const [visibleSections, setVisibleSections] = useState<string[]>(["destination"]);
+    const [visibleSections, setVisibleSections] = useState<string[]>(["city"]);
 
     const inputRef = React.useRef<HTMLInputElement>(null);
     const messageEndRef = React.useRef<HTMLDivElement>(null);
@@ -898,6 +908,83 @@ const QuestionPage: React.FC = () => {
                 behavior: "smooth", 
                 block: "end"
             });
+        }
+    };
+
+    // styleId 받아오기 (최초 1회)
+    useEffect(() => {
+        const fetchStyleId = async () => {
+            try {
+                const response = await authenticatedFetch(`/api/styles`, { method: 'GET' });
+                const data = await response.json();
+                if (data.isSuccess && data.result && typeof data.result.styleId === 'number') {
+                    setStyleId(data.result.styleId);
+                }
+            } catch (error) {
+                console.error('Error fetching styleId:', error);
+            }
+        };
+        fetchStyleId();
+    }, []);
+
+    // styleId가 준비되면 userAnswers 불러오기
+    useEffect(() => {
+        const fetchUserAnswers = async () => {
+            if (!styleId) return;
+            try {
+                const response = await authenticatedFetch(`/api/styles/${styleId}`, { method: 'GET' });
+                const data = await response.json();
+                if (data.isSuccess && data.result) {
+                    setUserAnswers(prev => ({
+                        city: data.result.city ?? prev.city,
+                        startDate: data.result.startDate ?? prev.startDate,
+                        endDate: data.result.endDate ?? prev.endDate,
+                        preferActivity: data.result.preferActivity ?? prev.preferActivity,
+                        preferFood: data.result.preferFood ?? prev.preferFood,
+                        dislikedFood: data.result.dislikedFood ?? prev.dislikedFood,
+                        requirement: data.result.requirement ?? prev.requirement,
+                        ageRange: data.result.ageRange ?? prev.ageRange,
+                        numberOfPeople: data.result.numberOfPeople ?? prev.numberOfPeople,
+                        transportation: data.result.transportation ?? prev.transportation
+                    }));
+                }
+            } catch (error) {
+                console.error('Error fetching userAnswers:', error);
+            }
+        };
+        if (styleId) fetchUserAnswers();
+    }, [styleId]);
+
+    // 답변 입력 시 POST & GET (여러 필드 동시 지원)
+    const updateUserAnswer = async (fields: Record<string, string>) => {
+        if (!styleId) return;
+        try {
+            // 모든 답변을 누적해서 보냄
+            const merged = { ...userAnswers, ...fields };
+            await authenticatedFetch(`/api/styles/${styleId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(merged)
+            });
+            // 저장 후 최신 데이터 다시 불러오기
+            const response = await authenticatedFetch(`/api/styles/${styleId}`, { method: 'GET' });
+            const data = await response.json();
+            if (data.isSuccess && data.result) {
+                setUserAnswers(prev => ({
+                    city: data.result.city ?? prev.city,
+                    startDate: data.result.startDate ?? prev.startDate,
+                    endDate: data.result.endDate ?? prev.endDate,
+                    preferActivity: data.result.preferActivity ?? prev.preferActivity,
+                    preferFood: data.result.preferFood ?? prev.preferFood,
+                    dislikedFood: data.result.dislikedFood ?? prev.dislikedFood,
+                    requirement: data.result.requirement ?? prev.requirement,
+                    ageRange: data.result.ageRange ?? prev.ageRange,
+                    numberOfPeople: data.result.numberOfPeople ?? prev.numberOfPeople,
+                    transportation: data.result.transportation ?? prev.transportation
+                }));
+            }
+        } catch (error) {
+            console.error('Error updating userAnswer:', error);
         }
     };
 
@@ -958,8 +1045,8 @@ const QuestionPage: React.FC = () => {
                         dateFormat: "Y-m-d",
                         onChange: (selectedDates) => {
                             if (selectedDates.length === 2) {
-                                const startDate = selectedDates[0].toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
-                                const endDate = selectedDates[1].toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
+                                const startDate = formatDateToYMD(selectedDates[0]);
+                                const endDate = formatDateToYMD(selectedDates[1]);
                                 const dateRange = `${startDate} ~ ${endDate}`;
 
                                 // 임시로 날짜 데이터 저장
@@ -1025,27 +1112,27 @@ const QuestionPage: React.FC = () => {
                 setVisibleSections(prev => [...prev, "dateRange"]);
             } else if (currentQuestion.includes("함께 여행가는 인원을 말씀해주세요")) {
                 setVisibleSections(prev => [...prev, "numberOfPeople"]);
-                setUserAnswers(prev => ({ ...prev, numberOfPeople: response }));
+                updateUserAnswer({ numberOfPeople: response });
             } else if (currentQuestion.includes("함께 여행가는 인원들의 연령대를 말씀해주세요")) {
                 setVisibleSections(prev => [...prev, "ageRange"]);
-                setUserAnswers(prev => ({ ...prev, ageRange: response }));
+                updateUserAnswer({ ageRange: response });
             } else if (currentQuestion.includes("활동을 선호하시나요")) {
-                setVisibleSections(prev => [...prev, "activities"]);
-                setUserAnswers(prev => ({ ...prev, activities: response }));
+                setVisibleSections(prev => [...prev, "preferActivity"]);
+                updateUserAnswer({ preferActivity: response });
             } else if (currentQuestion.includes("음식을 선호하시나요")) {
-                setVisibleSections(prev => [...prev, "foodPreferences"]);
-                setUserAnswers(prev => ({ ...prev, foodPreferences: response }));
+                setVisibleSections(prev => [...prev, "preferFood"]);
+                updateUserAnswer({ preferFood: response });
             } else if (currentQuestion.includes("못먹는 종류의 음식이 있으신가요")) {
-                setVisibleSections(prev => [...prev, "foodRestrictions"]);
-                setUserAnswers(prev => ({ ...prev, foodRestrictions: response }));
+                setVisibleSections(prev => [...prev, "dislikedFood"]);
+                updateUserAnswer({ dislikedFood: response });
             } else if (currentQuestion.includes("교통수단을 이용하시나요")) {
-                setVisibleSections(prev => [...prev, "transport"]);
-                setUserAnswers(prev => ({ ...prev, transport: response }));
+                setVisibleSections(prev => [...prev, "transportation"]);
+                updateUserAnswer({ transportation: response });
             } else if (currentQuestion.includes("추가적으로 반영하고 싶은 내용이 있나요")) {
-                setVisibleSections(prev => [...prev, "additionalRequests"]);
-                setUserAnswers(prev => ({ ...prev, additionalRequests: response }));
-            } 
-        }, 500); // 500ms 지연으로 자연스러운 업데이트
+                setVisibleSections(prev => [...prev, "requirement"]);
+                updateUserAnswer({ requirement: response });
+            }
+        }, 500);
     };
 
     // 메시지 전송 처리
@@ -1064,12 +1151,8 @@ const QuestionPage: React.FC = () => {
 
             // 날짜 확인 응답 처리
             if (tempDateRange.start && tempDateRange.end && inputValue.toLowerCase() === '네') {
-                // 확정된 날짜를 userAnswers에 저장
-                setUserAnswers(prev => ({
-                    ...prev,
-                    dateRange: tempDateRange
-                }));
-
+                updateUserAnswer({ startDate: tempDateRange.start });
+                updateUserAnswer({ endDate: tempDateRange.end });
                 // 섹션 표시 업데이트
                 handleUserResponse(inputValue, currentQuestion);
 
@@ -1111,8 +1194,8 @@ const QuestionPage: React.FC = () => {
                             dateFormat: "Y-m-d",
                             onChange: (selectedDates) => {
                                 if (selectedDates.length === 2) {
-                                    const startDate = selectedDates[0].toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
-                                    const endDate = selectedDates[1].toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
+                                    const startDate = formatDateToYMD(selectedDates[0]);
+                                    const endDate = formatDateToYMD(selectedDates[1]);
                                     const dateRange = `${startDate} ~ ${endDate}`;
 
                                     // 임시로 날짜 데이터 저장
@@ -1254,13 +1337,32 @@ const QuestionPage: React.FC = () => {
     useEffect(() => {
         if (isComplete) {
             // 3초 후에 로딩 종료 및 다음 페이지로 이동
-            const timer = setTimeout(() => {
-                navigate('/selectionDestination');
+            const timer = setTimeout(async () => {
+                if (styleId) {
+                    try {
+                        const response = await authenticatedFetch(`/api/styles/${styleId}/final`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' }
+                        });
+                        const data = await response.json();
+                        if (data.isSuccess && data.result && data.result.tripPlanId) {
+                            console.log('tripPlansId:', data.result.tripPlanId);
+                            navigate(`/selectionDestination`, { state: { tripPlansId: data.result.tripPlanId } });
+                        } else {
+                            // tripPlanId가 없으면 fallback
+                            navigate('/selectionDestination');
+                        }
+                    } catch (error) {
+                        console.error('Error finalizing style:', error);
+                        navigate('/selectionDestination');
+                    }
+                } else {
+                    navigate('/selectionDestination');
+                }
             }, 3000);
-            
             return () => clearTimeout(timer);
         }
-    }, [isComplete, navigate]);
+    }, [isComplete, navigate, styleId]);
 
     return (
         <>
@@ -1348,11 +1450,11 @@ const QuestionPage: React.FC = () => {
                     </ChatSection>
                     <ResponseSection>
                         <ResponseList ref={responseListRef}>
-                            {visibleSections.includes("destination") && (
+                            {visibleSections.includes("city") && (
                             <li className="visible">
                                 <strong>여행지</strong>
-                                    <ResponseField className={!userAnswers.destination ? "empty" : ""}>
-                                        <p>{userAnswers.destination || "아직 입력되지 않았습니다."}</p>
+                                    <ResponseField className={!userAnswers.city ? "empty" : ""}>
+                                        <p>{userAnswers.city || "아직 입력되지 않았습니다."}</p>
                                     </ResponseField>
                                 </li>
                             )}
@@ -1360,11 +1462,11 @@ const QuestionPage: React.FC = () => {
                                 <li className="visible">
                                     <strong>여행 기간</strong>
                                     <DateRangeField>
-                                        <ResponseField className={!userAnswers.dateRange.start ? "empty" : ""}>
-                                            <p>{userAnswers.dateRange.start || "시작일을 선택해주세요."}</p>
+                                        <ResponseField className={!userAnswers.startDate ? "empty" : ""}>
+                                            <p>{userAnswers.startDate || "시작일을 선택해주세요."}</p>
                                         </ResponseField>
-                                        <ResponseField className={!userAnswers.dateRange.end ? "empty" : ""}>
-                                            <p>{userAnswers.dateRange.end || "종료일을 선택해주세요."}</p>
+                                        <ResponseField className={!userAnswers.endDate ? "empty" : ""}>
+                                            <p>{userAnswers.endDate || "종료일을 선택해주세요."}</p>
                                         </ResponseField>
                                     </DateRangeField>
                                 </li>
@@ -1385,43 +1487,43 @@ const QuestionPage: React.FC = () => {
                                     </ResponseField>
                                 </li>
                             )}
-                            {visibleSections.includes("activities") && (
+                            {visibleSections.includes("preferActivity") && (
                                 <li className="visible">
                                     <strong>선호 활동</strong>
-                                    <ResponseField className={!userAnswers.activities ? "empty" : ""}>
-                                        <p>{userAnswers.activities || "아직 입력되지 않았습니다."}</p>
+                                    <ResponseField className={!userAnswers.preferActivity ? "empty" : ""}>
+                                        <p>{userAnswers.preferActivity || "아직 입력되지 않았습니다."}</p>
                                     </ResponseField>
                                 </li>
                             )}
-                            {visibleSections.includes("foodPreferences") && (
+                            {visibleSections.includes("preferFood") && (
                                 <li className="visible">
                                     <strong>선호하는 음식</strong>
-                                    <ResponseField className={!userAnswers.foodPreferences ? "empty" : ""}>
-                                        <p>{userAnswers.foodPreferences || "아직 입력되지 않았습니다."}</p>
+                                    <ResponseField className={!userAnswers.preferFood ? "empty" : ""}>
+                                        <p>{userAnswers.preferFood || "아직 입력되지 않았습니다."}</p>
                                     </ResponseField>
                             </li>
                             )}
-                            {visibleSections.includes("foodRestrictions") && (
+                            {visibleSections.includes("dislikedFood") && (
                                 <li className="visible">
                                     <strong>못 먹는 음식</strong>
-                                    <ResponseField className={!userAnswers.foodRestrictions ? "empty" : ""}>
-                                        <p>{userAnswers.foodRestrictions || "아직 입력되지 않았습니다."}</p>
+                                    <ResponseField className={!userAnswers.dislikedFood ? "empty" : ""}>
+                                        <p>{userAnswers.dislikedFood || "아직 입력되지 않았습니다."}</p>
                                     </ResponseField>
                             </li>
                             )}
-                            {visibleSections.includes("transport") && (
+                            {visibleSections.includes("transportation") && (
                                 <li className="visible">
                                     <strong>교통수단</strong>
-                                    <ResponseField className={!userAnswers.transport ? "empty" : ""}>
-                                        <p>{userAnswers.transport || "아직 입력되지 않았습니다."}</p>
+                                    <ResponseField className={!userAnswers.transportation ? "empty" : ""}>
+                                        <p>{userAnswers.transportation || "아직 입력되지 않았습니다."}</p>
                                     </ResponseField>
                             </li>
                             )}
-                            {visibleSections.includes("additionalRequests") && (
+                            {visibleSections.includes("requirement") && (
                                 <li className="visible">
                                     <strong>추가 요청사항</strong>
-                                    <ResponseField className={!userAnswers.additionalRequests ? "empty" : ""}>
-                                        <p>{userAnswers.additionalRequests || "아직 입력되지 않았습니다."}</p>
+                                    <ResponseField className={!userAnswers.requirement ? "empty" : ""}>
+                                        <p>{userAnswers.requirement || "아직 입력되지 않았습니다."}</p>
                                     </ResponseField>
                             </li>
                             )}
