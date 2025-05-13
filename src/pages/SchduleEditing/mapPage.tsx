@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import NaverMap from '../../components/Map/NaverMap';
@@ -6,6 +6,7 @@ import TravelRouteSidebar from '../../components/Map/TravelRouteSidebar';
 import travel_img1 from '../../assets/images/travel_img1.jpg';
 import { Place } from '../../components/Map/NaverMap';
 import { getDayColor } from '../../components/Map/MapContent';
+import { authenticatedFetch } from '../../services/api';
 
 // 페이지 전체 컨테이너
 const PageContainer = styled.div`
@@ -134,357 +135,219 @@ const EditScheduleButton = styled.button`
   }
 `;
 
+// API 응답 관련 타입 정의
+interface ScheduleItem {
+  itemId: number;
+  order: number;
+  placeType: string;
+  placeId: number;
+  latitude: number;
+  longitude: number;
+  name: string;
+  imageUrl: string;
+  memo: string | null;
+}
+
+interface DaySchedule {
+  dayNumber: number;
+  date: string;
+  scheduleItems: ScheduleItem[];
+}
+
+interface ApiResult {
+  title: string;
+  description: string | null;
+  profileImage: string;
+  startDate: string;
+  endDate: string;
+  days: DaySchedule[];
+}
+
+// 여행 루트 관련 타입 정의
+interface RoutePlace {
+  id: number;
+  title: string;
+  time: string;
+  hours: string;
+  location: string;
+  imageUrl: string;
+}
+
+interface RouteInfo {
+  distance: string;
+  duration: string;
+}
+
+interface TravelRoute {
+  day: number;
+  date: string;
+  weather: {
+    condition: string;
+    icon: string;
+    temperature: string;
+  };
+  places: RoutePlace[];
+  routes: RouteInfo[];
+}
+
 const MapPage = () => {
   const navigate = useNavigate();
   // 장소 데이터
-  const [places] = useState<Place[]>([
-    { 
-      id: 1,
-      name: '부산역', 
-      lat: 35.1152, 
-      lng: 129.04211, 
-      description: '부산의 관문, KTX와 도시철도가 연결되는 교통 중심지입니다.',
-      imageUrl: travel_img1,
-      operatingHours: '24시간',
-      visitors: 150000,
-      time: '09:00',
-      location: '부산광역시 동구 중앙대로 206',
-      day: 1 // 1일차
-    },
-    { 
-      id: 2,
-      name: '해운대해수욕장', 
-      lat: 35.1588, 
-      lng: 129.1603, 
-      description: '부산 대표 해수욕장으로 아름다운 해변과 다양한 축제가 열립니다.',
-      imageUrl: travel_img1,
-      operatingHours: '24시간',
-      visitors: 250000,
-      time: '11:00',
-      location: '부산광역시 해운대구 해운대해변로 264',
-      day: 1 // 1일차
-    },
-    { 
-      id: 3,
-      name: '광안대교', 
-      lat: 35.1478, 
-      lng: 129.1331, 
-      description: '밤에 아름다운 조명이 켜지는 부산의 랜드마크 다리입니다.',
-      imageUrl: travel_img1,
-      operatingHours: '24시간',
-      visitors: 180000,
-      time: '13:00',
-      location: '부산광역시 수영구 광안해변로 219',
-      day: 1 // 1일차
-    },
-    { 
-      id: 4,
-      name: '감천문화마을', 
-      lat: 35.0979, 
-      lng: 129.0112, 
-      description: '알록달록한 계단식 마을로 예술과 문화가 공존하는 곳입니다.',
-      imageUrl: travel_img1,
-      operatingHours: '09:00 - 18:00',
-      visitors: 120000,
-      time: '15:00',
-      location: '부산광역시 사하구 감천2길 203',
-      day: 2 // 2일차
-    },
-    { 
-      id: 5,
-      name: '자갈치시장', 
-      lat: 35.0968, 
-      lng: 129.0307, 
-      description: '부산 최대의 수산시장으로 신선한 해산물을 맛볼 수 있습니다.',
-      imageUrl: travel_img1,
-      operatingHours: '02:00 - 22:00',
-      visitors: 200000,
-      time: '17:00',
-      location: '부산광역시 중구 자갈치로 52',
-      day: 2 // 2일차
-    },
-    {
-      id: 6,
-      name: '부산타워',
-      lat: 35.0977,
-      lng: 129.0364,
-      description: '부산의 상징적인 타워로 야간 조명이 아름다운 관광지입니다.',
-      imageUrl: travel_img1,
-      operatingHours: '09:00 - 22:00',
-      visitors: 180000,
-      time: '10:00',
-      location: '부산광역시 중구 용두산길 37-55',
-      day: 2 // 2일차
-    },
-    {
-      id: 7,
-      name: '용두산공원',
-      lat: 35.0987,
-      lng: 129.0367,
-      description: '부산 시내를 한눈에 볼 수 있는 전망대가 있는 공원입니다.',
-      imageUrl: travel_img1,
-      operatingHours: '24시간',
-      visitors: 150000,
-      time: '11:30',
-      location: '부산광역시 중구 용두산길 37-55',
-      day: 3 // 3일차
-    },
-    {
-      id: 8,
-      name: '국제시장',
-      lat: 35.1027,
-      lng: 129.0557,
-      description: '부산의 대표적인 전통시장으로 다양한 상품을 구매할 수 있습니다.',
-      imageUrl: travel_img1,
-      operatingHours: '08:00 - 20:00',
-      visitors: 220000,
-      time: '13:30',
-      location: '부산광역시 중구 신창동4가 37-1',
-      day: 3 // 3일차
-    },
-    {
-      id: 9,
-      name: '부산아쿠아리움',
-      lat: 35.1587,
-      lng: 129.1607,
-      description: '해운대에 위치한 대형 수족관으로 다양한 해양생물을 볼 수 있습니다.',
-      imageUrl: travel_img1,
-      operatingHours: '10:00 - 19:00',
-      visitors: 190000,
-      time: '10:00',
-      location: '부산광역시 해운대구 해운대해변로 266',
-      day: 3 // 3일차
-    },
-    {
-      id: 10,
-      name: '해운대 블루라인파크',
-      lat: 35.1589,
-      lng: 129.1612,
-      description: '해운대 해변을 따라 달리는 스카이캡슐이 있는 관광지입니다.',
-      imageUrl: travel_img1,
-      operatingHours: '09:00 - 22:00',
-      visitors: 160000,
-      time: '12:00',
-      location: '부산광역시 해운대구 달맞이길 62번길 47',
-      day: 4 // 4일차
-    },
-    {
-      id: 11,
-      name: '기장군 장안사',
-      lat: 35.1234,
-      lng: 129.2589,
-      description: '부산 기장군에 위치한 천년고찰로 아름다운 자연과 함께 있습니다.',
-      imageUrl: travel_img1,
-      operatingHours: '08:00 - 18:00',
-      visitors: 90000,
-      time: '14:00',
-      location: '부산광역시 기장군 장안읍 장안리 583',
-      day: 4 // 4일차
-    },
-    {
-      id: 12,
-      name: '기장군 해변열차',
-      lat: 35.3234,
-      lng: 129.2589,
-      description: '기장군 해변을 따라 달리는 관광열차입니다.',
-      imageUrl: travel_img1,
-      operatingHours: '09:00 - 18:00',
-      visitors: 80000,
-      time: '15:30',
-      location: '부산광역시 기장군 기장읍 기장해안로 205',
-      day: 4 // 4일차
-    }
-  ]);
-
-  // 임시 여행 루트 데이터
-  const [travelRoutes] = useState([
-    {
-      day: 1,
-      date: '2024년 3월 15일 (금)',
-      weather: {
-        condition: '맑음',
-        icon: '☀️',
-        temperature: '18°C'
-      },
-      places: [
-        { 
-          id: 1, 
-          title: '부산역', 
-          time: '09:00',
-          hours: '24시간',
-          location: '부산광역시 동구 중앙대로 206',
-          imageUrl: travel_img1
-        },
-        { 
-          id: 2, 
-          title: '해운대해수욕장', 
-          time: '11:00',
-          hours: '24시간',
-          location: '부산광역시 해운대구 해운대해변로 264',
-          imageUrl: travel_img1
-        },
-        { 
-          id: 3, 
-          title: '광안대교', 
-          time: '13:00',
-          hours: '24시간',
-          location: '부산광역시 수영구 광안해변로 219',
-          imageUrl: travel_img1
-        }
-      ],
-      routes: [
-        {
-          distance: '15.3km',
-          duration: '35분'
-        },
-        {
-          distance: '7.2km',
-          duration: '20분'
-        }
-      ]
-    },
-    {
-      day: 2,
-      date: '2024년 3월 16일 (토)',
-      weather: {
-        condition: '구름조금',
-        icon: '⛅',
-        temperature: '17°C'
-      },
-      places: [
-        { 
-          id: 4, 
-          title: '감천문화마을', 
-          time: '10:00',
-          hours: '09:00 - 18:00',
-          location: '부산광역시 사하구 감천2길 203',
-          imageUrl: travel_img1
-        },
-        { 
-          id: 5, 
-          title: '자갈치시장', 
-          time: '13:00',
-          hours: '02:00 - 22:00',
-          location: '부산광역시 중구 자갈치로 52',
-          imageUrl: travel_img1
-        },
-        { 
-          id: 6, 
-          title: '부산타워', 
-          time: '15:00',
-          hours: '09:00 - 22:00',
-          location: '부산광역시 중구 용두산길 37-55',
-          imageUrl: travel_img1
-        }
-      ],
-      routes: [
-        {
-          distance: '8.5km',
-          duration: '25분'
-        },
-        {
-          distance: '1.2km',
-          duration: '5분'
-        }
-      ]
-    },
-    {
-      day: 3,
-      date: '2024년 3월 17일 (일)',
-      weather: {
-        condition: '맑음',
-        icon: '☀️',
-        temperature: '19°C'
-      },
-      places: [
-        { 
-          id: 7, 
-          title: '용두산공원', 
-          time: '09:30',
-          hours: '24시간',
-          location: '부산광역시 중구 용두산길 37-55',
-          imageUrl: travel_img1
-        },
-        { 
-          id: 8, 
-          title: '국제시장', 
-          time: '11:30',
-          hours: '08:00 - 20:00',
-          location: '부산광역시 중구 신창동4가 37-1',
-          imageUrl: travel_img1
-        },
-        { 
-          id: 9, 
-          title: '부산아쿠아리움', 
-          time: '14:00',
-          hours: '10:00 - 19:00',
-          location: '부산광역시 해운대구 해운대해변로 266',
-          imageUrl: travel_img1
-        }
-      ],
-      routes: [
-        {
-          distance: '1.3km',
-          duration: '8분'
-        },
-        {
-          distance: '12.7km',
-          duration: '30분'
-        }
-      ]
-    },
-    {
-      day: 4,
-      date: '2024년 3월 18일 (월)',
-      weather: {
-        condition: '맑음',
-        icon: '☀️',
-        temperature: '20°C'
-      },
-      places: [
-        { 
-          id: 10, 
-          title: '해운대 블루라인파크', 
-          time: '10:00',
-          hours: '09:00 - 22:00',
-          location: '부산광역시 해운대구 달맞이길 62번길 47',
-          imageUrl: travel_img1
-        },
-        { 
-          id: 11, 
-          title: '기장군 장안사', 
-          time: '13:00',
-          hours: '08:00 - 18:00',
-          location: '부산광역시 기장군 장안읍 장안리 583',
-          imageUrl: travel_img1
-        },
-        { 
-          id: 12, 
-          title: '기장군 해변열차', 
-          time: '15:30',
-          hours: '09:00 - 18:00',
-          location: '부산광역시 기장군 기장읍 기장해안로 205',
-          imageUrl: travel_img1
-        }
-      ],
-      routes: [
-        {
-          distance: '18.2km',
-          duration: '40분'
-        },
-        {
-          distance: '10.5km',
-          duration: '22분'
-        }
-      ]
-    }
-  ]);
+  const [places, setPlaces] = useState<Place[]>([]);
+  // 여행 루트 데이터
+  const [travelRoutes, setTravelRoutes] = useState<TravelRoute[]>([]);
   
   // 현재 선택된 일차 상태
   const [activeDay, setActiveDay] = useState<number>(1);
+  // 데이터 로딩 상태
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   
   // NaverMap의 focusPlace 함수를 저장할 ref
   const focusPlaceRef = useRef<((placeId: number) => void) | null>(null);
+
+  // API 결과를 받아와서 places와 travelRoutes 상태를 설정하는 함수
+  const processApiResult = (apiResult: unknown) => {
+    console.log('처리할 API 데이터 구조:', JSON.stringify(apiResult, null, 2));
+    
+    // API 응답 구조 확인 및 데이터 추출
+    let tripData: ApiResult;
+    
+    // API 응답이 { result: { ... } } 형태인지 확인
+    if (apiResult && typeof apiResult === 'object' && 'result' in apiResult && apiResult.result) {
+      tripData = apiResult.result as ApiResult;
+    } else {
+      // 바로 데이터가 있는 경우
+      tripData = apiResult as ApiResult;
+    }
+    
+    // days 배열이 존재하는지 확인
+    if (!tripData || !tripData.days || !Array.isArray(tripData.days)) {
+      console.error('API 응답에 days 배열이 없습니다:', tripData);
+      setIsLoading(false);
+      return; // 데이터가 없으면 함수 종료
+    }
+    
+    const newPlaces: Place[] = [];
+    const newTravelRoutes: TravelRoute[] = [];
+    
+    // API 응답의 days 배열을 순회
+    tripData.days.forEach((day) => {
+      const routeDay: TravelRoute = {
+        day: day.dayNumber,
+        date: new Date(day.date).toLocaleDateString('ko-KR', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          weekday: 'short'
+        }),
+        weather: {
+          condition: '맑음', // 날씨 정보는 API에 없으므로 기본값 설정
+          icon: '☀️',
+          temperature: '20°C'
+        },
+        places: [],
+        routes: []
+      };
+      
+      // scheduleItems가 있는지 확인
+      if (!day.scheduleItems || !Array.isArray(day.scheduleItems) || day.scheduleItems.length === 0) {
+        console.warn(`${day.dayNumber}일차에 일정 항목이 없습니다.`);
+        newTravelRoutes.push(routeDay); // 빈 일정으로 추가
+        return; // 다음 일차로 이동
+      }
+      
+      // 해당 일차의 일정 항목들을 순회하며 places와 routeDay.places 채우기
+      const sortedItems = [...day.scheduleItems].sort((a, b) => a.order - b.order);
+      
+      sortedItems.forEach((item, itemIndex) => {
+        // 필수 필드가 없는 경우 건너뛰기
+        if (!item.itemId || !item.name || !item.latitude || !item.longitude) {
+          console.warn('필수 필드가 없는 일정 항목을 건너뜁니다:', item);
+          return;
+        }
+        
+        // 새로운 Place 객체 생성
+        const newPlace: Place = {
+          id: item.itemId,
+          name: item.name,
+          lat: item.latitude,
+          lng: item.longitude,
+          description: item.memo || `${item.name}에 대한 설명입니다.`,
+          imageUrl: item.imageUrl || travel_img1, // 이미지 URL이 없으면 기본 이미지 사용
+          operatingHours: '09:00 - 18:00', // API에 없는 정보는 기본값 설정
+          visitors: 100000, // 기본값
+          time: `${10 + itemIndex}:00`, // 간단한 시간 설정 (더 나은 로직으로 대체 가능)
+          location: `부산광역시 ${item.name} 주변`, // 위치 정보가 없으면 기본값 설정
+          day: day.dayNumber // 일차 정보 설정
+        };
+        
+        newPlaces.push(newPlace);
+        
+        // routeDay.places에 추가
+        routeDay.places.push({
+          id: item.itemId,
+          title: item.name,
+          time: `${10 + itemIndex}:00`,
+          hours: '09:00 - 18:00',
+          location: `부산광역시 ${item.name} 주변`,
+          imageUrl: item.imageUrl || travel_img1
+        });
+        
+        // 경로 정보 추가 (장소 간 거리 계산 필요)
+        if (itemIndex < sortedItems.length - 1) {
+          routeDay.routes.push({
+            distance: '10km', // 기본값 (실제로는 두 지점 간 거리 계산 필요)
+            duration: '20분' // 기본값
+          });
+        }
+      });
+      
+      newTravelRoutes.push(routeDay);
+    });
+    
+    // 데이터가 있는지 최종 확인
+    if (newPlaces.length === 0 || newTravelRoutes.length === 0) {
+      console.warn('변환된 장소 또는 여행 루트 데이터가 비어 있습니다.');
+    }
+    
+    // 상태 업데이트
+    setPlaces(newPlaces);
+    setTravelRoutes(newTravelRoutes);
+    
+    // 첫 번째 일차를 활성화
+    if (newTravelRoutes.length > 0) {
+      setActiveDay(newTravelRoutes[0].day);
+    }
+    
+    setIsLoading(false);
+  };
+
+  // 컴포넌트 마운트 시 API 호출
+  useEffect(() => {
+    // 여행 계획 ID 하드코딩
+    const tripPlanId = 31;
+    
+    // API 호출 - authenticatedFetch 사용
+    authenticatedFetch(`/api/trip-plans/${tripPlanId}`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`API 응답이 올바르지 않습니다: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('API 응답 데이터:', data);
+        processApiResult(data);
+      })
+      .catch(error => {
+        console.error('API 호출 중 오류가 발생했습니다:', error);
+        // 로딩 상태 종료
+        setIsLoading(false);
+        // 빈 데이터 설정 - 화면에 아무것도 표시하지 않음
+        setPlaces([]);
+        setTravelRoutes([]);
+      });
+  }, []);
 
   // 전체 루트 보기 함수 - 특수 값(-1)을 전달하여 NaverMap에서 전체 일정 경계 맞추기
   const showFullRoute = () => {
@@ -508,7 +371,7 @@ const MapPage = () => {
 
   // 장소 포커스 핸들러
   const handleFocusPlace = (placeId: number) => {
-    // placeId가 0이면 호버가 끝난 것이므로 무시
+    // placeId가 0이면, 호버가 끝난 것이므로 무시
     if (placeId === 0) return;
 
     // 선택한 장소 찾기
@@ -525,6 +388,17 @@ const MapPage = () => {
       focusPlaceRef.current(placeId);
     }
   };
+
+  // 데이터 로딩 중일 때 표시할 로딩 화면
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+          <h2>여행 일정을 불러오는 중...</h2>
+        </div>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
