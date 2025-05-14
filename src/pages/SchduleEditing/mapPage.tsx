@@ -7,6 +7,7 @@ import null_place from '../../assets/images/null_place.png';
 import { Place } from '../../components/Map/NaverMap';
 import { getDayColor } from '../../components/Map/MapContent';
 import { authenticatedFetch } from '../../services/api';
+import LoadingSpinner from '../../components/LoadingSpinner';
 
 // 기존 Place 타입을 확장하여 주소 정보를 추가로 표시할 수 있는 필드 추가
 interface PlaceWithAddress extends Place {
@@ -178,11 +179,13 @@ interface RoutePlace {
   imageUrl: string;
 }
 
+// 경로 정보 타입 정의
 interface RouteInfo {
   distance: string;
   duration: string;
 }
 
+// 여행 루트 타입 정의
 interface TravelRoute {
   day: number;
   date: string;
@@ -194,6 +197,29 @@ interface TravelRoute {
   places: RoutePlace[];
   routes: RouteInfo[];
 }
+
+// 두 지점 사이의 거리를 계산하는 하버사인 공식 구현 함수 (km 단위 반환)
+const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
+  const R = 6371; // 지구 반지름 (km)
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lng2 - lng1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const distance = R * c; // 킬로미터 단위
+  return distance;
+};
+
+// 거리를 기반으로 예상 이동 시간을 계산하는 함수 (분 단위 반환)
+const calculateDuration = (distanceKm: number): number => {
+  // 평균 도시 차량 속도를 30km/h로 가정하여 시간 계산
+  const averageSpeedKmPerHour = 30;
+  const hours = distanceKm / averageSpeedKmPerHour;
+  const minutes = hours * 60;
+  return Math.round(minutes);
+};
 
 const MapPage = () => {
   const navigate = useNavigate();
@@ -282,7 +308,6 @@ const MapPage = () => {
           description: item.memo || `${item.name}에 대한 설명입니다.`,
           imageUrl: item.imageUrl || null_place,
           operatingHours: '정보 로딩 중...', // 기본값, API 호출 후 업데이트됨
-          visitors: 0, // 숫자 타입 유지 (NaverMap 컴포넌트 요구사항)
           addressInfo: '주소 로딩 중...', // 주소 정보를 별도 필드에 저장
           time: `${10 + itemIndex}:00`, // 간단한 시간 설정
           location: '주소 로딩 중...', // 기본값, API 호출 후 업데이트됨
@@ -372,11 +397,32 @@ const MapPage = () => {
         // 프로미스 배열에 추가
         detailPromises.push(fetchDetailPromise());
         
-        // 경로 정보 추가 (장소 간 거리 계산 필드)
+        // 경로 정보 추가 (장소 간 거리 계산)
         if (itemIndex < sortedItems.length - 1) {
+          // 현재 장소와 다음 장소의 위도/경도 가져오기
+          const currentLat = item.latitude;
+          const currentLng = item.longitude;
+          const nextLat = sortedItems[itemIndex + 1].latitude;
+          const nextLng = sortedItems[itemIndex + 1].longitude;
+          
+          // 두 지점 간 거리 계산 (km)
+          const distanceKm = calculateDistance(currentLat, currentLng, nextLat, nextLng);
+          
+          // 거리에 따른 예상 소요 시간 계산 (분)
+          const durationMinutes = calculateDuration(distanceKm);
+          
+          // 거리와 시간을 사용자 친화적인 형태로 변환
+          const formattedDistance = distanceKm < 1 
+            ? `${Math.round(distanceKm * 1000)}m` 
+            : `${distanceKm.toFixed(1)}km`;
+          
+          const formattedDuration = durationMinutes < 60 
+            ? `${durationMinutes}분` 
+            : `${Math.floor(durationMinutes / 60)}시간 ${durationMinutes % 60}분`;
+          
           routeDay.routes.push({
-            distance: '10km', // 기본값 (실제로는 두 지점 간 거리 계산 필요)
-            duration: '20분' // 기본값
+            distance: formattedDistance,
+            duration: formattedDuration
           });
         }
       });
@@ -480,13 +526,7 @@ const MapPage = () => {
 
   // 데이터 로딩 중일 때 표시할 로딩 화면
   if (isLoading) {
-    return (
-      <PageContainer>
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-          <h2>여행 일정을 불러오는 중...</h2>
-        </div>
-      </PageContainer>
-    );
+    return <LoadingSpinner message="여행 일정을 불러오는 중..." />;
   }
 
   return (

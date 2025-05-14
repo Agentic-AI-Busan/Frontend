@@ -99,8 +99,8 @@ const infoWindowStyles = {
         transition: all 0.2s ease;
     `,
     iconBox: `
-        width: 33px;
-        height: 33px;
+        width: 34px;
+        height: 34px;
         background: #ffffff;
         border-radius: 8px;
         display: flex;
