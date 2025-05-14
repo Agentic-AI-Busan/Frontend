@@ -4,7 +4,6 @@ import flatpickr from 'flatpickr';
 import { Korean } from 'flatpickr/dist/l10n/ko';
 import 'flatpickr/dist/flatpickr.min.css';
 import styled, { createGlobalStyle } from 'styled-components';
-import LoadingSpinner from '../../components/LoadingSpinner';
 
 import profileImg from "../../assets/images/profile_img.png";
 import icoNext from "../../assets/images/ico_cal_next.png";
@@ -656,19 +655,6 @@ const Button = styled.button`
     }
 `;
 
-const LoadingContainer = styled.div`
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.8);
-    z-index: 1000;
-`;
-
 const ResponseSection = styled.div`
     flex: 1.2;
     border: 1px solid #eee;
@@ -865,7 +851,6 @@ const QuestionPage: React.FC = () => {
     const navigate = useNavigate();
     // 상태 관리
     const question = getQuestion("김수연");
-    const userName = "김수연";
     const [chatHistory, setChatHistory] = useState<Message[]>([]); // 채팅 기록
     const [defaultQuestions, setDefaultQuestions] = useState<Message[]>([]); // 기본 질문들
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
@@ -1258,7 +1243,7 @@ const QuestionPage: React.FC = () => {
                                 isResponse: false
                             }]);
                             
-                            // 마지막 질문 이후 1초 뒤에 로딩 스피너 표시
+                            // 마지막 질문 이후 1초 뒤에 완료 상태로 변경
                             setTimeout(() => {
                                 setIsComplete(true);
                             }, 1000);
@@ -1333,34 +1318,74 @@ const QuestionPage: React.FC = () => {
         };
     }, [visibleSections]);
 
-    // 마지막 질문 이후 로딩 처리
+    // 마지막 질문 이후 다음 페이지로 이동
     useEffect(() => {
         if (isComplete) {
-            // 3초 후에 로딩 종료 및 다음 페이지로 이동
-            const timer = setTimeout(async () => {
+            const loadNextPageData = async () => {
                 if (styleId) {
                     try {
+                        // 여행 계획 확정 API 호출
                         const response = await authenticatedFetch(`/api/styles/${styleId}/final`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' }
                         });
                         const data = await response.json();
+                        let tripPlanId;
+                        
                         if (data.isSuccess && data.result && data.result.tripPlanId) {
                             console.log('tripPlansId:', data.result.tripPlanId);
-                            navigate(`/selectionDestination`, { state: { tripPlansId: data.result.tripPlanId } });
+                            tripPlanId = data.result.tripPlanId;
                         } else {
-                            // tripPlanId가 없으면 fallback
-                            navigate('/selectionDestination');
+                            console.warn('tripPlanId를 받지 못했습니다. 기본값 사용');
+                            tripPlanId = '14'; // 기본값 설정
                         }
+                        
+                        // 다음 페이지에 필요한 데이터를 미리 로드
+                        try {
+                            console.log('여행지 데이터 사전 로딩 시작');
+                            const attractionsResponse = await authenticatedFetch(`/api/trip-plans/${tripPlanId}/attractions`, {
+                                method: 'GET'
+                            });
+                            
+                            if (attractionsResponse.ok) {
+                                const attractionsData = await attractionsResponse.json();
+                                console.log('여행지 데이터 사전 로딩 완료');
+                                
+                                // 사전 로딩된 데이터를 세션 스토리지에 임시 저장
+                                if (attractionsData.isSuccess && attractionsData.result) {
+                                    sessionStorage.setItem(`preloaded_attractions_${tripPlanId}`, 
+                                        JSON.stringify(attractionsData.result));
+                                    console.log('여행지 데이터 세션 스토리지에 저장 완료');
+                                }
+                            }
+                        } catch (error) {
+                            console.error('여행지 데이터 사전 로딩 실패:', error);
+                            // 실패해도 계속 진행 (다음 페이지에서 다시 로드)
+                        }
+                        
+                        // 충분한 로딩 시간을 주기 위해 최소 1.5초 대기
+                        setTimeout(() => {
+                            navigate(`/selectionDestination`, { 
+                                state: { tripPlansId: tripPlanId, preloaded: true } 
+                            });
+                        }, 1500);
                     } catch (error) {
                         console.error('Error finalizing style:', error);
-                        navigate('/selectionDestination');
+                        // 3초 후 에러가 있어도 다음 페이지로 이동
+                        setTimeout(() => {
+                            navigate('/selectionDestination');
+                        }, 3000);
                     }
                 } else {
-                    navigate('/selectionDestination');
+                    // styleId가 없는 경우 3초 후 다음 페이지로 이동
+                    setTimeout(() => {
+                        navigate('/selectionDestination');
+                    }, 3000);
                 }
-            }, 3000);
-            return () => clearTimeout(timer);
+            };
+            
+            // 데이터 로딩 시작
+            loadNextPageData();
         }
     }, [isComplete, navigate, styleId]);
 
@@ -1368,11 +1393,6 @@ const QuestionPage: React.FC = () => {
         <>
             <GlobalStyle />
         <Wrapper>
-                {isComplete && (
-                    <LoadingContainer>
-                        <LoadingSpinner message={`${userName}님의 성향에 맞는 추천 여행지를 준비하고 있습니다. 잠시만 기다려주세요.`}/>
-                    </LoadingContainer>
-                )}
                 <GuideWrap>
                     <ChatSection>
                         <MessagesChat>
