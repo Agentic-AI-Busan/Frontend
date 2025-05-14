@@ -354,7 +354,7 @@ const NaverMap: React.FC<NaverMapProps> = ({
         // 해당 위치로 지도 중심 이동 (애니메이션 적용)
         // 위도에서 약간 뺀 값으로 설정하여 지도 중심이 마커보다 조금 아래에 오도록 함
         // 위도가 작아질수록 지도는 남쪽(아래쪽)으로 이동
-        const offsetLat = place.lat + 0.015; // 약간 아래쪽으로 조정
+        const offsetLat = place.lat + 0.1; // 약간 아래쪽으로 조정
         const naverMaps = getNaverMaps();
         const latLng = new naverMaps.LatLng(offsetLat, place.lng);
         mapRef.current.panTo(latLng, {duration: 500, easing: 'easeOutCubic'});

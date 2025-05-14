@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import travel_img1 from '../../assets/images/travel_img1.jpg';
 import AISidebar from '../../components/AISidebar';
@@ -74,11 +74,18 @@ interface ApiResult {
 
 const EditingPage = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+    
+    // location.state에서 tripPlansId 가져오기
+    const tripPlansId = location.state?.tripPlansId;
+    console.log('[EditingPage] 현재 사용 중인 tripPlansId:', tripPlansId);
 
 // 일정 데이터 상태
 const [schedules, setSchedules] = useState<DaySchedule[]>([]);
 // 로딩 상태 추가
 const [isLoading, setIsLoading] = useState<boolean>(true);
+// 에러 상태 추가
+const [error, setError] = useState<string | null>(null);
 // 여행 정보 상태 추가
 const [tripInfo, setTripInfo] = useState({
     startDate: '',
@@ -317,11 +324,15 @@ const processApiResult = (apiResult: unknown) => {
 
 // 컴포넌트 마운트 시 API 호출
 useEffect(() => {
-    // 여행 계획 ID 하드코딩 (mapPage.tsx와 동일하게 적용)
-    const tripPlanId = 31;
+    // tripPlansId 유효성 확인
+    if (!tripPlansId) {
+      setError('여행 계획 ID가 없습니다. 이전 페이지로 돌아가 다시 시작해주세요.');
+      setIsLoading(false);
+      return;
+    }
     
     // API 호출
-    authenticatedFetch(`/api/trip-plans/${tripPlanId}`)
+    authenticatedFetch(`/api/trip-plans/${tripPlansId}`)
         .then(response => {
             if (!response.ok) {
                 throw new Error(`API 응답이 올바르지 않습니다: ${response.status}`);
@@ -373,10 +384,12 @@ useEffect(() => {
             console.error('API 호출 중 오류가 발생했습니다:', error);
             // 로딩 상태 종료
             setIsLoading(false);
+            // 에러 상태 설정
+            setError(`데이터 로딩 중 오류: ${error.message}`);
             // 빈 데이터 설정
             setSchedules([]);
         });
-}, []);
+}, [tripPlansId]);
 
 // 드래그 관련 상태
 const [draggedItem, setDraggedItem] = useState<{ dayIndex: number, placeIndex: number } | null>(null);
@@ -769,6 +782,22 @@ const preventDragHandler = (e: React.DragEvent) => {
 // 데이터 로딩 중일 때 표시할 로딩 화면
 if (isLoading) {
     return <LoadingSpinner message="여행 일정을 불러오는 중..." />;
+}
+
+// 에러 발생 시 표시할 에러 화면
+if (error) {
+    return (
+        <div style={{ padding: '20px', margin: '20px auto', maxWidth: '600px', textAlign: 'center', color: 'red' }}>
+            <h3>오류 발생</h3>
+            <p>{error}</p>
+            <button 
+                onClick={() => navigate(-1)}
+                style={{ padding: '10px 20px', background: '#3498db', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', marginTop: '20px' }}
+            >
+                이전 페이지로 돌아가기
+            </button>
+        </div>
+    );
 }
 
 return (

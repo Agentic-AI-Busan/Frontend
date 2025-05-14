@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import NaverMap from '../../components/Map/NaverMap';
 import TravelRouteSidebar from '../../components/Map/TravelRouteSidebar';
@@ -223,6 +223,12 @@ const calculateDuration = (distanceKm: number): number => {
 
 const MapPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // location.state에서 tripPlansId 가져오기
+  const tripPlansId = location.state?.tripPlansId;
+  console.log('[MapPage] 현재 사용 중인 tripPlansId:', tripPlansId);
+  
   // 장소 데이터
   const [places, setPlaces] = useState<Place[]>([]);
   // 여행 루트 데이터
@@ -232,6 +238,8 @@ const MapPage = () => {
   const [activeDay, setActiveDay] = useState<number>(1);
   // 데이터 로딩 상태
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  // 에러 상태 추가
+  const [error, setError] = useState<string | null>(null);
   
   // NaverMap의 focusPlace 함수를 저장할 ref
   const focusPlaceRef = useRef<((placeId: number) => void) | null>(null);
@@ -459,11 +467,15 @@ const MapPage = () => {
 
   // 컴포넌트 마운트 시 API 호출
   useEffect(() => {
-    // 여행 계획 ID 하드코딩
-    const tripPlanId = 31;
+    // tripPlansId 유효성 확인
+    if (!tripPlansId) {
+      setError('여행 계획 ID가 없습니다. 이전 페이지로 돌아가 다시 시작해주세요.');
+      setIsLoading(false);
+      return;
+    }
     
     // API 호출 - authenticatedFetch 사용
-    authenticatedFetch(`/api/trip-plans/${tripPlanId}`)
+    authenticatedFetch(`/api/trip-plans/${tripPlansId}`)
       .then(response => {
         if (!response.ok) {
           throw new Error(`API 응답이 올바르지 않습니다: ${response.status}`);
@@ -478,11 +490,13 @@ const MapPage = () => {
         console.error('API 호출 중 오류가 발생했습니다:', error);
         // 로딩 상태 종료
         setIsLoading(false);
+        // 에러 상태 설정
+        setError(`데이터 로딩 중 오류: ${error.message}`);
         // 빈 데이터 설정 - 화면에 아무것도 표시하지 않음
         setPlaces([]);
         setTravelRoutes([]);
       });
-  }, []);
+  }, [tripPlansId]);
 
   // 전체 루트 보기 함수 - 특수 값(-1)을 전달하여 NaverMap에서 전체 일정 경계 맞추기
   const showFullRoute = () => {
@@ -501,7 +515,7 @@ const MapPage = () => {
 
   // 일정 편집 핸들러
   const handleEditSchedule = () => {
-    navigate('/editing');
+    navigate('/editing', { state: { tripPlansId: tripPlansId } });
   };
 
   // 장소 포커스 핸들러
@@ -527,6 +541,22 @@ const MapPage = () => {
   // 데이터 로딩 중일 때 표시할 로딩 화면
   if (isLoading) {
     return <LoadingSpinner message="여행 일정을 불러오는 중..." />;
+  }
+
+  // 에러 발생 시 표시할 에러 화면
+  if (error) {
+    return (
+      <div style={{ padding: '20px', margin: '20px auto', maxWidth: '600px', textAlign: 'center', color: 'red' }}>
+        <h3>오류 발생</h3>
+        <p>{error}</p>
+        <button 
+          onClick={() => navigate(-1)}
+          style={{ padding: '10px 20px', background: '#3498db', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', marginTop: '20px' }}
+        >
+          이전 페이지로 돌아가기
+        </button>
+      </div>
+    );
   }
 
   return (
