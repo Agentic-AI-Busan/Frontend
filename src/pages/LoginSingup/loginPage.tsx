@@ -1,7 +1,8 @@
 import React, { useRef } from 'react';
 import styled from 'styled-components';
 import { Link, useNavigate } from 'react-router-dom';
-import { loginUser } from '../../services/api';
+import { loginUser, getUserProfile } from '../../services/api';
+import { useUser } from '../../contexts/UserContext';
 
 import mainImage from '../../assets/images/main_image.png';
 import googleImage from '../../assets/images/ico_google2.png';
@@ -214,6 +215,8 @@ const Pattern = styled.div`
 `;
 
 const LoginPage: React.FC = () => {
+  const { setUser } = useUser();
+
   const navigate = useNavigate();
   const idRef = useRef<HTMLInputElement>(null);
   const pwRef = useRef<HTMLInputElement>(null);
@@ -224,7 +227,11 @@ const LoginPage: React.FC = () => {
     const password = pwRef.current?.value || '';
     const success = await loginUser(email, password);
     if (success) {
-      navigate('/');
+      const profile = await getUserProfile();
+      if (profile && profile.result) {
+        setUser(profile.result);
+        navigate('/');
+      }
     } else {
       alert('로그인에 실패했습니다. 아이디/비밀번호를 확인하세요.');
     }

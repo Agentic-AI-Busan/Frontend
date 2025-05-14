@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import logoImage from '../assets/images/t_logo.png';
 import userImage from '../assets/images/Butterfly.jpeg';
 import CheckModal from './Modal/CheckModal';
+import { useUser } from '../contexts/UserContext';
 
 interface NavbarProps {
     userName?: string;
@@ -138,8 +139,9 @@ const DropdownItem = styled.button`
     }
 `;
 
-const Navbar: React.FC<NavbarProps> = ({ userName }) => {
+const Navbar: React.FC<NavbarProps> = () => {
     const navigate = useNavigate();
+    const { user, setUser } = useUser();
     const [showDropdown, setShowDropdown] = useState(false);
     const [isCheckModalOpen, setIsCheckModalOpen] = useState(false);
     
@@ -149,7 +151,7 @@ const Navbar: React.FC<NavbarProps> = ({ userName }) => {
     };
 
     const handleUserButtonClick = () => {
-        if (!userName) {
+        if (!user) {
             navigate('/login');
         }
     };
@@ -158,6 +160,7 @@ const Navbar: React.FC<NavbarProps> = ({ userName }) => {
         console.log('로그아웃 처리');
         localStorage.clear();
         sessionStorage.clear();
+        setUser(null);
         setIsCheckModalOpen(false);
         alert('로그아웃 되었습니다.');
         navigate('/login');
@@ -190,14 +193,14 @@ const Navbar: React.FC<NavbarProps> = ({ userName }) => {
                     </MenuItem>
                 </MenuList>
                 <UserButtonWrapper 
-                    onMouseEnter={() => userName && setShowDropdown(true)}
+                    onMouseEnter={() => user && setShowDropdown(true)}
                     onMouseLeave={() => setShowDropdown(false)}
                 >
                     <UserButton onClick={handleUserButtonClick}>
                         <img src={userImage} alt="user" />
-                        {userName || '로그인하기'}
+                        {user?.name || '로그인하기'}
                     </UserButton>
-                    {userName && (
+                    {user && (
                         <DropdownMenu isVisible={showDropdown}>
                             <DropdownItem onClick={() => handleNavigation('/myPage')}>
                                 <svg viewBox="0 0 24 24" fill="currentColor">

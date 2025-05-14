@@ -1,8 +1,6 @@
 import './App.css'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import styled, { createGlobalStyle } from 'styled-components'
-import { useEffect, useState } from 'react'
-import { getUserProfile } from './services/api'
 import LoginPage from './pages/LoginSingup/loginPage'
 import SignupPage from './pages/LoginSingup/signupPage'
 import MainPage from './pages/mainPage'
@@ -19,6 +17,7 @@ import MapPage from './pages/SchduleEditing/mapPage'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import EditingPage from './pages/SchduleEditing/editingPage'
+import { UserProvider } from './contexts/UserContext';
 
 // styled-components를 위한 타입 정의
 interface ContainerProps {
@@ -59,45 +58,16 @@ const GlobalStyle = createGlobalStyle<{ $isMapPage: boolean }>`
   }
 `;
 
-interface User {
-    name: string;
-    nickname: string;
-    email: string;
-    birthDay: string;
-    gender: string;
-    profileImage: string;
-    phoneNumber: string;
-}
-
 const AppContent = () => {
   const location = useLocation();
   const isMainPage = location.pathname === '/';
   const isFullScreenPage = location.pathname === '/map' || location.pathname === '/editing';
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      if (location.pathname === '/login' || location.pathname === '/signup') {
-        localStorage.clear();
-        sessionStorage.clear();
-        setUser(null);
-        return;
-      }
-
-      const userData = await getUserProfile();
-      if (userData) {
-        setUser(userData.result);
-      }
-    };
-
-    fetchUserProfile();
-  }, [location.pathname]);
 
   return (
     <>
       <GlobalStyle $isMapPage={isFullScreenPage} />
       <AppContainer $isMapPage={isFullScreenPage}>
-        <Navbar userName={user?.name} />
+        <Navbar/>
         <MainContent $isMapPage={isFullScreenPage}>
           <Routes>
             <Route path="/" element={<MainPage />} />
@@ -122,8 +92,12 @@ const AppContent = () => {
   );
 };
 
-function App() {
-  return <AppContent />;
+const App = () => {
+  return (
+    <UserProvider>
+      <AppContent />
+    </UserProvider>
+  );
 }
 
 export default App;
