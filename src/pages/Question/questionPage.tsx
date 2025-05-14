@@ -6,6 +6,7 @@ import 'flatpickr/dist/flatpickr.min.css';
 import styled from 'styled-components';
 
 import { authenticatedFetch } from '../../services/api';
+import { useUser } from '../../contexts/UserContext';
 import QuestionSidebar from '../../components/QuestionSidebar';
 
 const ContentWrapper = styled.div`
@@ -630,9 +631,11 @@ function formatDateToYMD(date: Date): string {
 }
 
 const QuestionPage: React.FC = () => {
+    const { user } = useUser();
+    const userName = user?.name || "Undefined";
     const navigate = useNavigate();
     // 상태 관리
-    const question = getQuestion("김수연");
+    const question = getQuestion(userName);
     const [chatHistory, setChatHistory] = useState<Message[]>([]); // 채팅 기록
     const [defaultQuestions, setDefaultQuestions] = useState<Message[]>([]); // 기본 질문들
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);

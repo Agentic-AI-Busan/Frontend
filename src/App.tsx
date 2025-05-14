@@ -17,6 +17,7 @@ import MapPage from './pages/SchduleEditing/mapPage'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import EditingPage from './pages/SchduleEditing/editingPage'
+import { UserProvider } from './contexts/UserContext';
 
 // styled-components를 위한 타입 정의
 interface ContainerProps {
@@ -57,7 +58,7 @@ const GlobalStyle = createGlobalStyle<{ $isMapPage: boolean }>`
   }
 `;
 
-function App() {
+const AppContent = () => {
   const location = useLocation();
   const isMainPage = location.pathname === '/';
   const isFullScreenPage = location.pathname === '/map' || location.pathname === '/editing';
@@ -66,7 +67,7 @@ function App() {
     <>
       <GlobalStyle $isMapPage={isFullScreenPage} />
       <AppContainer $isMapPage={isFullScreenPage}>
-        <Navbar />
+        <Navbar/>
         <MainContent $isMapPage={isFullScreenPage}>
           <Routes>
             <Route path="/" element={<MainPage />} />
@@ -88,7 +89,15 @@ function App() {
         {isMainPage && <Footer />}
       </AppContainer>
     </>
-  )
+  );
+};
+
+const App = () => {
+  return (
+    <UserProvider>
+      <AppContent />
+    </UserProvider>
+  );
 }
 
-export default App
+export default App;

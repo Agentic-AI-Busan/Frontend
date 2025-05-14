@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import SelectMain from './selectMain';
 import { authenticatedFetch } from '../../services/api'; // authenticatedFetch 임포트
+import { useUser } from '../../contexts/UserContext';
 
 interface ApiAttraction {
   attractionId: number;
@@ -33,6 +34,8 @@ interface SelectedItem {
 const STORAGE_KEY_DESTINATIONS_PREFIX = 'selectedDestinations_';
 
 const SelectDestination: React.FC = () => {
+  const { user } = useUser();
+  const userName = user?.name || "Undefined";
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -40,7 +43,6 @@ const SelectDestination: React.FC = () => {
   const tripPlansId = passedTripPlansId;
   console.log('[SelectDestination] 현재 사용 중인 tripPlansId:', tripPlansId);
 
-  const [userName] = useState<string>("성수립");
   const [travelItems, setTravelItems] = useState<TravelItem[]>([]);
   const [error, setError] = useState<string | null>(null);
 

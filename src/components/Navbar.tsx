@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import logoImage from '../assets/images/t_logo.png';
 import userImage from '../assets/images/Butterfly.jpeg';
+import CheckModal from './Modal/CheckModal';
+import { useUser } from '../contexts/UserContext';
 
 interface NavbarProps {
     userName?: string;
@@ -137,19 +139,38 @@ const DropdownItem = styled.button`
     }
 `;
 
-const Navbar: React.FC<NavbarProps> = ({ userName = 'Seongsurib' }) => {
+const Navbar: React.FC<NavbarProps> = () => {
     const navigate = useNavigate();
+    const { user, setUser } = useUser();
     const [showDropdown, setShowDropdown] = useState(false);
+    const [isCheckModalOpen, setIsCheckModalOpen] = useState(false);
     
     const handleNavigation = (path: string) => {
         navigate(path);
         setShowDropdown(false);
     };
+
+    const handleUserButtonClick = () => {
+        if (!user) {
+            navigate('/login');
+        }
+    };
+
+    const handleLogout = () => {
+        console.log('로그아웃 처리');
+        localStorage.clear();
+        sessionStorage.clear();
+        setUser(null);
+        setIsCheckModalOpen(false);
+        alert('로그아웃 되었습니다.');
+        navigate('/login');
+    };
     
     return (
-        <HeaderContainer>
-            <Logo>
-                <Link to="/">
+        <>
+            <HeaderContainer>
+                <Logo>
+                    <Link to="/">
                     <img src={logoImage} alt="logo" />
                 </Link>
             </Logo>
@@ -172,29 +193,47 @@ const Navbar: React.FC<NavbarProps> = ({ userName = 'Seongsurib' }) => {
                     </MenuItem>
                 </MenuList>
                 <UserButtonWrapper 
-                    onMouseEnter={() => setShowDropdown(true)}
+                    onMouseEnter={() => user && setShowDropdown(true)}
                     onMouseLeave={() => setShowDropdown(false)}
                 >
-                    <UserButton>
-                        <img src={userImage} alt="user" />{userName}
+                    <UserButton onClick={handleUserButtonClick}>
+                        <img src={userImage} alt="user" />
+                        {user?.name || '로그인하기'}
                     </UserButton>
-                    <DropdownMenu isVisible={showDropdown}>
-                        <DropdownItem onClick={() => handleNavigation('/myPage')}>
-                            <svg viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                            </svg>
-                            사용자 정보
-                        </DropdownItem>
-                        <DropdownItem onClick={() => handleNavigation('/myGuide')}>
-                            <svg viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
-                            </svg>
-                            나의 여행
-                        </DropdownItem>
-                    </DropdownMenu>
+                    {user && (
+                        <DropdownMenu isVisible={showDropdown}>
+                            <DropdownItem onClick={() => handleNavigation('/myPage')}>
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                                </svg>
+                                사용자 정보
+                            </DropdownItem>
+                            <DropdownItem onClick={() => handleNavigation('/myGuide')}>
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
+                                </svg>
+                                나의 여행
+                            </DropdownItem>
+                            <DropdownItem onClick={() => setIsCheckModalOpen(true)}>
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
+                                </svg>
+                                로그아웃
+                            </DropdownItem>
+                        </DropdownMenu>
+                    )}
                 </UserButtonWrapper>
             </MenuWrapper>
         </HeaderContainer>
+
+        {/* 로그아웃 확인 모달 추가 */}
+        <CheckModal
+            isOpen={isCheckModalOpen}
+            onClose={() => setIsCheckModalOpen(false)}
+            onConfirm={handleLogout}
+            title="로그아웃"
+        />
+    </>
     );
 };
 
