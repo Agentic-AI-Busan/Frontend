@@ -7,7 +7,7 @@ import SearchPanel from '../../components/SearchPanel';
 import SelectionSidebar from '../../components/SelectionSidebar';
 import { authenticatedFetch } from '../../services/api';
 import SelectionModal from '../../components/Modal/SelectionModal';
-
+import { useUser } from '../../contexts/UserContext';
 // 메인 컨테이너 스타일 컴포넌트
 const MainContainer = styled.div`
     display: flex;
@@ -128,6 +128,8 @@ const STORAGE_KEY_DESTINATIONS_PREFIX = 'selectedDestinations_';
 const STORAGE_KEY_RESTAURANTS_PREFIX = 'selectedRestaurants_';
 
 const SelectionAdd: React.FC = () => {
+    const { user } = useUser();
+    const userName = user?.name || "Undefined";
     const navigate = useNavigate();
     const location = useLocation(); // useLocation 훅 사용
 
@@ -547,7 +549,7 @@ const SelectionAdd: React.FC = () => {
                 <SidebarsWrapper showTravelSearch={showTravelSearch} showRestaurantSearch={showRestaurantSearch}>
                     <SelectionSidebar
                         type="travel"
-                        title="성수립님이 선택한 여행지입니다."
+                        title={`${userName}님이 선택한 여행지입니다.`}
                         items={selectedPlaces.travel}
                         isComplete={isTravelComplete}
                         deletingItemId={deletingTravelId}
@@ -560,7 +562,7 @@ const SelectionAdd: React.FC = () => {
                     
                     <SelectionSidebar
                         type="restaurant"
-                        title="성수립님이 선택한 음식점입니다."
+                        title={`${userName}님이 선택한 음식점입니다.`}
                         items={selectedPlaces.restaurant}
                         isComplete={isRestaurantComplete}
                         deletingItemId={deletingRestaurantId}

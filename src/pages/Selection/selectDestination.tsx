@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import SelectMain from './selectMain';
 import { authenticatedFetch } from '../../services/api'; // authenticatedFetch 임포트
 import LoadingSpinner from '../../components/LoadingSpinner';
+import { useUser } from '../../contexts/UserContext';
 
 interface ApiAttraction {
   attractionId: number;
@@ -34,13 +35,14 @@ interface SelectedItem {
 const STORAGE_KEY_DESTINATIONS_PREFIX = 'selectedDestinations_';
 
 const SelectDestination: React.FC = () => {
+  const { user } = useUser();
+  const userName = user?.name || "Undefined";
   const navigate = useNavigate();
   const location = useLocation();
 
   const passedTripPlansId = location.state?.tripPlansId || '14'; 
   const tripPlansId = passedTripPlansId;
 
-  const [userName] = useState<string>("성수립");
   const [travelItems, setTravelItems] = useState<TravelItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);

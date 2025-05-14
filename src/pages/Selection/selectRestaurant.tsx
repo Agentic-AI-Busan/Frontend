@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import SelectMain from './selectMain';
 import { authenticatedFetch } from '../../services/api';
+import { useUser } from '../../contexts/UserContext';
 
 interface ApiRestaurant {
   restaurantId: number;
@@ -59,7 +60,8 @@ const SelectRestaurant: React.FC = () => {
   };
   const selectedDestinations = initialSelectedDestinations();
 
-  const [userName] = useState<string>("성수립");
+  const { user } = useUser();
+  const userName = user?.name || "Undefined";
   const [restaurantItems, setRestaurantItems] = useState<TravelItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);

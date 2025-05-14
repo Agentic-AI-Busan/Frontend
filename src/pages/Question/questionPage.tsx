@@ -10,6 +10,7 @@ import profileImg from "../../assets/images/profile_img.png";
 import icoNext from "../../assets/images/ico_cal_next.png";
 
 import { authenticatedFetch } from '../../services/api';
+import { useUser } from '../../contexts/UserContext';
 
 
 const GlobalStyle = createGlobalStyle`
@@ -862,10 +863,11 @@ function formatDateToYMD(date: Date): string {
 }
 
 const QuestionPage: React.FC = () => {
+    const { user } = useUser();
+    const userName = user?.name || "Undefined";
     const navigate = useNavigate();
     // 상태 관리
-    const question = getQuestion("김수연");
-    const userName = "김수연";
+    const question = getQuestion(userName);
     const [chatHistory, setChatHistory] = useState<Message[]>([]); // 채팅 기록
     const [defaultQuestions, setDefaultQuestions] = useState<Message[]>([]); // 기본 질문들
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
