@@ -38,10 +38,10 @@ const SelectRestaurant: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // 이전 페이지(selectDestination)에서 전달된 tripPlansId를 우선 사용, 없으면 기본값 '14' 사용
-  // 또는 location.state에서 selectedDestinations가 없을 경우를 대비하여 tripPlansId를 가져옴
-  const passedTripPlansId = location.state?.tripPlansId || '14'; 
+  // 이전 페이지(selectDestination)에서 전달된 tripPlansId를 사용
+  const passedTripPlansId = location.state?.tripPlansId;
   const tripPlansId = passedTripPlansId;
+  console.log('[SelectRestaurant] 현재 사용 중인 tripPlansId:', tripPlansId);
 
   const getDestinationsStorageKey = () => `${STORAGE_KEY_DESTINATIONS_PREFIX}${tripPlansId}`;
   const getRestaurantsStorageKey = () => `${STORAGE_KEY_RESTAURANTS_PREFIX}${tripPlansId}`;
@@ -79,6 +79,13 @@ const SelectRestaurant: React.FC = () => {
       localStorage.setItem(getRestaurantsStorageKey(), JSON.stringify(selectedItems));
     }
   }, [selectedItems, tripPlansId]);
+
+  useEffect(() => {
+    if (!tripPlansId) {
+      setError('여행 계획 ID가 없습니다. 첫 페이지로 돌아가 다시 시작해주세요.');
+      return;
+    }
+  }, [tripPlansId]);
 
   useEffect(() => {
     const fetchRestaurants = async () => {

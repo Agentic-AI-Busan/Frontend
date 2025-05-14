@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import travel_img1 from '../../assets/images/travel_img1.jpg';
 import AISidebar from '../../components/AISidebar';
@@ -12,6 +12,8 @@ import {
 import SearchModal, { Place as SearchPlace } from '../../components/Modal/SearchModal';
 import DeleteModal from '../../components/Modal/DeleteModal';
 import SaveModal from '../../components/Modal/SaveModal';
+import { authenticatedFetch } from '../../services/api';
+import LoadingSpinner from '../../components/LoadingSpinner';
 
 // 타입 정의
 interface VisitPlace {
@@ -39,48 +41,59 @@ interface RecommendPlace {
     coordinates?: { lat: number; lng: number };
 }
 
+// API 응답 관련 타입 정의
+interface ScheduleItem {
+  itemId: number;
+  order: number;
+  placeType: string;
+  placeId: number;
+  latitude: number;
+  longitude: number;
+  name: string;
+  imageUrl: string;
+  memo: string | null;
+}
+
+interface DayApiSchedule {
+  dayNumber: number;
+  date: string;
+  scheduleItems: ScheduleItem[];
+}
+
+interface ApiResult {
+  title: string;
+  description: string | null;
+  profileImage: string;
+  startDate: string;
+  endDate: string;
+  days: DayApiSchedule[];
+  numberOfPeople?: string;
+  ageRange?: string;
+  transportation?: string;
+}
+
 const EditingPage = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+    
+    // location.state에서 tripPlansId 가져오기
+    const tripPlansId = location.state?.tripPlansId;
+    console.log('[EditingPage] 현재 사용 중인 tripPlansId:', tripPlansId);
 
-// 초기 여행 데이터
-const [schedules, setSchedules] = useState<DaySchedule[]>([
-        { 
-        day: 1, 
-        date: '8/24',
-        places: [
-            { id: 1, name: '부산역', memo: '', time: '09:00', location: '부산광역시 동구 중앙대로 206', imageUrl: travel_img1 },
-            { id: 2, name: '해운대해수욕장', memo: '', time: '11:00', location: '부산광역시 해운대구 해운대해변로 264', imageUrl: travel_img1 },
-            { id: 3, name: '광안대교', memo: '', time: '13:00', location: '부산광역시 수영구 광안해변로 219', imageUrl: travel_img1 }
-        ] 
-        },
-        { 
-        day: 2, 
-        date: '8/24',
-        places: [
-            { id: 4, name: '감천문화마을', memo: '', time: '10:00', location: '부산광역시 사하구 감천2길 203', imageUrl: travel_img1 },
-            { id: 5, name: '자갈치시장', memo: '', time: '13:00', location: '부산광역시 중구 자갈치로 52', imageUrl: travel_img1 },
-            { id: 6, name: '부산타워', memo: '', time: '15:00', location: '부산광역시 중구 용두산길 37-55', imageUrl: travel_img1 }
-        ] 
-        },
-        { 
-        day: 3, 
-        date: '8/24',
-        places: [
-            { id: 7, name: '용두산공원', memo: '', time: '09:30', location: '부산광역시 중구 용두산길 37-55', imageUrl: travel_img1 },
-            { id: 8, name: '국제시장', memo: '', time: '11:30', location: '부산광역시 중구 신창동4가 37-1', imageUrl: travel_img1 },
-            { id: 9, name: '부산아쿠아리움', memo: '', time: '14:00', location: '부산광역시 해운대구 해운대해변로 266', imageUrl: travel_img1 }
-        ] 
-        },
-        { 
-        day: 4, 
-        date: '8/24',
-        places: [
-            { id: 10, name: '해운대 블루라인파크', memo: '', time: '10:00', location: '부산광역시 해운대구 달맞이길 62번길 47', imageUrl: travel_img1 },
-            { id: 11, name: '기장군 장안사', memo: '', time: '13:00', location: '부산광역시 기장군 장안읍 장안리 583', imageUrl: travel_img1 },
-            { id: 12, name: '기장군 해변열차', memo: '', time: '15:30', location: '부산광역시 기장군 기장읍 기장해안로 205', imageUrl: travel_img1 }
-        ] 
-        },
-]);
+// 일정 데이터 상태
+const [schedules, setSchedules] = useState<DaySchedule[]>([]);
+// 로딩 상태 추가
+const [isLoading, setIsLoading] = useState<boolean>(true);
+// 에러 상태 추가
+const [error, setError] = useState<string | null>(null);
+// 여행 정보 상태 추가
+const [tripInfo, setTripInfo] = useState({
+    startDate: '',
+    endDate: '',
+    numberOfPeople: '3명',
+    ageRange: '20세~25세',
+    transportation: '대중교통'
+});
 
 // AI 추천 장소를 추가하기 위한 함수
 const addRecommendedPlace = (place: RecommendPlace, targetDay?: number) => {
@@ -128,6 +141,255 @@ const addRecommendedPlace = (place: RecommendPlace, targetDay?: number) => {
     
     return true; // 성공적으로 추가됨
 };
+
+// API에서 데이터를 가져와 변환하는 함수
+const processApiResult = (apiResult: unknown) => {
+    console.log('처리할 API 데이터 구조:', JSON.stringify(apiResult, null, 2));
+    
+    // API 응답 구조 확인 및 데이터 추출
+    let tripData: ApiResult;
+    
+    // API 응답이 { result: { ... } } 형태인지 확인
+    if (apiResult && typeof apiResult === 'object' && 'result' in apiResult && apiResult.result) {
+        tripData = apiResult.result as ApiResult;
+    } else {
+        // 바로 데이터가 있는 경우
+        tripData = apiResult as ApiResult;
+    }
+    
+    // days 배열이 존재하는지 확인
+    if (!tripData || !tripData.days || !Array.isArray(tripData.days)) {
+        console.error('API 응답에 days 배열이 없습니다:', tripData);
+        setIsLoading(false);
+        return; // 데이터가 없으면 함수 종료
+    }
+    
+    // 여행 정보 업데이트
+    if (tripData.startDate && tripData.endDate) {
+        // 날짜 형식을 YYYY-MM-DD에서 YYYY.MM.DD로 변환
+        const formatDate = (dateStr: string) => {
+            return dateStr.replace(/-/g, '.');
+        };
+        
+        setTripInfo(prev => ({
+            ...prev,
+            startDate: formatDate(tripData.startDate),
+            endDate: formatDate(tripData.endDate),
+            numberOfPeople: tripData.numberOfPeople || prev.numberOfPeople,
+            ageRange: tripData.ageRange || prev.ageRange,
+            transportation: tripData.transportation || prev.transportation
+        }));
+    }
+    
+    // 모든 place 상세 정보 요청을 관리하는 프로미스 배열
+    const detailPromises: Promise<void>[] = [];
+    
+    // days 데이터를 schedules 형식으로 변환
+    const newSchedules: DaySchedule[] = tripData.days.map(day => {
+        // 날짜 형식 변환
+        const dateObj = new Date(day.date);
+        const formattedDate = `${dateObj.getMonth() + 1}/${dateObj.getDate()}`; // M/D 형식으로 변환
+        
+        // 해당 일차의 장소 목록 생성 (기본 정보만 포함)
+        const places: VisitPlace[] = day.scheduleItems
+            .sort((a, b) => a.order - b.order) // 순서대로 정렬
+            .map(item => ({
+                id: item.itemId,
+                name: item.name,
+                memo: item.memo || '',
+                time: '정보 불러오는 중...', // 실제 운영시간으로 대체될 임시값
+                location: '주소 불러오는 중...', // 실제 주소로 대체될 임시값
+                imageUrl: item.imageUrl || travel_img1, // 이미지가 없으면 기본 이미지 사용
+                coordinates: {
+                    lat: item.latitude,
+                    lng: item.longitude
+                }
+            }));
+
+        // 각 장소에 대한 상세 정보 API 호출 프로미스 생성
+        day.scheduleItems.forEach((item, index) => {
+            // 장소 유형에 따른 API URL 결정
+            let apiUrl = '';
+            if (item.placeType === 'ATTRACTION') {
+                apiUrl = `/api/trip-plans/attractions/${item.placeId}`;
+            } else if (item.placeType === 'RESTAURANT') {
+                apiUrl = `/api/trip-plans/restaurants/${item.placeId}`;
+            } else {
+                console.warn(`알 수 없는 장소 유형: ${item.placeType}`, item);
+                return; // 알 수 없는 유형이면 API 호출 안함
+            }
+            
+            // 상세 정보 API 호출 프로미스
+            const fetchDetailPromise = async () => {
+                try {
+                    const response = await authenticatedFetch(apiUrl);
+                    
+                    if (!response.ok) {
+                        throw new Error(`상세 정보 API 응답 오류: ${response.status}`);
+                    }
+                    
+                    const detailData = await response.json();
+                    
+                    // API 응답 구조 확인
+                    if (!detailData.isSuccess || !detailData.result) {
+                        throw new Error('상세 정보 API 응답 구조가 올바르지 않습니다.');
+                    }
+                    
+                    const detail = detailData.result;
+                    const dayIndex = day.dayNumber - 1; // day는 1부터 시작하지만 배열 인덱스는 0부터 시작
+                    
+                    // schedules 업데이트 (운영시간 및 주소 정보)
+                    setSchedules(prev => {
+                        // 유효한 인덱스인지 확인
+                        if (dayIndex < 0 || dayIndex >= prev.length || index >= prev[dayIndex].places.length) {
+                            return prev;
+                        }
+                        
+                        // 심층 복사
+                        const newSchedules = [...prev];
+                        const newPlaces = [...newSchedules[dayIndex].places];
+                        
+                        // 운영시간 및 주소 업데이트
+                        newPlaces[index] = {
+                            ...newPlaces[index],
+                            time: detail.operatingHours || '정보 없음',
+                            location: detail.address || '주소 정보 없음',
+                        };
+                        
+                        newSchedules[dayIndex] = {
+                            ...newSchedules[dayIndex],
+                            places: newPlaces
+                        };
+                        
+                        return newSchedules;
+                    });
+                } catch (error) {
+                    console.error(`${item.name} 상세 정보 가져오기 실패:`, error);
+                    
+                    // 오류 발생 시에도 schedules 업데이트 (오류 메시지로)
+                    const dayIndex = day.dayNumber - 1;
+                    setSchedules(prev => {
+                        // 유효한 인덱스인지 확인
+                        if (dayIndex < 0 || dayIndex >= prev.length || index >= prev[dayIndex].places.length) {
+                            return prev;
+                        }
+                        
+                        // 심층 복사
+                        const newSchedules = [...prev];
+                        const newPlaces = [...newSchedules[dayIndex].places];
+                        
+                        // 기본값으로 업데이트
+                        newPlaces[index] = {
+                            ...newPlaces[index],
+                            time: '정보를 가져올 수 없음',
+                            location: '주소 정보를 가져올 수 없음',
+                        };
+                        
+                        newSchedules[dayIndex] = {
+                            ...newSchedules[dayIndex],
+                            places: newPlaces
+                        };
+                        
+                        return newSchedules;
+                    });
+                }
+            };
+            
+            // 프로미스 배열에 추가
+            detailPromises.push(fetchDetailPromise());
+        });
+        
+        return {
+            day: day.dayNumber,
+            date: formattedDate,
+            places
+        };
+    });
+    
+    // 기본 스케줄 데이터 설정
+    setSchedules(newSchedules);
+    
+    // 모든 상세 정보 요청이 완료되면 로딩 상태 업데이트
+    Promise.all(detailPromises)
+        .then(() => {
+            console.log('모든 장소 상세 정보 로딩 완료');
+        })
+        .catch(error => {
+            console.error('일부 장소 상세 정보 로딩 실패:', error);
+        })
+        .finally(() => {
+            setIsLoading(false);
+        });
+};
+
+// 컴포넌트 마운트 시 API 호출
+useEffect(() => {
+    // tripPlansId 유효성 확인
+    if (!tripPlansId) {
+      setError('여행 계획 ID가 없습니다. 이전 페이지로 돌아가 다시 시작해주세요.');
+      setIsLoading(false);
+      return;
+    }
+    
+    // API 호출
+    authenticatedFetch(`/api/trip-plans/${tripPlansId}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`API 응답이 올바르지 않습니다: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('API 응답 데이터:', data);
+            processApiResult(data);
+            
+            // 스타일 정보도 함께 가져오기
+            return authenticatedFetch('/api/styles');
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('스타일 정보를 가져오는데 실패했습니다.');
+            }
+            return response.json();
+        })
+        .then(styleData => {
+            if (styleData.isSuccess && styleData.result && styleData.result.styleId) {
+                const styleId = styleData.result.styleId;
+                
+                // 스타일 상세 정보 가져오기
+                return authenticatedFetch(`/api/styles/${styleId}`);
+            }
+            throw new Error('스타일 ID를 가져오는데 실패했습니다.');
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('스타일 상세 정보를 가져오는데 실패했습니다.');
+            }
+            return response.json();
+        })
+        .then(styleDetailData => {
+            if (styleDetailData.isSuccess && styleDetailData.result) {
+                const styleInfo = styleDetailData.result;
+                
+                // 스타일 정보로 여행 정보 업데이트
+                setTripInfo(prev => ({
+                    ...prev,
+                    numberOfPeople: styleInfo.numberOfPeople || prev.numberOfPeople,
+                    ageRange: styleInfo.ageRange || prev.ageRange,
+                    transportation: styleInfo.transportation || prev.transportation
+                }));
+            }
+        })
+        .catch(error => {
+            console.error('API 호출 중 오류가 발생했습니다:', error);
+            // 로딩 상태 종료
+            setIsLoading(false);
+            // 에러 상태 설정
+            setError(`데이터 로딩 중 오류: ${error.message}`);
+            // 빈 데이터 설정
+            setSchedules([]);
+        });
+}, [tripPlansId]);
 
 // 드래그 관련 상태
 const [draggedItem, setDraggedItem] = useState<{ dayIndex: number, placeIndex: number } | null>(null);
@@ -517,6 +779,27 @@ const preventDragHandler = (e: React.DragEvent) => {
     e.stopPropagation();
 };
 
+// 데이터 로딩 중일 때 표시할 로딩 화면
+if (isLoading) {
+    return <LoadingSpinner message="여행 일정을 불러오는 중..." />;
+}
+
+// 에러 발생 시 표시할 에러 화면
+if (error) {
+    return (
+        <div style={{ padding: '20px', margin: '20px auto', maxWidth: '600px', textAlign: 'center', color: 'red' }}>
+            <h3>오류 발생</h3>
+            <p>{error}</p>
+            <button 
+                onClick={() => navigate(-1)}
+                style={{ padding: '10px 20px', background: '#3498db', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', marginTop: '20px' }}
+            >
+                이전 페이지로 돌아가기
+            </button>
+        </div>
+    );
+}
+
 return (
     <PageLayout>
     <MainContainer>
@@ -527,10 +810,10 @@ return (
                 <DestinationTitle>
                     <DestinationName>BUSAN</DestinationName>
                     <DestinationDetails>
-                        <DetailItem><DetailIcon>📅</DetailIcon> 2024.8.24-2024.8.28</DetailItem>
-                        <DetailItem><DetailIcon>👥</DetailIcon> 3명</DetailItem>
-                        <DetailItem><DetailIcon>👨‍👧‍👦</DetailIcon> 20세~25세</DetailItem>
-                        <DetailItem><DetailIcon>🚆</DetailIcon> 대중교통</DetailItem>
+                        <DetailItem><DetailIcon>📅</DetailIcon> {tripInfo.startDate && tripInfo.endDate ? `${tripInfo.startDate}-${tripInfo.endDate}` : '여행 날짜 정보 없음'}</DetailItem>
+                        <DetailItem><DetailIcon>👥</DetailIcon> {tripInfo.numberOfPeople}</DetailItem>
+                        <DetailItem><DetailIcon>👨‍👧‍👦</DetailIcon> {tripInfo.ageRange}</DetailItem>
+                        <DetailItem><DetailIcon>🚆</DetailIcon> {tripInfo.transportation}</DetailItem>
                     </DestinationDetails>
                 </DestinationTitle>
                 <ButtonContainer>

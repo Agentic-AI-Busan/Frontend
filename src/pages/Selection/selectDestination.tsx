@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import SelectMain from './selectMain';
 import { authenticatedFetch } from '../../services/api'; // authenticatedFetch 임포트
-import LoadingSpinner from '../../components/LoadingSpinner';
 import { useUser } from '../../contexts/UserContext';
 
 interface ApiAttraction {
@@ -40,11 +39,11 @@ const SelectDestination: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const passedTripPlansId = location.state?.tripPlansId || '14'; 
+  const passedTripPlansId = location.state?.tripPlansId; 
   const tripPlansId = passedTripPlansId;
+  console.log('[SelectDestination] 현재 사용 중인 tripPlansId:', tripPlansId);
 
   const [travelItems, setTravelItems] = useState<TravelItem[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   const getStorageKey = () => `${STORAGE_KEY_DESTINATIONS_PREFIX}${tripPlansId}`;
@@ -65,15 +64,20 @@ const SelectDestination: React.FC = () => {
   }, [selectedItems, tripPlansId]);
 
   useEffect(() => {
+    if (!tripPlansId) {
+      setError('여행 계획 ID가 없습니다. 첫 페이지로 돌아가 다시 시작해주세요.');
+      return;
+    }
+  }, [tripPlansId]);
+
+  useEffect(() => {
     const fetchAttractions = async () => {
       // tripPlansId가 유효하지 않으면 API 호출 중단
       if (!tripPlansId) {
         setError('여행 계획 ID가 없습니다.');
-        setLoading(false);
         return;
       }
       
-      setLoading(true);
       setError(null);
       try {
         // authenticatedFetch 사용
@@ -121,8 +125,6 @@ const SelectDestination: React.FC = () => {
                 setError(err instanceof Error ? err.message : '데이터를 불러오는 중 오류가 발생했습니다.');
             }
             setTravelItems([]);
-          } finally {
-            setLoading(false);
           }
         };
 
@@ -149,11 +151,6 @@ const SelectDestination: React.FC = () => {
     // selectedItems를 state로 전달 (localStorage에도 이미 저장됨)
     navigate(`/selectionRestaurant`, { state: { selectedDestinations: selectedItems, tripPlansId: tripPlansId } });
   };
-
-  // 로딩 중일 때 표시할 UI
-  if (loading) {
-    return <LoadingSpinner message="여행지 추천 목록을 불러오는 중..." />;
-  }
 
   // 에러 발생 시 표시할 UI
   if (error) {

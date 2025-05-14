@@ -3,86 +3,51 @@ import { useNavigate } from 'react-router-dom';
 import flatpickr from 'flatpickr';
 import { Korean } from 'flatpickr/dist/l10n/ko';
 import 'flatpickr/dist/flatpickr.min.css';
-import styled, { createGlobalStyle } from 'styled-components';
-import LoadingSpinner from '../../components/LoadingSpinner';
-
-import profileImg from "../../assets/images/profile_img.png";
-import icoNext from "../../assets/images/ico_cal_next.png";
+import styled from 'styled-components';
 
 import { authenticatedFetch } from '../../services/api';
 import { useUser } from '../../contexts/UserContext';
+import QuestionSidebar from '../../components/QuestionSidebar';
 
-
-const GlobalStyle = createGlobalStyle`
-    html, body {
-        overflow: hidden;
-        margin: 0;
-        padding: 0;
-        height: 100%;
-    }
-`;
-
-const Wrapper = styled.div`
+const ContentWrapper = styled.div`
     width: 100%;
-    height: calc(100vh - 90px);
+    max-width: 1450px;
+    margin: auto;
     display: flex;
     flex-direction: column;
-    position: fixed;
-    top: 60px;
-    left: 0;
-    right: 0;
-    overflow: hidden;
-    justify-content: center;
-    padding: 20px 0;
-
-    @media (max-width: 768px) {
-        height: calc(100vh - 60px);
-        padding: 10px 0;
+    align-items: center;
+    height: calc(100vh - 60px);
+    padding: 1rem;
+    box-sizing: border-box;
+    
+    @media (max-width: 1440px) {
+        max-width: 90%;
     }
 `;
 
-const GuideWrap = styled.div`
+const QuestionSection = styled.div`
     display: flex;
-    gap: 24px;
-    padding: 24px;
-    height: calc(100vh - 120px);
-    max-width: 1440px;
-    margin: 0 auto;
-    width: 85%;
-    overflow: hidden;
-    align-self: center;
-
-    @media (max-width: 1200px) {
-        width: 95%;
-        height: calc(100vh - 100px);
-    }
-
-    @media (max-width: 768px) {
+    gap: 20px;
+    width: 100%;
+    padding: 0;
+    flex: 1;
+    
+    @media (max-width: 992px) {
         flex-direction: column;
-        padding: 16px;
-        gap: 16px;
-        height: calc(100vh - 80px);
-        width: 100%;
-    }
-
-    @media (max-width: 480px) {
-        padding: 12px;
-        height: calc(100vh - 60px);
+        gap: 15px;
     }
 `;
 
 const ChatSection = styled.div`
-    flex: 2.8;
-    border: 1px solid #eee;
-    border-radius: 12px;
+    flex: 1;
     display: flex;
     flex-direction: column;
-    height: 100%;
+    height: calc(100vh - 120px);
     overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    min-width: 70%;
 
-    @media (max-width: 768px) {
-        flex: 1;
+    @media (max-width: 992px) {
+        width: 100%;
         min-height: 60vh;
     }
 `;
@@ -94,9 +59,11 @@ const MessagesChat = styled.div`
     display: flex;
     flex-direction: column;
     height: calc(100% - 80px);
+    min-height: 400px;
     
     @media (max-width: 768px) {
         padding: 16px;
+        min-height: 300px;
     }
 
     /* 스크롤바 기본 스타일 */
@@ -170,9 +137,24 @@ const Photo = styled.div`
         border: 2px solid #fff;
     }
     
-    &.response img {
-        border-color: #E3F2FD;
+    &.response {
+        display: none; /* 사용자 응답일 경우 프로필 이미지 숨김 */
     }
+`;
+
+const AIAvatar = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background-color: white;
+    color: #3498db;
+    border-radius: 50%;
+    font-size: 16px;
+    font-weight: 700;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 2px solid #3498db;
 `;
 
 const ChatText = styled.div`
@@ -463,6 +445,7 @@ const Time = styled.span`
     color: #999;
     margin-left: 8px;
     margin-right: 8px;
+    margin-bottom: 3px;
     flex-shrink: 0;
 `;
 
@@ -495,11 +478,10 @@ const MessageWrapper = styled.div`
 `;
 
 const FooterChat = styled.div`
-    border-top: 1px solid #eee;
-    padding: 14px 20px;
+    border-top: 1px solid #e2e8f0;
+    padding: 16px 20px;
     flex-shrink: 0;
-    background: #fff;
-    height: 80px; /* 고정 높이 */
+    height: 80px; /* 고정 높이 유지 */
     display: flex;
     align-items: center;
     position: relative;
@@ -508,332 +490,118 @@ const FooterChat = styled.div`
 const ChatInputWrapper = styled.div`
     display: flex;
     width: 100%;
-    flex-direction: column;
-    background: #f5f5f5;
-    border-radius: 12px;
-    padding: 6px 16px;
-    gap: 2px;
-    border: 2px solid transparent;
-    box-shadow: none;
-    transition: all 0.2s ease;
+    align-items: center;
     position: relative;
-
-    &:focus-within {
-        border-color: #BBDEFB;
-        box-shadow: 0 0 0 1px #BBDEFB;
-    }
-
-    .calendar-wrapper {
-        position: absolute;
-        bottom: 100%;
-        left: 0;
-        margin-bottom: 8px;
-        background: #fff;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        z-index: 100;
-
-        .flatpickr-calendar {
-            border: none;
-            box-shadow: none;
-            margin: 0;
-            padding: 0;
-            background: transparent;
-        }
-    }
 `;
 
 const InputArea = styled.div`
-    display: flex;
-    align-items: center;
+    flex: 1;
     width: 100%;
-    border: none;
-    
-`;
-
-const ToolsArea = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border: none;
 `;
 
 const SendForm = styled.input`
     width: 100%;
-    border: none !important;
-    outline: none !important;
-    background: transparent;
-    font-size: 16px !important;
+    padding: 14px 20px;
+    border: 1px solid #e2e8f0;
+    border-radius: 24px;
+    font-size: 15px;
+    outline: none;
+    background: white;
     font-weight: 400;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     line-height: 1;
     color: #333;
-    padding: 0;
-    margin: 10px;
-    box-shadow: none !important;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
 
-    &:focus,
-    &:hover,
-    &:active {
-        outline: none !important;
-        border: none !important;
-        box-shadow: none !important;
+    &:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
     }
 
     &:disabled {
         color: #999;
         cursor: not-allowed;
-        background: transparent;
-        border: none !important;
-        outline: none !important;
+        background: #f5f5f5;
     }
 
     &::placeholder {
-        color: #999;
-        font-size: 13px;
+        color: #94a3b8;
+        font-size: 14px;
         font-weight: 400;
     }
 `;
 
-
 const Button = styled.button`
-    display: inline-flex;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
-    background: url(${icoNext}) no-repeat center;
-    background-size: 24px;
-    color: transparent;
-    border-radius: 50%;
-    text-decoration: none;
-    font-size: 13px;
-    font-weight: 500;
-    text-align: center;
-    transition: all 0.2s ease;
+    margin-left: 12px;
     cursor: pointer;
-    border: none;
-    padding: 0;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+    position: static;
+    transform: none;
     opacity: 1;
     visibility: visible;
-    transform: scale(1);
-    position: absolute;
-    right: 4px;
-    bottom: 4px;
 
     &:hover:not(:disabled) {
-        background: url(${icoNext}) no-repeat center rgba(0, 0, 0, 0.05);
-        background-size: 24px;
+        background-color: #2980b9;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+    }
+
+    &:active {
+        transform: translateY(0);
     }
 
     &:disabled {
-        opacity: 0;
-        visibility: hidden;
-        transform: scale(0.8);
-        transition: all 0.2s ease;
+        background-color: #cbd5e1;
+        cursor: not-allowed;
+        opacity: 0.6;
+        box-shadow: none;
+        transform: none;
+    }
+
+    svg {
+        width: 20px;
+        height: 20px;
+        transform: rotate(-45deg);
     }
 
     &.round_big {
-        position: static;
         width: 100%;
         padding: 15px;
         border-radius: 12px;
         height: auto;
         font-size: 14px;
-        background: none;
-        color: #333;
+        background: #3498db;
+        color: white;
         opacity: 1;
         visibility: visible;
         transform: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
 
         &:disabled {
             opacity: 0.6;
             visibility: visible;
             transform: none;
+            background-color: #cbd5e1;
         }
     }
 `;
-
-const LoadingContainer = styled.div`
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.8);
-    z-index: 1000;
-`;
-
-const ResponseSection = styled.div`
-    flex: 1.2;
-    border: 1px solid #eee;
-    border-radius: 12px;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    position: relative;
-
-    @media (max-width: 768px) {
-        flex: 1;
-        height: 40vh;
-    }
-`;
-
-const ResponseList = styled.ul`
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    padding: 0;
-    margin: 30px;
-    height: calc(100% - 60px);
-    overflow-y: auto;
-    scroll-behavior: smooth;
-    
-    /* 스크롤바 기본 스타일 */
-    &::-webkit-scrollbar {
-        width: 6px;
-        background: transparent;
-    }
-
-    &::-webkit-scrollbar-track {
-        background: transparent;
-        border-radius: 4px;
-        margin: 4px;
-    }
-
-    &::-webkit-scrollbar-thumb {
-        background: transparent;
-        border-radius: 4px;
-        transition: background-color 0.3s ease;
-    }
-
-    /* 호버 시 스크롤바 스타일 */
-    &:hover {
-        &::-webkit-scrollbar-track {
-            background: #f8f8f8;
-        }
-
-        &::-webkit-scrollbar-thumb {
-            background: #ddd;
-
-            &:hover {
-                background: #ccc;
-            }
-        }
-    }
-    
-    li {
-        opacity: 0;
-        transform: translateY(20px);
-        transition: all 0.3s ease;
-        margin-bottom: 20px;
-        width: 100%;
-
-        &:last-child {
-            margin-bottom: 0;
-        }
-
-        &.visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        strong {
-            display: block;
-            font-size: 15px;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 8px;
-            padding-left: 4px;
-        }
-    }
-`;
-
-const ResponseField = styled.div`
-    background: #f8f9fa;
-    border-radius: 12px;
-    padding: 12px 16px;
-    display: flex;
-    align-items: center;
-    border: 1px solid #eee;
-    transition: all 0.2s ease;
-    
-    p {
-        margin: 0;
-        font-size: 14px;
-        line-height: 1.4;
-        color: #333;
-        word-break: break-all;
-    }
-
-    &.empty {
-        background: #fff;
-        p {
-            color: #adb5bd;
-            font-size: 13px;
-        }
-    }
-`;
-
-const DateRangeField = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-
-    ${ResponseField} {
-        position: relative;
-        padding-left: 48px;
-
-        &::before {
-            content: '';
-            position: absolute;
-            left: 16px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 16px;
-            height: 16px;
-            background: #666;
-            border-radius: 50%;
-            transition: all 0.2s ease;
-        }
-
-        &:first-child::before {
-            background: #1976D2;
-        }
-
-  &:hover {
-            border-color: #dee2e6;
-            background: #fff;
-        }
-
-        &.empty:hover {
-            background: #f8f9fa;
-        }
-  }
-`;
-
-const BlindText = styled.span`
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0,0,0,0);
-    border: 0;
-`;
-
 
 const getQuestion = (userName: string) => [
     "안녕하세요!",
-    `이번 여행에서 ${userName}님의 가이드를 맞게된 ###입니다!`,
+    `이번 여행에서 ${userName}님의 가이드를 맞게된 AI 어시스턴트입니다!`,
     `여행 가이드에 앞서 몇가지 질문을 받아 ${userName}님의 취향을 분석하여 최적의 가이드를 진행하려고 합니다!`,
     `${userName}님의 여행기간은 언제인가요?`,
     `함께 여행가는 인원을 말씀해주세요!`,
@@ -899,9 +667,8 @@ const QuestionPage: React.FC = () => {
     // 보여질 섹션 관리
     const [visibleSections, setVisibleSections] = useState<string[]>(["city"]);
 
-    const inputRef = React.useRef<HTMLInputElement>(null);
-    const messageEndRef = React.useRef<HTMLDivElement>(null);
-    const responseListRef = useRef<HTMLUListElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
+    const messageEndRef = useRef<HTMLDivElement>(null);
 
     // 채팅창 자동 스크롤
     const scrollToBottom = () => {
@@ -961,30 +728,22 @@ const QuestionPage: React.FC = () => {
     const updateUserAnswer = async (fields: Record<string, string>) => {
         if (!styleId) return;
         try {
+            // 로컬 상태 먼저 업데이트 (즉시 UI 반영)
+            setUserAnswers(prev => ({
+                ...prev,
+                ...fields
+            }));
+            
             // 모든 답변을 누적해서 보냄
             const merged = { ...userAnswers, ...fields };
-            await authenticatedFetch(`/api/styles/${styleId}`, {
+            // API 호출은 백그라운드에서 수행 (응답 대기 없음)
+            authenticatedFetch(`/api/styles/${styleId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(merged)
+            }).catch(error => {
+                console.error('Error updating userAnswer:', error);
             });
-            // 저장 후 최신 데이터 다시 불러오기
-            const response = await authenticatedFetch(`/api/styles/${styleId}`, { method: 'GET' });
-            const data = await response.json();
-            if (data.isSuccess && data.result) {
-                setUserAnswers(prev => ({
-                    city: data.result.city ?? prev.city,
-                    startDate: data.result.startDate ?? prev.startDate,
-                    endDate: data.result.endDate ?? prev.endDate,
-                    preferActivity: data.result.preferActivity ?? prev.preferActivity,
-                    preferFood: data.result.preferFood ?? prev.preferFood,
-                    dislikedFood: data.result.dislikedFood ?? prev.dislikedFood,
-                    requirement: data.result.requirement ?? prev.requirement,
-                    ageRange: data.result.ageRange ?? prev.ageRange,
-                    numberOfPeople: data.result.numberOfPeople ?? prev.numberOfPeople,
-                    transportation: data.result.transportation ?? prev.transportation
-                }));
-            }
         } catch (error) {
             console.error('Error updating userAnswer:', error);
         }
@@ -1260,7 +1019,7 @@ const QuestionPage: React.FC = () => {
                                 isResponse: false
                             }]);
                             
-                            // 마지막 질문 이후 1초 뒤에 로딩 스피너 표시
+                            // 마지막 질문 이후 1초 뒤에 완료 상태로 변경
                             setTimeout(() => {
                                 setIsComplete(true);
                             }, 1000);
@@ -1303,237 +1062,131 @@ const QuestionPage: React.FC = () => {
         }
     }, [chatHistory]);
 
-    // 응답 섹션 스크롤 처리 개선
-    useEffect(() => {
-        const scrollToBottom = () => {
-            if (responseListRef.current) {
-                const list = responseListRef.current;
-                const lastChild = list.lastElementChild;
-                
-                if (lastChild) {
-                    const listHeight = list.clientHeight;
-                    const contentHeight = list.scrollHeight;
-                    const scrollPosition = contentHeight - listHeight;
-                    
-                    if (scrollPosition > 0) {
-                        list.scrollTo({
-                            top: scrollPosition,
-                            behavior: 'smooth'
-                        });
-                    }
-                }
-            }
-        };
-
-        // 섹션이 추가될 때마다 스크롤
-        const timer = setTimeout(() => {
-            scrollToBottom();
-        }, 300); // 애니메이션 완료를 위해 시간 증가
-
-        return () => {
-            clearTimeout(timer);
-        };
-    }, [visibleSections]);
-
-    // 마지막 질문 이후 로딩 처리
+    // 마지막 질문 이후 다음 페이지로 이동
     useEffect(() => {
         if (isComplete) {
-            // 3초 후에 로딩 종료 및 다음 페이지로 이동
-            const timer = setTimeout(async () => {
+            const loadNextPageData = async () => {
                 if (styleId) {
                     try {
+                        // 여행 계획 확정 API 호출
                         const response = await authenticatedFetch(`/api/styles/${styleId}/final`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' }
                         });
                         const data = await response.json();
+                        let tripPlanId;
+                        
                         if (data.isSuccess && data.result && data.result.tripPlanId) {
-                            console.log('tripPlansId:', data.result.tripPlanId);
-                            navigate(`/selectionDestination`, { state: { tripPlansId: data.result.tripPlanId } });
+                            tripPlanId = data.result.tripPlanId;
+                            console.log('[QuestionPage] 생성된 tripPlanId:', tripPlanId);
                         } else {
-                            // tripPlanId가 없으면 fallback
-                            navigate('/selectionDestination');
+                            console.warn('tripPlanId를 받지 못했습니다.');
+                            throw new Error('tripPlanId를 받지 못했습니다.');
                         }
+                        
+                        // 다음 페이지로 이동
+                        navigate(`/selectionDestination`, { 
+                            state: { tripPlansId: tripPlanId } 
+                        });
                     } catch (error) {
                         console.error('Error finalizing style:', error);
-                        navigate('/selectionDestination');
+                        alert('여행 계획을 생성하는 중 오류가 발생했습니다.');
                     }
                 } else {
-                    navigate('/selectionDestination');
+                    alert('스타일 ID가 없습니다.');
                 }
-            }, 3000);
-            return () => clearTimeout(timer);
+            };
+            
+            // 데이터 로딩 시작
+            loadNextPageData();
         }
     }, [isComplete, navigate, styleId]);
 
     return (
-        <>
-            <GlobalStyle />
-        <Wrapper>
-                {isComplete && (
-                    <LoadingContainer>
-                        <LoadingSpinner message={`${userName}님의 성향에 맞는 추천 여행지를 준비하고 있습니다. 잠시만 기다려주세요.`}/>
-                    </LoadingContainer>
-                )}
-                <GuideWrap>
-                    <ChatSection>
-                        <MessagesChat>
-                            {defaultQuestions.map((msg, index) => (
-                                <Message key={index}>
-                                    <Photo style={{ visibility: shouldShowPhoto(defaultQuestions, index) ? 'visible' : 'hidden' }}>
-                                    <img src={profileImg} alt="" />
+        <ContentWrapper>
+            <QuestionSection>
+                <ChatSection>
+                    <MessagesChat>
+                        {defaultQuestions.map((msg, index) => (
+                            <Message key={index}>
+                                <Photo style={{ visibility: shouldShowPhoto(defaultQuestions, index) ? 'visible' : 'hidden' }}>
+                                    <AIAvatar>AI</AIAvatar>
                                 </Photo>
                                 <ChatText>
-                                        <MessageWrapper>
-                                            <Text>
+                                    <MessageWrapper>
+                                        <Text>
+                                            <p>{msg.content}</p>
+                                        </Text>
+                                        <Time>{msg.timestamp}</Time>
+                                    </MessageWrapper>
+                                </ChatText>
+                            </Message>
+                        ))}
+                        {chatHistory.map((msg, index) => (
+                            <Message key={index} className={msg.isResponse ? "response" : ""}>
+                                <Photo className={msg.isResponse ? "response" : ""} style={{ visibility: shouldShowPhoto(chatHistory, index) && !msg.isResponse ? 'visible' : 'hidden' }}>
+                                    {!msg.isResponse && <AIAvatar>AI</AIAvatar>}
+                                </Photo>
+                                <ChatText className={msg.isResponse ? "response" : ""}>
+                                    <MessageWrapper className={msg.isResponse ? "response" : ""}>
+                                        {msg.content === "calendar" ? (
+                                            <Text className="calendar">
+                                                <div className="calendar-message" />
+                                            </Text>
+                                        ) : (
+                                            <Text className={msg.isResponse ? "response" : ""}>
                                                 <p>{msg.content}</p>
                                             </Text>
-                                            <Time>{msg.timestamp}</Time>
-                                        </MessageWrapper>
-                                    </ChatText>
-                                </Message>
-                            ))}
-                            {chatHistory.map((msg, index) => (
-                                <Message key={index} className={msg.isResponse ? "response" : ""}>
-                                    <Photo className={msg.isResponse ? "response" : ""} style={{ visibility: shouldShowPhoto(chatHistory, index) ? 'visible' : 'hidden' }}>
-                                    <img src={profileImg} alt="" />
-                                </Photo>
-                                    <ChatText className={msg.isResponse ? "response" : ""}>
-                                        <MessageWrapper className={msg.isResponse ? "response" : ""}>
-                                            {msg.content === "calendar" ? (
-                                                <Text className="calendar">
-                                                    <div className="calendar-message" />
-                                                </Text>
-                                            ) : (
-                                                <Text className={msg.isResponse ? "response" : ""}>
-                                                    <p>{msg.content}</p>
-                                                </Text>
-                                            )}
-                                            <Time>{msg.timestamp}</Time>
-                                        </MessageWrapper>
-                                    </ChatText>
+                                        )}
+                                        <Time>{msg.timestamp}</Time>
+                                    </MessageWrapper>
+                                </ChatText>
                             </Message>
-                            ))}
-                            <div ref={messageEndRef} />
-                        </MessagesChat>
+                        ))}
+                        <div ref={messageEndRef} />
+                    </MessagesChat>
 
-                        <FooterChat>
-                            <ChatInputWrapper>
-                                <InputArea>
-                            <SendForm
-                                        ref={inputRef}
-                                type="text"
-                                value={inputValue}
-                                onChange={(e) => setInputValue(e.target.value)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === "Enter" && !e.shiftKey && !isQuestionInProgress && !isComplete) {
-                                                e.preventDefault();
-                                                if (!inputValue.trim()) return;
-                                                handleSendMessage();
-                                            }
-                                        }}
-                                        disabled={isQuestionInProgress || isComplete}
-                                        placeholder={
-                                            isComplete ? '질문이 완료되었습니다.' :
-                                            isQuestionInProgress ? '질문이 진행 중입니다...' : 
-                                            '메시지 입력...'
-                                        }/>
-                                </InputArea>
-                                <ToolsArea>
-                                    
-                                    <Button 
-                                        onClick={handleSendMessage} 
-                                        disabled={isQuestionInProgress || isComplete}>
-                                        <BlindText>입력</BlindText>
-                                    </Button>
-                                </ToolsArea>
-                            </ChatInputWrapper>
-                        </FooterChat>
-                    </ChatSection>
-                    <ResponseSection>
-                        <ResponseList ref={responseListRef}>
-                            {visibleSections.includes("city") && (
-                            <li className="visible">
-                                <strong>여행지</strong>
-                                    <ResponseField className={!userAnswers.city ? "empty" : ""}>
-                                        <p>{userAnswers.city || "아직 입력되지 않았습니다."}</p>
-                                    </ResponseField>
-                                </li>
-                            )}
-                            {visibleSections.includes("dateRange") && (
-                                <li className="visible">
-                                    <strong>여행 기간</strong>
-                                    <DateRangeField>
-                                        <ResponseField className={!userAnswers.startDate ? "empty" : ""}>
-                                            <p>{userAnswers.startDate || "시작일을 선택해주세요."}</p>
-                                        </ResponseField>
-                                        <ResponseField className={!userAnswers.endDate ? "empty" : ""}>
-                                            <p>{userAnswers.endDate || "종료일을 선택해주세요."}</p>
-                                        </ResponseField>
-                                    </DateRangeField>
-                                </li>
-                            )}
-                            {visibleSections.includes("numberOfPeople") && (
-                                <li className="visible">
-                                    <strong>여행 인원</strong>
-                                    <ResponseField className={!userAnswers.numberOfPeople ? "empty" : ""}>
-                                        <p>{userAnswers.numberOfPeople || "아직 입력되지 않았습니다."}</p>
-                                    </ResponseField>
-                                </li>
-                            )}
-                            {visibleSections.includes("ageRange") && (
-                                <li className="visible">
-                                    <strong>여행 인원 연령대</strong>
-                                    <ResponseField className={!userAnswers.ageRange ? "empty" : ""}>
-                                        <p>{userAnswers.ageRange || "아직 입력되지 않았습니다."}</p>
-                                    </ResponseField>
-                                </li>
-                            )}
-                            {visibleSections.includes("preferActivity") && (
-                                <li className="visible">
-                                    <strong>선호 활동</strong>
-                                    <ResponseField className={!userAnswers.preferActivity ? "empty" : ""}>
-                                        <p>{userAnswers.preferActivity || "아직 입력되지 않았습니다."}</p>
-                                    </ResponseField>
-                                </li>
-                            )}
-                            {visibleSections.includes("preferFood") && (
-                                <li className="visible">
-                                    <strong>선호하는 음식</strong>
-                                    <ResponseField className={!userAnswers.preferFood ? "empty" : ""}>
-                                        <p>{userAnswers.preferFood || "아직 입력되지 않았습니다."}</p>
-                                    </ResponseField>
-                            </li>
-                            )}
-                            {visibleSections.includes("dislikedFood") && (
-                                <li className="visible">
-                                    <strong>못 먹는 음식</strong>
-                                    <ResponseField className={!userAnswers.dislikedFood ? "empty" : ""}>
-                                        <p>{userAnswers.dislikedFood || "아직 입력되지 않았습니다."}</p>
-                                    </ResponseField>
-                            </li>
-                            )}
-                            {visibleSections.includes("transportation") && (
-                                <li className="visible">
-                                    <strong>교통수단</strong>
-                                    <ResponseField className={!userAnswers.transportation ? "empty" : ""}>
-                                        <p>{userAnswers.transportation || "아직 입력되지 않았습니다."}</p>
-                                    </ResponseField>
-                            </li>
-                            )}
-                            {visibleSections.includes("requirement") && (
-                                <li className="visible">
-                                    <strong>추가 요청사항</strong>
-                                    <ResponseField className={!userAnswers.requirement ? "empty" : ""}>
-                                        <p>{userAnswers.requirement || "아직 입력되지 않았습니다."}</p>
-                                    </ResponseField>
-                            </li>
-                            )}
-                        </ResponseList>
-                    </ResponseSection>
-                </GuideWrap>
-        </Wrapper>
-        </>
+                    <FooterChat>
+                        <ChatInputWrapper>
+                            <InputArea>
+                                <SendForm
+                                    ref={inputRef}
+                                    type="text"
+                                    value={inputValue}
+                                    onChange={(e) => setInputValue(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" && !e.shiftKey && !isQuestionInProgress && !isComplete) {
+                                            e.preventDefault();
+                                            if (!inputValue.trim()) return;
+                                            handleSendMessage();
+                                        }
+                                    }}
+                                    disabled={isQuestionInProgress || isComplete}
+                                    placeholder={
+                                        isComplete ? '질문이 완료되었습니다.' :
+                                        isQuestionInProgress ? '질문이 진행 중입니다...' : 
+                                        '메시지 입력...'
+                                    }
+                                />
+                            </InputArea>
+                            <Button 
+                                onClick={handleSendMessage} 
+                                disabled={isQuestionInProgress || isComplete}
+                            >
+                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M5 12H19M19 12L13 6M19 12L13 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                            </Button>
+                        </ChatInputWrapper>
+                    </FooterChat>
+                </ChatSection>
+
+                <QuestionSidebar 
+                    userAnswers={userAnswers}
+                    visibleSections={visibleSections}
+                />
+            </QuestionSection>
+        </ContentWrapper>
     );
 };
 
