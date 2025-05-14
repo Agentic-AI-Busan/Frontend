@@ -137,13 +137,19 @@ const DropdownItem = styled.button`
     }
 `;
 
-const Navbar: React.FC<NavbarProps> = ({ userName = 'Seongsurib' }) => {
+const Navbar: React.FC<NavbarProps> = ({ userName }) => {
     const navigate = useNavigate();
     const [showDropdown, setShowDropdown] = useState(false);
     
     const handleNavigation = (path: string) => {
         navigate(path);
         setShowDropdown(false);
+    };
+
+    const handleUserButtonClick = () => {
+        if (!userName) {
+            navigate('/login');
+        }
     };
     
     return (
@@ -172,26 +178,29 @@ const Navbar: React.FC<NavbarProps> = ({ userName = 'Seongsurib' }) => {
                     </MenuItem>
                 </MenuList>
                 <UserButtonWrapper 
-                    onMouseEnter={() => setShowDropdown(true)}
+                    onMouseEnter={() => userName && setShowDropdown(true)}
                     onMouseLeave={() => setShowDropdown(false)}
                 >
-                    <UserButton>
-                        <img src={userImage} alt="user" />{userName}
+                    <UserButton onClick={handleUserButtonClick}>
+                        <img src={userImage} alt="user" />
+                        {userName || '로그인하기'}
                     </UserButton>
-                    <DropdownMenu isVisible={showDropdown}>
-                        <DropdownItem onClick={() => handleNavigation('/myPage')}>
-                            <svg viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                            </svg>
-                            사용자 정보
-                        </DropdownItem>
-                        <DropdownItem onClick={() => handleNavigation('/myGuide')}>
-                            <svg viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
-                            </svg>
-                            나의 여행
-                        </DropdownItem>
-                    </DropdownMenu>
+                    {userName && (
+                        <DropdownMenu isVisible={showDropdown}>
+                            <DropdownItem onClick={() => handleNavigation('/myPage')}>
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                                </svg>
+                                사용자 정보
+                            </DropdownItem>
+                            <DropdownItem onClick={() => handleNavigation('/myGuide')}>
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
+                                </svg>
+                                나의 여행
+                            </DropdownItem>
+                        </DropdownMenu>
+                    )}
                 </UserButtonWrapper>
             </MenuWrapper>
         </HeaderContainer>

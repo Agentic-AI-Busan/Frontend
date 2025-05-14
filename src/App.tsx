@@ -1,6 +1,8 @@
 import './App.css'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import styled, { createGlobalStyle } from 'styled-components'
+import { useEffect, useState } from 'react'
+import { getUserProfile } from './services/api'
 import LoginPage from './pages/LoginSingup/loginPage'
 import SignupPage from './pages/LoginSingup/signupPage'
 import MainPage from './pages/mainPage'
@@ -57,16 +59,45 @@ const GlobalStyle = createGlobalStyle<{ $isMapPage: boolean }>`
   }
 `;
 
-function App() {
+interface User {
+    name: string;
+    nickname: string;
+    email: string;
+    birthDay: string;
+    gender: string;
+    profileImage: string;
+    phoneNumber: string;
+}
+
+const AppContent = () => {
   const location = useLocation();
   const isMainPage = location.pathname === '/';
   const isFullScreenPage = location.pathname === '/map' || location.pathname === '/editing';
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (location.pathname === '/login' || location.pathname === '/signup') {
+        localStorage.clear();
+        sessionStorage.clear();
+        setUser(null);
+        return;
+      }
+
+      const userData = await getUserProfile();
+      if (userData) {
+        setUser(userData.result);
+      }
+    };
+
+    fetchUserProfile();
+  }, [location.pathname]);
 
   return (
     <>
       <GlobalStyle $isMapPage={isFullScreenPage} />
       <AppContainer $isMapPage={isFullScreenPage}>
-        <Navbar />
+        <Navbar userName={user?.name} />
         <MainContent $isMapPage={isFullScreenPage}>
           <Routes>
             <Route path="/" element={<MainPage />} />
@@ -88,7 +119,11 @@ function App() {
         {isMainPage && <Footer />}
       </AppContainer>
     </>
-  )
+  );
+};
+
+function App() {
+  return <AppContent />;
 }
 
-export default App
+export default App;

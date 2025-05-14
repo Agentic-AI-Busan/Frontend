@@ -1,199 +1,293 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import styled from 'styled-components';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { loginUser } from '../../services/api';
 
-const LoginWrapper = styled.div`
-    #login {
-        position: relative;
-        width: 100%;
-        min-height: 100vh;
-        background: #fff;
-    }
+import mainImage from '../../assets/images/main_image.png';
+import googleImage from '../../assets/images/ico_google2.png';
 
-    .login-wrap {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 100vh;
-        padding: 20px;
-    }
+const PageWrapper = styled.div`
+  min-height: 100vh;
+  width: 100vw;
+  background: #f4f6fb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
 
-    .inner {
-        width: 100%;
-        max-width: 480px;
-        margin: 0 auto;
-    }
+const Wrapper = styled.div`
+    width: 100%;
+    height: calc(100vh - 90px);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 60px;
+    left: 0;
+    right: 0;
+    overflow: hidden;
+    justify-content: center;
+    align-items: center;
+    padding: 20px 0;
 
-    .login__header {
-        text-align: center;
-        margin-bottom: 40px;
-    }
-
-    .login__header h1 {
-        margin-bottom: 20px;
-    }
-
-    .login__header h2 {
-        font-size: 24px;
-        font-weight: 600;
-        margin-bottom: 10px;
-    }
-
-    .login__header p {
-        color: #666;
-        font-size: 16px;
-    }
-
-    .input__form {
-        margin-bottom: 20px;
-    }
-
-    .input__form li {
-        margin-bottom: 15px;
-    }
-
-    .input__form label {
-        display: block;
-        margin-bottom: 8px;
-        font-weight: 500;
-    }
-
-    .input__form input {
-        width: 100%;
-        height: 48px;
-        padding: 0 15px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        font-size: 16px;
-    }
-
-    .idpw_find {
-        display: flex;
-        justify-content: center;
-        gap: 20px;
-        margin-bottom: 20px;
-    }
-
-    .idpw_find a {
-        color: #666;
-        text-decoration: none;
-    }
-
-    .login_button {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        margin-bottom: 40px;
-    }
-
-    .btn {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 52px;
-        border-radius: 4px;
-        font-size: 16px;
-        font-weight: 500;
-        text-decoration: none;
-    }
-
-    .btn.big {
-        width: 100%;
-    }
-
-    .btn.bg_color1 {
-        background: #4F46E5;
-        color: #fff;
-    }
-
-    .btn.outline {
-        border: 1px solid #4F46E5;
-        color: #4F46E5;
-    }
-
-    .sns_login {
-        text-align: center;
-    }
-
-    .sns_login h3 {
-        font-size: 16px;
-        color: #666;
-        margin-bottom: 20px;
-    }
-
-    .sns_login ul {
-        display: flex;
-        justify-content: center;
-        gap: 20px;
-    }
-
-    .sns_login img {
-        width: 48px;
-        height: 48px;
+    @media (max-width: 768px) {
+        height: calc(100vh - 60px);
+        padding: 10px 0;
     }
 `;
 
+const SplitContainer = styled.div`
+  width: 900px;
+  height: 600px;
+  background: #fff;
+  border-radius: 24px;
+  box-shadow: 0 8px 32px rgba(44, 62, 80, 0.12);
+  display: flex;
+  overflow: hidden;
+  @media (max-width: 900px) {
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+  }
+`;
+
+const Left = styled.div`
+  flex: 1.1;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 56px 48px;
+  @media (max-width: 700px) {
+    padding: 32px 16px;
+  }
+`;
+
+const Right = styled.div`
+  flex: 1;
+  background: linear-gradient(135deg, #6c63ff 0%, #3f3d56 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  @media (max-width: 700px) {
+    display: none;
+  }
+`;
+
+const Logo = styled.img`
+  width: 56px;
+  margin-bottom: 24px;
+`;
+
+const Form = styled.form`
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+`;
+
+const Input = styled.input`
+  width: 100%;
+  height: 48px;
+  border-radius: 10px;
+  border: 1.5px solid #e1e1e1;
+  padding: 0 16px;
+  font-size: 16px;
+  background: #f8f9fa;
+  transition: border 0.2s;
+  &:focus {
+    border: 1.5px solid #BBDEFB;
+    outline: none;
+    background: #fff;
+  }
+`;
+
+const Row = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const RememberMe = styled.label`
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  color: #444;
+  input {
+    margin-right: 6px;
+  }
+`;
+
+const Forgot = styled(Link)`
+  color: #3498db;
+  font-size: 14px;
+  text-decoration: underline;
+
+  &:hover {
+    color: #2980b9;
+  }
+`;
+
+const Button = styled.button`
+  width: 100%;
+  height: 48px;
+  border-radius: 10px;
+  background: #3498db;
+  color: #fff;
+  font-size: 17px;
+  font-weight: 600;
+  border: none;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  box-shadow: 0 2px 8px rgba(79,70,229,0.08);
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+  &:hover {
+    background: #2980b9;
+    box-shadow: 0 4px 16px rgba(79,70,229,0.13);
+  }
+`;
+
+const Divider = styled.div`
+  width: 100%;
+  text-align: center;
+  color: #aaa;
+  font-size: 14px;
+  margin: 25px 0 25px 0;
+  position: relative;
+  border-bottom: 1px solid #eee;
+  line-height: 0.1em;
+  span {
+    background: #fff;
+    padding: 0 10px;
+  }
+`;
+
+const GoogleButton = styled.button`
+  width: 100%;
+  height: 44px;
+  border-radius: 8px;
+  border: 1.5px solid #e1e1e1;
+  background: #fff;
+  color: #222;
+  font-size: 15px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: border 0.2s, box-shadow 0.2s;
+  &:hover {
+    border: 1.5px solid #BBDEFB;
+    box-shadow: 0 2px 8px rgba(108,99,255,0.08);
+  }
+  img {
+    width: 22px;
+    height: 22px;
+  }
+`;
+
+const RegisterRow = styled.div`
+  width: 100%;
+  text-align: center;
+  font-size: 15px;
+  margin-top: 18px;
+  color: #444;
+  a {
+    color: #3498db;
+    text-decoration: underline;
+    margin-left: 4px;
+    font-weight: 500;
+
+    &:hover {
+        color: #2980b9;
+    }
+  }
+`;
+
+const Pattern = styled.div`
+  width: 100%;
+  height: 100%;
+  background: url(${mainImage}) center/cover no-repeat;
+`;
+
 const LoginPage: React.FC = () => {
-    return (
-        <LoginWrapper>
-        <div id="login">
-            <div className="login-wrap">
-            <div className="inner">
-                <header className="login__header">
-                <h1><img src="/images/t_logo.png" alt="LOGO" /></h1>
-                <h2>로그인</h2>
-                <p>LLM 모델을 활용한 관광 일정 안내 서비스</p>
-                </header>
-                
-                <form name="loginForm" id="loginForm" method="post">
-                <ul className="input__form">
-                    <li>
-                    <label htmlFor="userId">아이디</label>
-                    <input 
-                        type="text" 
-                        id="userId" 
-                        name="username" 
-                        placeholder="아이디" 
-                        style={{ imeMode: 'disabled' }} 
-                    />
-                    </li>
-                    <li>
-                    <label htmlFor="password">비밀번호</label>
-                    <input 
-                        type="password" 
-                        id="password" 
-                        name="password" 
-                        autoComplete="off" 
-                        placeholder="비밀번호" 
-                    />
-                    </li>
-                </ul>
-                </form>
+  const navigate = useNavigate();
+  const idRef = useRef<HTMLInputElement>(null);
+  const pwRef = useRef<HTMLInputElement>(null);
 
-                <ul className="idpw_find">
-                <li><Link to="/find-id">아이디찾기</Link></li>
-                <li><Link to="/find-password">비밀번호찾기</Link></li>
-                </ul>
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const email = idRef.current?.value || '';
+    const password = pwRef.current?.value || '';
+    const success = await loginUser(email, password);
+    if (success) {
+      navigate('/');
+    } else {
+      alert('로그인에 실패했습니다. 아이디/비밀번호를 확인하세요.');
+    }
+  };
 
-                <div className="login_button">
-                <Link to="#" className="btn big bg_color1">로그인</Link>
-                <Link to="/signup" className="btn big outline">회원가입</Link>
+  return (
+    <PageWrapper>
+      <Wrapper>
+        <SplitContainer>
+            <Left>
+            <Logo src="/images/t_logo.png" alt="LOGO" />
+            
+            <Form onSubmit={handleLogin}>
+                <div>
+                <Input
+                    type="text"
+                    id="userId"
+                    name="username"
+                    placeholder="Enter your mail address"
+                    ref={idRef}
+                    autoComplete="username"
+                    pattern="[A-Za-z]*"
+                    title="영어만 입력 가능합니다"
+                    required
+                />
                 </div>
-
-                <div className="sns_login">
-                <h3>SNS로그인</h3>
-                <ul>
-                    <li><a href="#"><img src="/images/ico_google.png" alt="GOOGLE" /></a></li>
-                    <li><a href="#"><img src="/images/ico_naver.png" alt="NAVER" /></a></li>
-                    <li><a href="#"><img src="/images/ico_KAKAO.png" alt="KAKAO" /></a></li>
-                    <li><a href="#"><img src="/images/ico_apple.png" alt="APPLE" /></a></li>
-                </ul>
+                <div>
+                <Input
+                    type="password"
+                    id="password"
+                    name="password"
+                    placeholder="Enter password"
+                    ref={pwRef}
+                    autoComplete="current-password"
+                    required
+                />
                 </div>
-            </div>
-            </div>
-        </div>
-        </LoginWrapper>
-    );
+                <Row>
+                <RememberMe>
+                    <input type="checkbox" />
+                    아이디 저장
+                </RememberMe>
+                <Forgot to="/find-password">비밀번호 찾기</Forgot>
+                </Row>
+                <Button type="submit">로그인</Button>
+            </Form>
+            <Divider><span>간편 로그인</span></Divider>
+            <GoogleButton type="button">
+                <img src={googleImage} alt="Google" />
+                구글로 로그인
+            </GoogleButton>
+            <RegisterRow>
+                계정이 없으신가요?
+                <Link to="/signup">회원가입</Link>
+            </RegisterRow>
+            </Left>
+            <Right>
+                <Pattern />
+            </Right>
+        </SplitContainer>
+      </Wrapper>
+    </PageWrapper>
+  );
 };
 
 export default LoginPage;

@@ -54,9 +54,9 @@ export const loginUser = async (email: string, password: string): Promise<boolea
     export const authenticatedFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
     // <<---!!! 개발용 임시 코드 시작 !!!--->>
     // 1. 여기에 발급받은 실제 JWT 토큰 문자열을 붙여넣으세요.
-    const hardcodedToken = "eyJhbGciOiJIUzUxMiJ9.eyJ1c2VySWQiOjEsImlhdCI6MTc0NzAxNDg0MCwiZXhwIjoxNzQ3MTAxMjQwfQ.pzhy6xhNxo-pQRrVPEqh1mlJmbRrXRIYi6EVuMP3D8X1RF3VdgssY-OcSQj6d2I9lmp4LcypqCP8aWEYy8HETw";
-    // const token = localStorage.getItem('authToken'); // 원래 코드 주석 처리
-    const token = hardcodedToken; // 임시로 하드코딩된 토큰 사용
+    // const hardcodedToken = "eyJhbGciOiJIUzUxMiJ9.eyJ1c2VySWQiOjEsImlhdCI6MTc0NzAxNDg0MCwiZXhwIjoxNzQ3MTAxMjQwfQ.pzhy6xhNxo-pQRrVPEqh1mlJmbRrXRIYi6EVuMP3D8X1RF3VdgssY-OcSQj6d2I9lmp4LcypqCP8aWEYy8HETw";
+    const token = localStorage.getItem('authToken'); // 원래 코드 주석 처리
+    // const token = hardcodedToken; // 임시로 하드코딩된 토큰 사용
     // <<---!!! 개발용 임시 코드 끝 !!!--->>
 
     const headers = new Headers(options.headers || {});
@@ -66,8 +66,10 @@ export const loginUser = async (email: string, password: string): Promise<boolea
         headers.set('Authorization', `Bearer ${token}`);
     } else {
         // 이 부분은 하드코딩된 토큰이 유효하다면 실행되지 않을 것입니다.
-        console.error('Hardcoded token is missing or empty.');
-        throw new Error('Authentication required (Hardcoded token missing)');
+        // console.error('Hardcoded token is missing or empty.');
+        // throw new Error('Authentication required (Hardcoded token missing)');
+        console.error('로그인 토큰이 없습니다.');
+        throw new Error('Authentication required (No token)');
     }
 
     const response = await fetch(url, {
@@ -77,10 +79,34 @@ export const loginUser = async (email: string, password: string): Promise<boolea
 
     // 401 에러 처리는 여전히 유효할 수 있습니다 (하드코딩된 토큰이 잘못되었거나 만료된 경우)
     if (response.status === 401) {
-        console.error('Authentication failed (401) even with hardcoded token.');
-        // localStorage.removeItem('authToken'); // localStorage를 사용하지 않으므로 이 줄은 필요 없을 수 있음
-        // throw new Error('Unauthorized (Hardcoded token invalid)');
+        // console.error('Authentication failed (401) even with hardcoded token.');
+        localStorage.removeItem('authToken'); // localStorage를 사용하지 않으므로 이 줄은 필요 없을 수 있음
+        throw new Error('Unauthorized (Hardcoded token invalid)');
     }
 
     return response;
     };
+
+export const getUserProfile = async () => {
+    try {
+        const token = localStorage.getItem('authToken');
+        if (!token) return null;
+
+        const response = await fetch('/api/users/profile', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+        });
+
+        if (response.ok) {
+            console.log('프로필 정보 조회 성공');
+            return await response.json();
+        }
+        return null;
+    } catch (error) {
+        console.error('프로필 정보 조회 실패:', error);
+        return null;
+    }
+};
