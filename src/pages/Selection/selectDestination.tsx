@@ -2,9 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import SelectMain from './selectMain';
 import { authenticatedFetch } from '../../services/api'; // authenticatedFetch 임포트
-// import travelImage1 from '../../assets/images/travel_img1.jpg';
-// import travelImage2 from '../../assets/images/travel_img2.jpg';
-// import travelImage3 from '../../assets/images/travel_img3.jpg';
+import LoadingSpinner from '../../components/LoadingSpinner';
 
 interface ApiAttraction {
   attractionId: number;
@@ -152,7 +150,7 @@ const SelectDestination: React.FC = () => {
 
   // 로딩 중일 때 표시할 UI
   if (loading) {
-    return <div>로딩 중...</div>; // 실제 구현에서는 로딩 스피너 컴포넌트 사용 권장
+    return <LoadingSpinner message="여행지 추천 목록을 불러오는 중..." />;
   }
 
   // 에러 발생 시 표시할 UI

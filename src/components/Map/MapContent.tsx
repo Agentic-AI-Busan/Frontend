@@ -58,14 +58,35 @@ const infoWindowStyles = {
         letter-spacing: -0.01em;
         position: relative;
         padding-left: 14px;
+        margin-top: 8px;
+    `,
+    memoLabel: `
+        font-size: 14px;
+        font-weight: 600;
+        color: #4A5568;
+        padding-left: 14px;
+        padding-top: 3px;
+        padding-bottom: 2px;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
         border-left: 2px solid #E2E8F0;
+        line-height: 1.2;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+    `,
+    memoContainer: `
+        position: relative;
+        margin-bottom: 14px;
+        padding-top: 14px;
+        border-top: 1px solid #E2E8F0;
+        margin-top: 16px;
     `,
     infoSection: `
         display: flex;
         flex-direction: column;
         gap: 12px;
-        padding-top: 14px;
-        border-top: 1px solid #E2E8F0;
+        padding-top: 0;
     `,
     infoItem: `
         display: flex;
@@ -78,8 +99,8 @@ const infoWindowStyles = {
         transition: all 0.2s ease;
     `,
     iconBox: `
-        width: 32px;
-        height: 32px;
+        width: 34px;
+        height: 34px;
         background: #ffffff;
         border-radius: 8px;
         display: flex;
@@ -94,7 +115,7 @@ const infoWindowStyles = {
     infoLabel: `
         font-size: 12px;
         color: #718096;
-        margin-bottom: 2px;
+        margin-bottom: 4px;
     `,
     infoValue: `
         font-size: 13px;
@@ -318,7 +339,6 @@ export const generateInfoWindowContent = (place: Place): string => {
                     </div>
                 </div>
                 <div style="${infoWindowStyles.contentContainer}">
-                    <p style="${infoWindowStyles.description}">${place.description}</p>
                     <div style="${infoWindowStyles.infoSection}">
                         <div style="${infoWindowStyles.infoItem}">
                             <div style="${infoWindowStyles.iconBox}">
@@ -331,13 +351,17 @@ export const generateInfoWindowContent = (place: Place): string => {
                         </div>
                         <div style="${infoWindowStyles.infoItem}">
                             <div style="${infoWindowStyles.iconBox}">
-                                <span style="${infoWindowStyles.icon}">👥</span>
+                                <span style="${infoWindowStyles.icon}">📍</span>
                             </div>
                             <div>
-                                <div style="${infoWindowStyles.infoLabel}">방문자 수</div>
-                                <div style="${infoWindowStyles.infoValue}">${place.visitors || 0}명</div>
+                                <div style="${infoWindowStyles.infoLabel}">주소</div>
+                                <div style="${infoWindowStyles.infoValue}">${place.location || '주소 정보 없음'}</div>
                             </div>
                         </div>
+                    </div>
+                    <div style="${infoWindowStyles.memoContainer}">
+                        <div style="${infoWindowStyles.memoLabel}">MEMO</div>
+                        <p style="${infoWindowStyles.description}">${place.description}</p>
                     </div>
                 </div>
             </div>
