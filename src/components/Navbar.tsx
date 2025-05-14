@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import logoImage from '../assets/images/t_logo.png';
 import userImage from '../assets/images/Butterfly.jpeg';
+import CheckModal from './Modal/CheckModal';
 
 interface NavbarProps {
     userName?: string;
@@ -140,6 +141,7 @@ const DropdownItem = styled.button`
 const Navbar: React.FC<NavbarProps> = ({ userName }) => {
     const navigate = useNavigate();
     const [showDropdown, setShowDropdown] = useState(false);
+    const [isCheckModalOpen, setIsCheckModalOpen] = useState(false);
     
     const handleNavigation = (path: string) => {
         navigate(path);
@@ -151,11 +153,21 @@ const Navbar: React.FC<NavbarProps> = ({ userName }) => {
             navigate('/login');
         }
     };
+
+    const handleLogout = () => {
+        console.log('로그아웃 처리');
+        localStorage.clear();
+        sessionStorage.clear();
+        setIsCheckModalOpen(false);
+        alert('로그아웃 되었습니다.');
+        navigate('/login');
+    };
     
     return (
-        <HeaderContainer>
-            <Logo>
-                <Link to="/">
+        <>
+            <HeaderContainer>
+                <Logo>
+                    <Link to="/">
                     <img src={logoImage} alt="logo" />
                 </Link>
             </Logo>
@@ -199,11 +211,26 @@ const Navbar: React.FC<NavbarProps> = ({ userName }) => {
                                 </svg>
                                 나의 여행
                             </DropdownItem>
+                            <DropdownItem onClick={() => setIsCheckModalOpen(true)}>
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
+                                </svg>
+                                로그아웃
+                            </DropdownItem>
                         </DropdownMenu>
                     )}
                 </UserButtonWrapper>
             </MenuWrapper>
         </HeaderContainer>
+
+        {/* 로그아웃 확인 모달 추가 */}
+        <CheckModal
+            isOpen={isCheckModalOpen}
+            onClose={() => setIsCheckModalOpen(false)}
+            onConfirm={handleLogout}
+            title="로그아웃"
+        />
+    </>
     );
 };
 
