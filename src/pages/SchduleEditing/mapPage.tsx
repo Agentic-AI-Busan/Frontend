@@ -3,10 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import NaverMap from '../../components/Map/NaverMap';
 import TravelRouteSidebar from '../../components/Map/TravelRouteSidebar';
-import travel_img1 from '../../assets/images/travel_img1.jpg';
+import null_place from '../../assets/images/null_place.png';
 import { Place } from '../../components/Map/NaverMap';
 import { getDayColor } from '../../components/Map/MapContent';
 import { authenticatedFetch } from '../../services/api';
+
+// 기존 Place 타입을 확장하여 주소 정보를 추가로 표시할 수 있는 필드 추가
+interface PlaceWithAddress extends Place {
+  addressInfo?: string; // 주소 정보를 저장할 추가 필드
+}
 
 // 페이지 전체 컨테이너
 const PageContainer = styled.div`
@@ -227,7 +232,9 @@ const MapPage = () => {
       return; // 데이터가 없으면 함수 종료
     }
     
-    const newPlaces: Place[] = [];
+    // 모든 place 상세 정보 요청을 관리하는 프로미스 배열
+    const detailPromises: Promise<void>[] = [];
+    const newPlaces: PlaceWithAddress[] = [];
     const newTravelRoutes: TravelRoute[] = [];
     
     // API 응답의 days 배열을 순회
@@ -266,34 +273,106 @@ const MapPage = () => {
           return;
         }
         
-        // 새로운 Place 객체 생성
-        const newPlace: Place = {
+        // 기본 Place 객체 생성 (API 호출 전 기본 정보)
+        const newPlace: PlaceWithAddress = {
           id: item.itemId,
           name: item.name,
           lat: item.latitude,
           lng: item.longitude,
           description: item.memo || `${item.name}에 대한 설명입니다.`,
-          imageUrl: item.imageUrl || travel_img1, // 이미지 URL이 없으면 기본 이미지 사용
-          operatingHours: '09:00 - 18:00', // API에 없는 정보는 기본값 설정
-          visitors: 100000, // 기본값
-          time: `${10 + itemIndex}:00`, // 간단한 시간 설정 (더 나은 로직으로 대체 가능)
-          location: `부산광역시 ${item.name} 주변`, // 위치 정보가 없으면 기본값 설정
-          day: day.dayNumber // 일차 정보 설정
+          imageUrl: item.imageUrl || null_place,
+          operatingHours: '정보 로딩 중...', // 기본값, API 호출 후 업데이트됨
+          visitors: 0, // 숫자 타입 유지 (NaverMap 컴포넌트 요구사항)
+          addressInfo: '주소 로딩 중...', // 주소 정보를 별도 필드에 저장
+          time: `${10 + itemIndex}:00`, // 간단한 시간 설정
+          location: '주소 로딩 중...', // 기본값, API 호출 후 업데이트됨
+          day: day.dayNumber
         };
         
-        newPlaces.push(newPlace);
-        
-        // routeDay.places에 추가
-        routeDay.places.push({
+        // 기본 RoutePlace 객체 생성
+        const routePlace: RoutePlace = {
           id: item.itemId,
           title: item.name,
           time: `${10 + itemIndex}:00`,
-          hours: '09:00 - 18:00',
-          location: `부산광역시 ${item.name} 주변`,
-          imageUrl: item.imageUrl || travel_img1
-        });
+          hours: '정보 로딩 중...',
+          location: '주소 로딩 중...',
+          imageUrl: item.imageUrl || null_place
+        };
         
-        // 경로 정보 추가 (장소 간 거리 계산 필요)
+        // newPlaces 배열과 routeDay.places 배열에 추가
+        newPlaces.push(newPlace);
+        routeDay.places.push(routePlace);
+        
+        // 장소 유형에 따라 상세 정보 API 호출
+        const placeIndex = newPlaces.length - 1; // 마지막 추가된 장소의 인덱스
+        const routePlaceIndex = routeDay.places.length - 1; // 마지막 추가된 루트 장소의 인덱스
+        
+        // 상세 정보 API 호출 프로미스 생성
+        const fetchDetailPromise = async () => {
+          try {
+            let apiUrl = '';
+            
+            // 장소 유형에 따라 API URL 결정
+            if (item.placeType === 'ATTRACTION') {
+              apiUrl = `/api/trip-plans/attractions/${item.placeId}`;
+            } else if (item.placeType === 'RESTAURANT') {
+              apiUrl = `/api/trip-plans/restaurants/${item.placeId}`;
+            } else {
+              console.warn(`알 수 없는 장소 유형: ${item.placeType}`, item);
+              return; // 알 수 없는 유형이면 API 호출 안함
+            }
+            
+            // API 호출
+            const response = await authenticatedFetch(apiUrl);
+            
+            if (!response.ok) {
+              throw new Error(`상세 정보 API 응답 오류: ${response.status}`);
+            }
+            
+            const detailData = await response.json();
+            console.log(`${item.name} 상세 정보:`, detailData);
+            
+            // API 응답 구조 확인
+            if (!detailData.isSuccess || !detailData.result) {
+              throw new Error('상세 정보 API 응답 구조가 올바르지 않습니다.');
+            }
+            
+            const detail = detailData.result;
+            
+            // 상세 정보로 장소 객체 업데이트
+            if (item.placeType === 'ATTRACTION') {
+              // 관광지 상세 정보 업데이트
+              newPlaces[placeIndex].operatingHours = detail.operatingHours || '정보 없음';
+              newPlaces[placeIndex].location = detail.address || '주소 정보 없음';
+              // 주소 정보를 별도 필드에 저장 (정보창 표시용)
+              newPlaces[placeIndex].addressInfo = detail.address || '주소 정보 없음';
+              routeDay.places[routePlaceIndex].hours = detail.operatingHours || '정보 없음';
+              routeDay.places[routePlaceIndex].location = detail.address || '주소 정보 없음';
+            } else if (item.placeType === 'RESTAURANT') {
+              // 음식점 상세 정보 업데이트
+              newPlaces[placeIndex].operatingHours = detail.operatingHours || '정보 없음';
+              newPlaces[placeIndex].location = detail.address || '주소 정보 없음';
+              // 주소 정보를 별도 필드에 저장 (정보창 표시용)
+              newPlaces[placeIndex].addressInfo = detail.address || '주소 정보 없음';
+              routeDay.places[routePlaceIndex].hours = detail.operatingHours || '정보 없음';
+              routeDay.places[routePlaceIndex].location = detail.address || '주소 정보 없음';
+            }
+          } catch (error) {
+            console.error(`${item.name} 상세 정보 가져오기 실패:`, error);
+            // 오류 발생 시 기본값 설정
+            newPlaces[placeIndex].operatingHours = '정보를 가져올 수 없음';
+            newPlaces[placeIndex].location = '주소 정보를 가져올 수 없음';
+            // 주소 정보를 별도 필드에 저장 (정보창 표시용)
+            newPlaces[placeIndex].addressInfo = '주소 정보를 가져올 수 없음';
+            routeDay.places[routePlaceIndex].hours = '정보를 가져올 수 없음';
+            routeDay.places[routePlaceIndex].location = '주소 정보를 가져올 수 없음';
+          }
+        };
+        
+        // 프로미스 배열에 추가
+        detailPromises.push(fetchDetailPromise());
+        
+        // 경로 정보 추가 (장소 간 거리 계산 필드)
         if (itemIndex < sortedItems.length - 1) {
           routeDay.routes.push({
             distance: '10km', // 기본값 (실제로는 두 지점 간 거리 계산 필요)
@@ -305,21 +384,31 @@ const MapPage = () => {
       newTravelRoutes.push(routeDay);
     });
     
-    // 데이터가 있는지 최종 확인
-    if (newPlaces.length === 0 || newTravelRoutes.length === 0) {
-      console.warn('변환된 장소 또는 여행 루트 데이터가 비어 있습니다.');
-    }
-    
-    // 상태 업데이트
-    setPlaces(newPlaces);
-    setTravelRoutes(newTravelRoutes);
-    
-    // 첫 번째 일차를 활성화
-    if (newTravelRoutes.length > 0) {
-      setActiveDay(newTravelRoutes[0].day);
-    }
-    
-    setIsLoading(false);
+    // 모든 상세 정보 요청이 완료되면 상태 업데이트
+    Promise.all(detailPromises)
+      .then(() => {
+        console.log('모든 장소 상세 정보 로딩 완료');
+      })
+      .catch(error => {
+        console.error('일부 장소 상세 정보 로딩 실패:', error);
+      })
+      .finally(() => {
+        // 데이터가 있는지 최종 확인
+        if (newPlaces.length === 0 || newTravelRoutes.length === 0) {
+          console.warn('변환된 장소 또는 여행 루트 데이터가 비어 있습니다.');
+        }
+        
+        // 상태 업데이트
+        setPlaces(newPlaces as Place[]);
+        setTravelRoutes(newTravelRoutes);
+        
+        // 첫 번째 일차를 활성화
+        if (newTravelRoutes.length > 0) {
+          setActiveDay(newTravelRoutes[0].day);
+        }
+        
+        setIsLoading(false);
+      });
   };
 
   // 컴포넌트 마운트 시 API 호출
