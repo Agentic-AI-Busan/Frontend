@@ -36,8 +36,9 @@ const SelectDestination: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const passedTripPlansId = location.state?.tripPlansId || '14'; 
+  const passedTripPlansId = location.state?.tripPlansId; 
   const tripPlansId = passedTripPlansId;
+  console.log('[SelectDestination] 현재 사용 중인 tripPlansId:', tripPlansId);
 
   const [userName] = useState<string>("성수립");
   const [travelItems, setTravelItems] = useState<TravelItem[]>([]);
@@ -59,6 +60,13 @@ const SelectDestination: React.FC = () => {
       localStorage.setItem(getStorageKey(), JSON.stringify(selectedItems));
     }
   }, [selectedItems, tripPlansId]);
+
+  useEffect(() => {
+    if (!tripPlansId) {
+      setError('여행 계획 ID가 없습니다. 첫 페이지로 돌아가 다시 시작해주세요.');
+      return;
+    }
+  }, [tripPlansId]);
 
   useEffect(() => {
     const fetchAttractions = async () => {

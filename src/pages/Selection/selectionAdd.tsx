@@ -131,9 +131,13 @@ const SelectionAdd: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation(); // useLocation 훅 사용
 
-    // 이전 페이지에서 전달된 tripPlansId 또는 기본값 '14' 사용
-    const passedTripPlansId = location.state?.tripPlansId || '14';
+    // 이전 페이지에서 전달된 tripPlansId
+    const passedTripPlansId = location.state?.tripPlansId;
     const currentTripPlansId = passedTripPlansId;
+    console.log('[SelectionAdd] 현재 사용 중인 tripPlansId:', currentTripPlansId);
+
+    // 에러 상태 추가
+    const [error, setError] = useState<string | null>(null);
 
     const getDestinationsStorageKey = () => `${STORAGE_KEY_DESTINATIONS_PREFIX}${currentTripPlansId}`;
     const getRestaurantsStorageKey = () => `${STORAGE_KEY_RESTAURANTS_PREFIX}${currentTripPlansId}`;
@@ -219,14 +223,19 @@ const SelectionAdd: React.FC = () => {
             setIsLoading(true);
             const timer = setTimeout(() => {
                 setIsLoading(false);
-                // 다음 페이지로 이동 시 localStorage 데이터 삭제 여부 결정 필요
-                // 예: localStorage.removeItem(getDestinationsStorageKey());
-                // 예: localStorage.removeItem(getRestaurantsStorageKey());
-                navigate('/map');
+                // 다음 페이지로 이동하며 tripPlansId 전달
+                navigate('/map', { state: { tripPlansId: currentTripPlansId } });
             }, 3000);
             return () => clearTimeout(timer);
         }
-    }, [isTravelComplete, isRestaurantComplete, navigate, currentTripPlansId]); // currentTripPlansId 의존성 추가
+    }, [isTravelComplete, isRestaurantComplete, navigate, currentTripPlansId]);
+
+    useEffect(() => {
+        if (!currentTripPlansId) {
+            setError('여행 계획 ID가 없습니다. 첫 페이지로 돌아가 다시 시작해주세요.');
+            return;
+        }
+    }, [currentTripPlansId]);
 
     // 선택 완료 핸들러 (여행지)
     const handleTravelComplete = async () => {
@@ -527,67 +536,74 @@ const SelectionAdd: React.FC = () => {
 
     return (
         <>
-            <MainContainer>
-                {showTravelSearch && (
-                    <SearchPanel
-                        type="travel"
-                        isClosing={isClosingSearch}
-                        isComplete={isTravelComplete}
-                        searchTerm={travelSearchTerm}
-                        onSearchChange={handleTravelSearchChange}
-                        onSearch={handleTravelSearch}
-                        searchResults={travelSearchResults}
-                        onAddPlace={handleAddTravel}
-                        isLoading={isSearchingTravel}
-                        error={travelSearchError}
-                        onItemSelect={handleLoadAndShowPlaceDetails}
-                    />
-                )}
+            {error && (
+                <div style={{ padding: '20px', margin: '20px auto', maxWidth: '600px', textAlign: 'center', color: 'red' }}>
+                    {error}
+                </div>
+            )}
+            {!error && (
+                <MainContainer>
+                    {showTravelSearch && (
+                        <SearchPanel
+                            type="travel"
+                            isClosing={isClosingSearch}
+                            isComplete={isTravelComplete}
+                            searchTerm={travelSearchTerm}
+                            onSearchChange={handleTravelSearchChange}
+                            onSearch={handleTravelSearch}
+                            searchResults={travelSearchResults}
+                            onAddPlace={handleAddTravel}
+                            isLoading={isSearchingTravel}
+                            error={travelSearchError}
+                            onItemSelect={handleLoadAndShowPlaceDetails}
+                        />
+                    )}
 
-                <SidebarsWrapper showTravelSearch={showTravelSearch} showRestaurantSearch={showRestaurantSearch}>
-                    <SelectionSidebar
-                        type="travel"
-                        title="성수립님이 선택한 여행지입니다."
-                        items={selectedPlaces.travel}
-                        isComplete={isTravelComplete}
-                        deletingItemId={deletingTravelId}
-                        onDelete={(id) => handleDelete('travel', id)}
-                        onShowSearch={handleShowTravelSearch}
-                        onComplete={handleTravelComplete}
-                        onReset={handleResetTravel}
-                        buttonText="여행지 선택 완료"
-                    />
-                    
-                    <SelectionSidebar
-                        type="restaurant"
-                        title="성수립님이 선택한 음식점입니다."
-                        items={selectedPlaces.restaurant}
-                        isComplete={isRestaurantComplete}
-                        deletingItemId={deletingRestaurantId}
-                        onDelete={(id) => handleDelete('restaurant', id)}
-                        onShowSearch={handleShowRestaurantSearch}
-                        onComplete={handleRestaurantComplete}
-                        onReset={handleResetRestaurant}
-                        buttonText="음식점 선택 완료"
-                    />
-                </SidebarsWrapper>
+                    <SidebarsWrapper showTravelSearch={showTravelSearch} showRestaurantSearch={showRestaurantSearch}>
+                        <SelectionSidebar
+                            type="travel"
+                            title="성수립님이 선택한 여행지입니다."
+                            items={selectedPlaces.travel}
+                            isComplete={isTravelComplete}
+                            deletingItemId={deletingTravelId}
+                            onDelete={(id) => handleDelete('travel', id)}
+                            onShowSearch={handleShowTravelSearch}
+                            onComplete={handleTravelComplete}
+                            onReset={handleResetTravel}
+                            buttonText="여행지 선택 완료"
+                        />
+                        
+                        <SelectionSidebar
+                            type="restaurant"
+                            title="성수립님이 선택한 음식점입니다."
+                            items={selectedPlaces.restaurant}
+                            isComplete={isRestaurantComplete}
+                            deletingItemId={deletingRestaurantId}
+                            onDelete={(id) => handleDelete('restaurant', id)}
+                            onShowSearch={handleShowRestaurantSearch}
+                            onComplete={handleRestaurantComplete}
+                            onReset={handleResetRestaurant}
+                            buttonText="음식점 선택 완료"
+                        />
+                    </SidebarsWrapper>
 
-                {showRestaurantSearch && (
-                    <SearchPanel
-                        type="restaurant"
-                        isClosing={isClosingSearch}
-                        isComplete={isRestaurantComplete}
-                        searchTerm={restaurantSearchTerm}
-                        onSearchChange={handleRestaurantSearchChange}
-                        onSearch={handleRestaurantSearch}
-                        searchResults={restaurantSearchResults}
-                        onAddPlace={handleAddRestaurant}
-                        isLoading={isSearchingRestaurant}
-                        error={restaurantSearchError}
-                        onItemSelect={handleLoadAndShowPlaceDetails}
-                    />
-                )}
-            </MainContainer>
+                    {showRestaurantSearch && (
+                        <SearchPanel
+                            type="restaurant"
+                            isClosing={isClosingSearch}
+                            isComplete={isRestaurantComplete}
+                            searchTerm={restaurantSearchTerm}
+                            onSearchChange={handleRestaurantSearchChange}
+                            onSearch={handleRestaurantSearch}
+                            searchResults={restaurantSearchResults}
+                            onAddPlace={handleAddRestaurant}
+                            isLoading={isSearchingRestaurant}
+                            error={restaurantSearchError}
+                            onItemSelect={handleLoadAndShowPlaceDetails}
+                        />
+                    )}
+                </MainContainer>
+            )}
             
             {isLoading && (
                 <LoadingSpinner message="가이드가 최적의 여행 계획을 작성 중입니다..." />
