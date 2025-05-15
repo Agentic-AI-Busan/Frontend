@@ -232,6 +232,7 @@ const Navbar: React.FC<NavbarProps> = () => {
             onClose={() => setIsCheckModalOpen(false)}
             onConfirm={handleLogout}
             title="로그아웃"
+            message="로그아웃 하시겠습니까?"
         />
     </>
     );
