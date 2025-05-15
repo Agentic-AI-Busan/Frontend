@@ -86,7 +86,7 @@ const CheckModal: React.FC<CheckModalProps> = ({
                 <MessageText>{message}</MessageText>
             </Content>
             <ButtonContainer>
-                <ConfirmButton onClick={onConfirm}>저장</ConfirmButton>
+                <ConfirmButton onClick={onConfirm}>확인</ConfirmButton>
                 <CancelButton onClick={onClose}>취소</CancelButton>
             </ButtonContainer>
         </ModalFrame>
