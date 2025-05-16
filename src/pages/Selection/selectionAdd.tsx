@@ -219,18 +219,51 @@ const SelectionAdd: React.FC = () => {
     const [isLoadingModalData, setIsLoadingModalData] = useState(false);
     const [modalError, setModalError] = useState<string | null>(null);
 
-    // 두 선택이 모두 완료되었을 때 로딩 시작
+    // 두 선택이 모두 완료되었을 때 로딩 및 페이지 이동 로직 수정
     useEffect(() => {
-        if (isTravelComplete && isRestaurantComplete) {
+        let isActive = true; // 컴포넌트 마운트 상태 추적
+
+        const pollMapDataReady = async (tripPlansId: number) => {
+            if (!isActive) return; // 컴포넌트가 언마운트되면 중단
+
+            try {
+                const response = await authenticatedFetch(`/api/trip-plans/${tripPlansId}`);
+                if (!isActive) return;
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (!isActive) return;
+
+                    // mapPage.tsx에서 사용하는 데이터 구조를 기준으로 준비 완료 판단
+                    // (예: data.isSuccess && data.result && data.result.days)
+                    if (data.isSuccess && data.result && data.result.days) {
+                        setIsLoading(false);
+                        navigate('/map', { state: { tripPlansId: tripPlansId } });
+                    } else {
+                        console.warn('Map data not yet ready or API indicates processing. Retrying in 2s...', data.message || '');
+                        setTimeout(() => { if (isActive) pollMapDataReady(tripPlansId); }, 2000);
+                    }
+                } else {
+                    // HTTP 에러 (예: 404 - 아직 생성 안됨, 500 등)
+                    console.warn(`API poll for map data failed with status ${response.status}. Retrying in 2s...`);
+                    setTimeout(() => { if (isActive) pollMapDataReady(tripPlansId); }, 2000);
+                }
+            } catch (error) {
+                if (!isActive) return;
+                console.error('Error polling for map data:', error);
+                setTimeout(() => { if (isActive) pollMapDataReady(tripPlansId); }, 2000);
+            }
+        };
+
+        if (isTravelComplete && isRestaurantComplete && currentTripPlansId) {
             setIsLoading(true);
-            const timer = setTimeout(() => {
-                setIsLoading(false);
-                // 다음 페이지로 이동하며 tripPlansId 전달
-                navigate('/map', { state: { tripPlansId: currentTripPlansId } });
-            }, 3000);
-            return () => clearTimeout(timer);
+            pollMapDataReady(currentTripPlansId);
         }
-    }, [isTravelComplete, isRestaurantComplete, navigate, currentTripPlansId]);
+
+        return () => {
+            isActive = false; // 컴포넌트 언마운트 시 플래그 설정
+        };
+    }, [isTravelComplete, isRestaurantComplete, currentTripPlansId, navigate]);
 
     useEffect(() => {
         if (!currentTripPlansId) {
@@ -477,6 +510,8 @@ const SelectionAdd: React.FC = () => {
 
     // 상세 정보 로드 및 모달 표시 함수
     const handleLoadAndShowPlaceDetails = async (id: number, type: 'travel' | 'restaurant') => {
+        if (isLoading) return; // 페이지 전환 로딩 중에는 상세 정보 로딩을 시작하지 않음
+
         setIsLoadingModalData(true);
         setModalError(null);
         setModalData(null);
