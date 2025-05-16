@@ -1,282 +1,572 @@
-import React, { useRef, useState} from 'react';
-import styled from 'styled-components';
+import { useState, useEffect, useRef } from "react"
+import styled from "styled-components"
+import { authenticatedFetch } from "../../services/api";
+import flatpickr from 'flatpickr';
+import { Korean } from 'flatpickr/dist/l10n/ko';
+import 'flatpickr/dist/flatpickr.min.css';
+import CheckModal from "../../components/Modal/CheckModal";
+import bannerImg from "../../assets/images/profile_bg_image.jpg";
+import defaultProfileImg from "../../assets/images/default_profile_img.jpeg";
+import { useUser } from "../../contexts/UserContext";
 
-import profileImg from "../../assets/images/profile_img.png"
-import google from "../../assets/images/ico_google.png"
-import naver from "../../assets/images/ico_naver.png"
-import kakao from "../../assets/images/ico_kakao.png"
-import apple from "../../assets/images/ico_apple.png"
+// Styled Components
+const Container = styled.div`
+margin: 0 auto;
+padding: 32px 20px;
+font-family: 'Pretendard', sans-serif;
+color: #1a1a1a;
+background-color: #f8f9fa;
+min-height: 90vh;
+display: flex;
+align-items: center;
+justify-content: center;
+`
 
-import InputModal from "../../components/Modal/InputModal.tsx";
+const MainContent = styled.main`
+width: 100%;
+max-width: 680px;
+background-color: white;
+border-radius: 20px;
+box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+overflow: hidden;
+`
 
-interface userInfo {
-    id: string
-    username: string
-    nickname: string
-    phoneNumber: string
-    profileImage: string
+const ProfileHeader = styled.div`
+position: relative;
+background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+`
+
+const ProfileBanner = styled.img`
+width: 100%;
+height: 160px;
+object-fit: cover;
+opacity: 0.9;
+`
+
+const ProfileInfoContainer = styled.div`
+padding: 0 28px 28px;
+position: relative;
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+`
+
+const ProfileImageLarge = styled.img`
+width: 100px;
+height: 100px;
+border-radius: 16px;
+object-fit: cover;
+border: 4px solid white;
+position: absolute;
+top: -50px;
+background-color: white;
+box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+`
+
+const ProfileDetails = styled.div`
+margin-top: 70px;
+width: 100%;
+`
+
+const ProfileName = styled.h1`
+font-size: 24px;
+font-weight: 700;
+margin: 0 0 6px 0;
+color: #1a1a1a;
+`
+
+const ProfileStats = styled.div`
+display: flex;
+align-items: center;
+gap: 16px;
+margin-top: 8px;
+`
+
+const StatItem = styled.div`
+display: flex;
+align-items: center;
+gap: 6px;
+color: #64748b;
+font-size: 14px;
+`
+
+const StatValue = styled.span`
+color: #1a1a1a;
+font-weight: 500;
+`
+const ProfileFields = styled.div`
+padding: 0 28px 15px;
+`
+
+const ProfileField = styled.div`
+display: grid;
+grid-template-columns: 160px 1fr 70px;
+align-items: center;
+padding: 16px 0;
+border-bottom: 1px solid #f1f5f9;
+
+&:last-child {
+border-bottom: none;
 }
 
-const Container = styled.div`
-  width: 100%;
-  min-height: 90vh;
-  display: flex;
-  flex-direction: column;
-`;
+@media (max-width: 768px) {
+grid-template-columns: 1fr;
+gap: 10px;
+}
+`
 
+const FieldLabel = styled.div`
+font-size: 15px;
+font-weight: 500;
+color: #4b5563;
+`
 
-const ContentWrapper = styled.section`
-  width: 100%;
-  min-height: 80vh;
-  padding: 40px 0;
-  display: flex;
-  gap: 30px;
-  align-items: center;
-  justify-content: center;
+const FieldValue = styled.div`
+font-size: 15px;
+color: #1a1a1a;
+`
 
-  @media (max-width: 992px) {
-    flex-direction: column;
-    align-items: center;
+const EditButton = styled.button`
+background: none;
+border: none;
+color: #64748b;
+font-size: 14px;
+font-weight: 500;
+cursor: pointer;
+justify-self: end;
+padding: 8px 16px;
+border-radius: 6px;
+transition: all 0.2s;
+
+&:hover {
+background-color: #f8fafc;
+color: #475569;
+}
+
+&:disabled {
+color: #cbd5e1;
+cursor: not-allowed;
+&:hover {
+background-color: transparent;
+}
+}
+`
+
+const EditInput = styled.input`
+width: 100%;
+padding: 10px 14px;
+border: 1px solid #e2e8f0;
+border-radius: 8px;
+font-size: 15px;
+outline: none;
+transition: all 0.2s;
+background-color: #f8fafc;
+
+&:focus {
+border-color: #cbd5e1;
+box-shadow: 0 0 0 3px rgba(203, 213, 225, 0.1);
+background-color: white;
+}
+`
+
+const SelectInput = styled.select`
+width: 100%;
+padding: 10px 14px;
+border: 1px solid #e2e8f0;
+border-radius: 8px;
+font-size: 15px;
+outline: none;
+background-color: #f8fafc;
+transition: all 0.2s;
+
+&:focus {
+border-color: #cbd5e1;
+box-shadow: 0 0 0 3px rgba(203, 213, 225, 0.1);
+background-color: white;
+}
+`
+
+const MyPage: React.FC = () => {
+  const [totalPlan, setTotalPlan] = useState(0);
+  const { user: userContext, setUser: setUserContext } = useUser();
+
+  const [user, setUser] = useState({
+    name: "",
+    email: "",
+    nickname: "",
+    gender: "",
+    birthday: "",
+    phone: "",
+    profileImage: defaultProfileImg,
+  })
+
+  const birthdayRef = useRef<HTMLInputElement>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState({
+    name: false,
+    nickname: false,
+    gender: false,
+    birthday: false,
+    phone: false,
+  })
+
+  const [editValues, setEditValues] = useState({
+    name: user.name,
+    nickname: user.nickname,
+    gender: user.gender,
+    birthday: user.birthday,
+    phone: user.phone,
+  })
+
+  const [phoneError, setPhoneError] = useState(false);
+
+  const formatPhoneNumber = (phone: string) => {
+    // 하이픈이 없는 경우에만 포맷팅
+    if (!phone.includes('-')) {
+      return phone.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
+    }
+    return phone;
+  };
+
+  const handleEditChange = (field: string, value: string) => {
+    if (field === "phone") {
+      // 숫자와 하이픈만 허용
+      const cleaned = value.replace(/[^\d-]/g, '');
+      // 하이픈 자동 추가
+      let formatted = cleaned;
+      if (cleaned.length > 3 && !cleaned.includes('-')) {
+        formatted = cleaned.replace(/(\d{3})(\d{0,4})(\d{0,4})/, (_, p1, p2, p3) => {
+          let result = p1;
+          if (p2) result += `-${p2}`;
+          if (p3) result += `-${p3}`;
+          return result;
+        });
+      }
+      setEditValues((prev) => ({
+        ...prev,
+        phone: formatted,
+      }));
+      setPhoneError(!/^\d{3}-\d{4}-\d{4}$/.test(formatted));
+      return;
+    }
+    setEditValues((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
   }
-`;
 
+  useEffect(() => {
+    if (isEditing.birthday && birthdayRef.current) {
+      flatpickr(birthdayRef.current, {
+        locale: Korean,
+        dateFormat: "Y-m-d",
+        maxDate: "today",
+        defaultDate: editValues.birthday,
+        onChange: (selectedDates) => {
+          if (selectedDates[0]) {
+            const year = selectedDates[0].getFullYear();
+            const month = String(selectedDates[0].getMonth() + 1).padStart(2, '0');
+            const day = String(selectedDates[0].getDate()).padStart(2, '0');
+            const formattedDate = `${year}-${month}-${day}`;
+            handleEditChange("birthday", formattedDate);
+          }
+        }
+      });
+    }
+  }, [isEditing.birthday]);
 
-const ProfileWrap = styled.div`
-  display: flex;
-  width: 100vh;
-  height: 80%;
-  gap: 40px;
-  padding: 30px;
-  border-radius: 10px;
-  justify-content: center;
-  align-items: stretch;
-  
-  
+  useEffect(() => {
+    const fetchTotalPlan = async () => {
+      try {
+        const response = await authenticatedFetch(`/api/user/total-plan`, { method: 'GET' });
+        const data = await response.json();
+        if (data.isSuccess && data.result) {
+          setTotalPlan(data.result.totalElements);
+        }
+      } catch (error) {
+        console.error('Total plan fetch error:', error);
+      }
+    }
+    fetchTotalPlan();
+  }, []);
 
-  @media (max-width: 992px) {
-    flex-direction: column;
-  }
-`;
+  useEffect(() => {
+    if (userContext) {
+      setUser(prev => ({
+        ...prev,
+        name: userContext.name || "",
+        email: userContext.email || "",
+        nickname: userContext.nickname || "",
+        gender: userContext.gender === 'MALE' ? '남성' : '여성',
+        birthday: userContext.birthDay || "",
+        phone: formatPhoneNumber(userContext.phoneNumber || ""),
+        profileImage: userContext.profileImage || defaultProfileImg,
+      }))
+    }
+  }, [userContext])
 
-// 기본 프로필 카드 섹션
-const LeftSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  border-radius: 10px;
-  width: 250px;
-  height: 300px;
-  justify-content: center;
-  gap: 20px;
+  const handleSave = async (field: string) => {
+    if (field === "phone" && !/^\d{3}-\d{4}-\d{4}$/.test(editValues.phone)) {
+      setPhoneError(true);
+      return;
+    }
 
-  .img {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    overflow: hidden;
-    background: white;
-    display: flex;
+    try {
+      // API 스펙에 맞게 필드명과 값을 변환
+      const apiFieldMap: { [key: string]: string } = {
+        nickname: 'nickname',
+        phone: 'phoneNumber',
+        gender: 'gender',
+        birthday: 'birthDay'
+      };
 
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
+      let apiValue;
+      if (field === 'gender') {
+        apiValue = editValues.gender === '남성' ? 'MALE' : 'FEMALE';
+      } else if (field === 'birthday') {
+        apiValue = editValues.birthday; // YYYY-MM-DD 형식
+      } else if (field === 'phone') {
+        apiValue = editValues.phone.replace(/-/g, ''); // 하이픈 제거
+      } else {
+        apiValue = editValues[field as keyof typeof editValues];
+      }
+
+      // 기존 사용자 정보를 기반으로 요청 본문 생성
+      const requestBody = {
+        nickname: user.nickname,
+        phoneNumber: user.phone.replace(/-/g, ''), // 하이픈 제거
+        profileImage: user.profileImage,
+        gender: user.gender === '남성' ? 'MALE' : 'FEMALE',
+        birthDay: user.birthday
+      };
+
+      // 수정하려는 필드만 업데이트
+      requestBody[apiFieldMap[field] as keyof typeof requestBody] = apiValue;
+
+      console.log('Request Body:', requestBody);
+
+      const response = await authenticatedFetch('/api/users/edit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      const data = await response.json();
+      console.log('Response Data:', data);
+      
+      if (data.isSuccess) {
+        // 성공 시 상태 업데이트
+        const updatedValue = field === 'gender' 
+          ? (apiValue === 'MALE' ? '남성' : '여성')
+          : field === 'phone'
+          ? formatPhoneNumber(apiValue) // 하이픈 추가
+          : apiValue;
+
+        setUser((prev) => ({
+          ...prev,
+          [field]: updatedValue,
+        }));
+        if (userContext) {
+          setUserContext({
+            ...userContext,
+            [field === 'birthday' ? 'birthDay' : field === 'phone' ? 'phoneNumber' : field]: 
+              field === 'phone' ? apiValue : apiValue,
+          });
+        }
+        setIsEditing((prev) => ({
+          ...prev,
+          [field]: false,
+        }));
+        if (field === "phone") setPhoneError(false);
+        alert("수정되었습니다.");
+      } else {
+        console.error('API Error:', data);
+        alert(`수정에 실패했습니다. ${data.message || ''}`);
+      }
+    } catch (error) {
+      console.error('Profile update error:', error);
+      alert("수정 중 오류가 발생했습니다.");
     }
   }
-`;
 
-const ProfileInfo = styled.p`
-  text-align: center;
-
-  strong {
-    display: block;
-    font-size: 20px;
-    font-weight: bold;
-    margin-bottom: 5px;
+  const toggleEdit = (field: string) => {
+    setIsEditing((prev) => ({
+      ...prev,
+      [field]: !prev[field as keyof typeof isEditing],
+    }))
+    // Reset edit value to current user value when toggling edit mode
+    setEditValues((prev) => ({
+      ...prev,
+      [field]: user[field as keyof typeof user],
+    }))
   }
 
-  span {
-    color: #666;
-    font-size: 14px;
-  }
-`;
-
-// 선택 버튼 스타일 컴포넌트
-const SelectButton = styled.button`
-  display: inline-block;
-  padding: 8px 18px;
-  background: #f0f0f0;
-  color: #333;
-  border-radius: 20px;
-  text-decoration: none;
-  font-size: 14px;
-  font-weight: 500;
-  text-align: center;
-  transition: all 0.3s;
-  cursor: pointer;
-  border: none;
-
-  &:hover {
-    background: #e0e0e0;
-  }
-`;
-
-// 프로필 정보 섹션
-const RightSection = styled.ul`
-  display: flex;
-  width: 500px;
-  flex-direction: column;
-  padding: 20px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  border-radius: 10px;
-  height: 300px;
-  margin-top: 0;
-  justify-content: center;
-`;
-
-// 프로필 정보 리스트
-const ProfileInfoList = styled.ul`
-  list-style: none;
-  padding: 20px;
-  margin: 0;
-`;
-
-// 프로필 정보 리스트 요소 스타일
-const ProfileInfoItem = styled.li`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px;
-  border-bottom: 1px solid #eee;
-
-  strong {
-    font-size: 16px;
-    font-weight: 600;
+  const formatBirthday = (dateString: string) => {
+    const [year, month, day] = dateString.split('-');
+    return `${year}년 ${month}월 ${day}일`;
   }
 
-  span {
-    font-size: 14px;
-    color: #666;
-    display: flex;
-    align-items: center;
-    gap: 20px;
+  const handleDeleteConfirm = () => {
+    setUser((prev) => ({
+      ...prev,
+      profileImage: defaultProfileImg,
+    }));
+    setIsDeleteModalOpen(false);
+    alert("프로필 사진이 삭제되었습니다.");
   }
-`;
 
-// 계정 연동 아이콘 스타일
-const AccountLinks = styled.div`
-  display: flex;
-  gap: 10px;
+  return (
+    <Container>
+      <MainContent>
+        <ProfileHeader>
+          <ProfileBanner src={bannerImg} alt="배너 이미지" />
+          <ProfileInfoContainer>
+            <ProfileImageLarge src={user.profileImage} alt={user.name} />
+            <ProfileDetails>
+              <ProfileName>{user.name}</ProfileName>
+              <ProfileStats>
+                <StatItem>
+                  <span>지금까지의 여행</span>
+                  <StatValue>{totalPlan}개</StatValue>
+                </StatItem>
+              </ProfileStats>
+            </ProfileDetails>
+          </ProfileInfoContainer>
+        </ProfileHeader>
 
-  img {
-    height: 30px;
-  }
-`;
+        <ProfileFields>
+          {/* email */}
+          <ProfileField>
+            <FieldLabel>이메일</FieldLabel>
+            <FieldValue>{user.email}</FieldValue>
+            <EditButton disabled>Edit</EditButton>
+          </ProfileField>
 
-const ProfileCorrection: React.FC = () => {
-    const [userInfo] = useState<userInfo>({
-        id: "abcde12@gmail.com",
-        username: "김수연",
-        nickname: "김수연",
-        phoneNumber: "010-0000-0000",
-        profileImage: "../../assets/images/profile_img.png"
-    })
+          {/* 이름 */}
+          <ProfileField>
+            <FieldLabel>이름</FieldLabel>
+            <FieldValue>
+              {user.name}
+            </FieldValue>
+            <EditButton disabled>Edit</EditButton>
+          </ProfileField>
 
-    const [nickName, setNickName] = useState<string>(userInfo.nickname);
-    const [phoneNumber, setPhoneNumber] = useState<string>(userInfo.phoneNumber);
-    // 로컬 환경에서 url로만 이미지를 출력할 방법이 없어 import해서 사용
-    const [profileImage, setProfileImage] = useState(profileImg);
+          {/* 닉네임 */}
+          <ProfileField>
+            <FieldLabel>닉네임</FieldLabel>
+            <FieldValue>
+              {isEditing.nickname ? (
+                <EditInput
+                  value={editValues.nickname}
+                  onChange={(e) => handleEditChange("nickname", e.target.value)}
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {handleSave("nickname");}
+                  }}
+                />
+              ) : (
+                user.nickname
+              )}
+            </FieldValue>
+            {isEditing.nickname ? (
+              <EditButton onClick={() => handleSave("nickname")}>Save</EditButton>
+            ) : (
+              <EditButton onClick={() => toggleEdit("nickname")}>Edit</EditButton>
+            )}
+          </ProfileField>
 
-    // 모달 오픈 state
-    const [isNickNameModalOpen, setNickNameModalOpen] = useState<boolean>(false);
-    const [isPhoneNumberModalOpen, setPhoneNumberModalOpen] = useState<boolean>(false);
+          {/* 성별 */}
+          <ProfileField>
+            <FieldLabel>성별</FieldLabel>
+            <FieldValue>
+              {isEditing.gender ? (
+                <SelectInput
+                  value={editValues.gender}
+                  onChange={(e) => handleEditChange("gender", e.target.value)}
+                  autoFocus
+                >
+                  <option value="남성">남성</option>
+                  <option value="여성">여성</option>
+                </SelectInput>
+              ) : (
+                user.gender
+              )}
+            </FieldValue>
+            {isEditing.gender ? (
+              <EditButton onClick={() => handleSave("gender")}>Save</EditButton>
+            ) : (
+              <EditButton onClick={() => toggleEdit("gender")}>Edit</EditButton>
+            )}
+          </ProfileField>
 
-    const fileInputRef = useRef<HTMLInputElement>(null);
+          {/* 생년월일 */}
+          <ProfileField>
+            <FieldLabel>생년월일</FieldLabel>
+            <FieldValue>
+              {isEditing.birthday ? (
+                <EditInput
+                  ref={birthdayRef}
+                  value={editValues.birthday}
+                  readOnly
+                  autoFocus
+                  style={{ backgroundColor: '#fff', cursor: 'pointer' }}
+                />
+              ) : (
+                formatBirthday(user.birthday)
+              )}
+            </FieldValue>
+            {isEditing.birthday ? (
+              <EditButton onClick={() => handleSave("birthday")}>Save</EditButton>
+            ) : (
+              <EditButton onClick={() => toggleEdit("birthday")}>Edit</EditButton>
+            )}
+          </ProfileField>
 
-    // 사진 변경을 클릭했을 때 실행
-    const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (file) {
-            const imageUrl = URL.createObjectURL(file);
-            setProfileImage(imageUrl);
-        }
-    };
+          {/* 전화번호 */}
+          <ProfileField className="editable">
+            <FieldLabel>전화번호</FieldLabel>
+            <FieldValue>
+              {isEditing.phone ? (
+                <>
+                  <EditInput
+                    value={editValues.phone}
+                    onChange={(e) => handleEditChange("phone", e.target.value)}
+                    autoFocus
+                    style={phoneError ? { borderColor: 'red' } : {}}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {handleSave("phone");}
+                    }}
+                  />
+                  {phoneError && (
+                    <div style={{ color: 'red', fontSize: 12, marginTop: 4 }}>
+                      000-0000-0000 형식으로 입력해 주세요.
+                    </div>
+                  )}
+                </>
+              ) : (
+                user.phone
+              )}
+            </FieldValue>
+            {isEditing.phone ? (
+              <EditButton onClick={() => handleSave("phone")}>Save</EditButton>
+            ) : (
+              <EditButton onClick={() => toggleEdit("phone")}>Edit</EditButton>
+            )}
+          </ProfileField>
+        </ProfileFields>
+      </MainContent>
 
+      <CheckModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDeleteConfirm}
+        title="프로필 사진 삭제"
+        message="사진을 삭제하시겠습니까?"
+      />
+    </Container>
+  )
+}
 
-    return (
-        <Container>
-
-            <ContentWrapper>
-                <ProfileWrap>
-                    <LeftSection>
-                        <span className="img">
-                            <img src={ profileImage } alt="" />
-                        </span>
-                        <ProfileInfo>
-                            <strong>{ userInfo.username }</strong>
-                            <span>{ userInfo.id }</span>
-                        </ProfileInfo>
-                        <input
-                            type="file"
-                            accept="image/*"
-                            ref={fileInputRef}
-                            onChange={handleImageChange}
-                            style={{ display: 'none' }}/>
-                        <SelectButton onClick={() => fileInputRef.current?.click()}>사진 변경</SelectButton>
-                    </LeftSection>
-                    <RightSection>
-                        <ProfileInfoList>
-                            <ProfileInfoItem>
-                                <strong>ID</strong>
-                                <span>
-                                    { userInfo.id }
-                                </span>
-                            </ProfileInfoItem>
-                            <ProfileInfoItem>
-                                <strong>닉네임</strong>
-                                <span>
-                                    { nickName }
-                                    <SelectButton onClick={() => setNickNameModalOpen(true)}>변경</SelectButton>
-                                </span>
-                            </ProfileInfoItem>
-                            <ProfileInfoItem>
-                                <strong>전화번호</strong>
-                                <span>
-                                    { phoneNumber }
-                                    <SelectButton onClick={() => setPhoneNumberModalOpen(true)}>변경</SelectButton>
-                                </span>
-                            </ProfileInfoItem>
-                            <ProfileInfoItem>
-                                <strong>계정 연동 현황</strong>
-                                <AccountLinks>
-                                    <img src={google} alt="Google" />
-                                    <img src={naver} alt="Naver" />
-                                    <img src={kakao} alt="Kakao" />
-                                    <img src={apple} alt="Apple" />
-                                </AccountLinks>
-                            </ProfileInfoItem>
-                        </ProfileInfoList>
-                    </RightSection>
-
-                </ProfileWrap>
-            </ContentWrapper>
-
-            <InputModal
-                isOpen={isNickNameModalOpen}
-                onClose={() => setNickNameModalOpen(false)}
-                label="닉네임"
-                onChange={setNickName}
-            />
-
-            <InputModal
-                isOpen={isPhoneNumberModalOpen}
-                onClose={() => setPhoneNumberModalOpen(false)}
-                label="전화번호"
-                onChange={setPhoneNumber}/>
-        </Container>
-    );
-};
-
-export default ProfileCorrection;
+export default MyPage;

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { getUserProfile } from '../services/api';
+import defaultProfileImg from '../assets/images/default_profile_img.jpeg';
 
 
 interface User {
@@ -29,7 +30,11 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
             try {
                 const profile = await getUserProfile();
                 if (profile) {
-                    setUser(profile.result);
+                    const userProfile = {
+                        ...profile.result,
+                        profileImage: defaultProfileImg
+                    };
+                    setUser(userProfile);
                 }
             } catch (error) {
                 console.error('사용자 프로필 로드 실패:', error);
@@ -41,8 +46,19 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         fetchUserProfile();
     }, []);
 
+    const setUserWithDefaultImage = (newUser: User | null) => {
+        if (newUser) {
+            setUser({
+                ...newUser,
+                profileImage: defaultProfileImg
+            });
+        } else {
+            setUser(null);
+        }
+    };
+
     return (
-        <UserContext.Provider value={{ user, setUser, isLoading }}>
+        <UserContext.Provider value={{ user, setUser: setUserWithDefaultImage, isLoading }}>
             {children}
         </UserContext.Provider>
     );

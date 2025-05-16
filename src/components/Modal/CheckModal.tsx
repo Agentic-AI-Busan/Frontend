@@ -7,6 +7,7 @@ interface CheckModalProps {
     onClose: () => void;
     onConfirm: () => void;
     title: string;
+    message: string;
 }
 
 const ButtonContainer = styled.div`
@@ -71,7 +72,8 @@ const CheckModal: React.FC<CheckModalProps> = ({
     isOpen,
     onClose,
     onConfirm,
-    title = '로그아웃 확인'
+    title = '확인',
+    message = '확인 하시겠습니까?'
 }) => {
     return (
         <ModalFrame 
@@ -81,10 +83,10 @@ const CheckModal: React.FC<CheckModalProps> = ({
             size="small"
         >
             <Content>
-                <MessageText>로그아웃 하시겠습니까?</MessageText>
+                <MessageText>{message}</MessageText>
             </Content>
             <ButtonContainer>
-                <ConfirmButton onClick={onConfirm}>저장</ConfirmButton>
+                <ConfirmButton onClick={onConfirm}>확인</ConfirmButton>
                 <CancelButton onClick={onClose}>취소</CancelButton>
             </ButtonContainer>
         </ModalFrame>

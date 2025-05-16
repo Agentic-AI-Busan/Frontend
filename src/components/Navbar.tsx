@@ -197,8 +197,8 @@ const Navbar: React.FC<NavbarProps> = () => {
                     onMouseLeave={() => setShowDropdown(false)}
                 >
                     <UserButton onClick={handleUserButtonClick}>
-                        <img src={userImage} alt="user" />
-                        {user?.name || '로그인하기'}
+                        <img src={user?.profileImage || userImage} alt="user" />
+                        {user?.nickname || '로그인하기'}
                     </UserButton>
                     {user && (
                         <DropdownMenu isVisible={showDropdown}>
@@ -232,6 +232,7 @@ const Navbar: React.FC<NavbarProps> = () => {
             onClose={() => setIsCheckModalOpen(false)}
             onConfirm={handleLogout}
             title="로그아웃"
+            message="로그아웃 하시겠습니까?"
         />
     </>
     );
