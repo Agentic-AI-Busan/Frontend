@@ -24,6 +24,8 @@ interface VisitPlace {
     location?: string;
     imageUrl?: string;
     coordinates?: { lat: number; lng: number };
+    placeType?: string;
+    originalPlaceId?: number;
 }
 
 interface DaySchedule {
@@ -39,45 +41,46 @@ interface RecommendPlace {
     address: string;
     imageUrl?: string;
     coordinates?: { lat: number; lng: number };
+    type?: string;
 }
 
 // API 응답 관련 타입 정의
 interface ScheduleItem {
-  itemId: number;
-  order: number;
-  placeType: string;
-  placeId: number;
-  latitude: number;
-  longitude: number;
-  name: string;
-  imageUrl: string;
-  memo: string | null;
+    itemId: number;
+    order: number;
+    placeType: string;
+    placeId: number;
+    latitude: number;
+    longitude: number;
+    name: string;
+    imageUrl: string;
+    memo: string | null;
 }
 
 interface DayApiSchedule {
-  dayNumber: number;
-  date: string;
-  scheduleItems: ScheduleItem[];
+    dayNumber: number;
+    date: string;
+    scheduleItems: ScheduleItem[];
 }
 
 interface ApiResult {
-  title: string;
-  description: string | null;
-  profileImage: string;
-  startDate: string;
-  endDate: string;
-  days: DayApiSchedule[];
-  numberOfPeople?: string;
-  ageRange?: string;
-  transportation?: string;
+    title: string;
+    description: string | null;
+    profileImage: string;
+    startDate: string;
+    endDate: string;
+    days: DayApiSchedule[];
+    numberOfPeople?: string;
+    ageRange?: string;
+    transportation?: string;
 }
 
 const EditingPage = () => {
     const navigate = useNavigate();
-    
+    const location = useLocation();
+
     // location.state에서 tripPlansId 가져오기
-    // const tripPlansId = location.state?.tripPlansId;
-    const tripPlansId = '31';
+    const tripPlansId = location.state?.tripPlansId;
     console.log('[EditingPage] 현재 사용 중인 tripPlansId:', tripPlansId);
 
 // 일정 데이터 상태
@@ -95,51 +98,53 @@ const [tripInfo, setTripInfo] = useState({
     transportation: '대중교통'
 });
 
-// AI 추천 장소를 추가하기 위한 함수
 const addRecommendedPlace = (place: RecommendPlace, targetDay?: number) => {
-    // 새 장소 객체 생성
     const newPlace: VisitPlace = {
-        id: place.id || Date.now(),
+        id: Date.now(),
         name: place.name,
         memo: '',
         location: place.address,
         imageUrl: place.imageUrl,
         coordinates: place.coordinates,
+        placeType: place.type || 'UNKNOWN',
+        originalPlaceId: place.id,
     };
     
-    // 특정 일차가 지정된 경우
+    let updatedSchedules;
     if (targetDay !== undefined) {
-        // targetDay가 1부터 시작한다고 가정하고, 배열 인덱스로 변환 (0부터 시작)
         const dayIndex = targetDay - 1;
-        
-        // 유효한 일차인지 확인
         if (dayIndex >= 0 && dayIndex < schedules.length) {
-            setSchedules(prev => prev.map((schedule, index) => 
+            updatedSchedules = schedules.map((schedule, index) => 
                 index === dayIndex 
                     ? { ...schedule, places: [...schedule.places, newPlace] }
                     : schedule
-            ));
-            return true; // 성공적으로 추가됨
+            );
+            setSchedules(updatedSchedules);
+        } else {
+            return false; // 유효하지 않은 일차
         }
-        return false; // 유효하지 않은 일차
+    } else {
+        const placeCounts = schedules.map(day => day.places.length);
+        const minPlacesCount = Math.min(...placeCounts);
+        const dayWithMinPlaces = placeCounts.findIndex(count => count === minPlacesCount);
+        
+        updatedSchedules = schedules.map((schedule, index) => 
+            index === dayWithMinPlaces 
+                ? { ...schedule, places: [...schedule.places, newPlace] }
+                : schedule
+        );
+        setSchedules(updatedSchedules);
     }
-    
-    // 일차를 지정하지 않은 경우, 가장 적합한 일차 선택 로직
-    // 1. 각 일차별 장소 개수 확인
-    const placeCounts = schedules.map(day => day.places.length);
-    
-    // 2. 가장 적은 장소를 가진 일차 찾기
-    const minPlacesCount = Math.min(...placeCounts);
-    const dayWithMinPlaces = placeCounts.findIndex(count => count === minPlacesCount);
-    
-    // 3. 가장 적은 장소를 가진 일차에 장소 추가
-    setSchedules(prev => prev.map((schedule, index) => 
-        index === dayWithMinPlaces 
-            ? { ...schedule, places: [...schedule.places, newPlace] }
-            : schedule
-    ));
-    
-    return true; // 성공적으로 추가됨
+
+    if (tripPlansId && updatedSchedules) {
+        try {
+            const simplifiedSchedules = updatedSchedules.map(ds => ({ day: ds.day, places: ds.places.map(p => ({...p})) }));
+            localStorage.setItem(`scheduleOrder_${tripPlansId}`, JSON.stringify(simplifiedSchedules));
+        } catch (e) {
+            console.error('로컬 스토리지 저장 실패 (addRecommendedPlace):', e);
+        }
+    }
+    return true;
 };
 
 // API에서 데이터를 가져와 변환하는 함수
@@ -203,11 +208,13 @@ const processApiResult = (apiResult: unknown) => {
                 coordinates: {
                     lat: item.latitude,
                     lng: item.longitude
-                }
+                },
+                placeType: item.placeType,
+                originalPlaceId: item.placeId
             }));
 
         // 각 장소에 대한 상세 정보 API 호출 프로미스 생성
-        day.scheduleItems.forEach((item, index) => {
+        day.scheduleItems.forEach((item, placeItemIndex) => {
             // 장소 유형에 따른 API URL 결정
             let apiUrl = '';
             if (item.placeType === 'ATTRACTION') {
@@ -236,57 +243,57 @@ const processApiResult = (apiResult: unknown) => {
                     }
                     
                     const detail = detailData.result;
-                    const dayIndex = day.dayNumber - 1; // day는 1부터 시작하지만 배열 인덱스는 0부터 시작
+                    const dayScheduleIndex = day.dayNumber - 1; // day는 1부터 시작하지만 배열 인덱스는 0부터 시작
                     
                     // schedules 업데이트 (운영시간 및 주소 정보)
                     setSchedules(prev => {
                         // 유효한 인덱스인지 확인
-                        if (dayIndex < 0 || dayIndex >= prev.length || index >= prev[dayIndex].places.length) {
+                        if (dayScheduleIndex < 0 || dayScheduleIndex >= prev.length || !prev[dayScheduleIndex] || placeItemIndex >= prev[dayScheduleIndex].places.length) {
                             return prev;
                         }
                         
                         // 심층 복사
                         const newSchedules = [...prev];
-                        const newPlaces = [...newSchedules[dayIndex].places];
+                        const newPlaces = [...newSchedules[dayScheduleIndex].places];
                         
                         // 운영시간 및 주소 업데이트
-                        newPlaces[index] = {
-                            ...newPlaces[index],
+                        newPlaces[placeItemIndex] = {
+                            ...newPlaces[placeItemIndex],
                             time: detail.operatingHours || '정보 없음',
                             location: detail.address || '주소 정보 없음',
                         };
                         
-                        newSchedules[dayIndex] = {
-                            ...newSchedules[dayIndex],
+                        newSchedules[dayScheduleIndex] = {
+                            ...newSchedules[dayScheduleIndex],
                             places: newPlaces
                         };
                         
                         return newSchedules;
                     });
-                } catch (error) {
-                    console.error(`${item.name} 상세 정보 가져오기 실패:`, error);
+                } catch (err) {
+                    console.error(`${item.name} 상세 정보 가져오기 실패:`, err);
                     
                     // 오류 발생 시에도 schedules 업데이트 (오류 메시지로)
-                    const dayIndex = day.dayNumber - 1;
+                    const dayScheduleIndexOnError = day.dayNumber - 1;
                     setSchedules(prev => {
                         // 유효한 인덱스인지 확인
-                        if (dayIndex < 0 || dayIndex >= prev.length || index >= prev[dayIndex].places.length) {
+                        if (dayScheduleIndexOnError < 0 || dayScheduleIndexOnError >= prev.length || !prev[dayScheduleIndexOnError] || placeItemIndex >= prev[dayScheduleIndexOnError].places.length) {
                             return prev;
                         }
                         
                         // 심층 복사
                         const newSchedules = [...prev];
-                        const newPlaces = [...newSchedules[dayIndex].places];
+                        const newPlaces = [...newSchedules[dayScheduleIndexOnError].places];
                         
                         // 기본값으로 업데이트
-                        newPlaces[index] = {
-                            ...newPlaces[index],
+                        newPlaces[placeItemIndex] = {
+                            ...newPlaces[placeItemIndex],
                             time: '정보를 가져올 수 없음',
                             location: '주소 정보를 가져올 수 없음',
                         };
                         
-                        newSchedules[dayIndex] = {
-                            ...newSchedules[dayIndex],
+                        newSchedules[dayScheduleIndexOnError] = {
+                            ...newSchedules[dayScheduleIndexOnError],
                             places: newPlaces
                         };
                         
@@ -314,8 +321,8 @@ const processApiResult = (apiResult: unknown) => {
         .then(() => {
             console.log('모든 장소 상세 정보 로딩 완료');
         })
-        .catch(error => {
-            console.error('일부 장소 상세 정보 로딩 실패:', error);
+        .catch(err => {
+            console.error('일부 장소 상세 정보 로딩 실패:', err);
         })
         .finally(() => {
             setIsLoading(false);
@@ -340,8 +347,56 @@ useEffect(() => {
             return response.json();
         })
         .then(data => {
-            console.log('API 응답 데이터:', data);
-            processApiResult(data);
+            console.log('[EditingPage] API 응답 데이터:', data);
+            let dataToProcess = data;
+
+            const storedScheduleData = localStorage.getItem(`scheduleOrder_${tripPlansId}`);
+            if (storedScheduleData) {
+                try {
+                    const localSchedules: DaySchedule[] = JSON.parse(storedScheduleData);
+                    console.log('[EditingPage] 로컬 스토리지 데이터 발견:', localSchedules);
+
+                    if (dataToProcess && dataToProcess.result && Array.isArray(dataToProcess.result.days)) {
+                        // API에서 받아온 days 구조를 기반으로 로컬 스토리지 데이터를 병합합니다.
+                        // 로컬 스토리지의 DaySchedule[]는 API의 DayApiSchedule[]와 date 형식이 다를 수 있으므로 주의.
+                        // processApiResult에서 어차피 date를 M/D 형식으로 변환하므로, 여기서는 dayNumber만 일치시키고 places를 교체합니다.
+                        
+                        const updatedApiDays = dataToProcess.result.days.map((apiDay: DayApiSchedule) => {
+                            const localDayData = localSchedules.find(ld => ld.day === apiDay.dayNumber);
+                            if (localDayData && localDayData.places) {
+                                // 로컬 스토리지의 places를 API 응답 형식의 scheduleItems로 변환
+                                const scheduleItems: ScheduleItem[] = localDayData.places.map((p, index) => ({
+                                    itemId: p.id, // VisitPlace의 id를 itemId로 사용
+                                    order: index + 1,
+                                    placeType: p.placeType || 'UNKNOWN',
+                                    placeId: p.originalPlaceId || 0, // VisitPlace의 originalPlaceId를 placeId로 사용
+                                    latitude: p.coordinates?.lat || 0,
+                                    longitude: p.coordinates?.lng || 0,
+                                    name: p.name,
+                                    imageUrl: p.imageUrl || travel_img1,
+                                    memo: p.memo || null
+                                }));
+                                return { ...apiDay, scheduleItems };
+                            }
+                            return apiDay;
+                        });
+                        
+                        // API의 startDate, endDate 등 다른 정보는 유지하고 days만 교체
+                        dataToProcess = {
+                            ...dataToProcess,
+                            result: {
+                                ...dataToProcess.result,
+                                days: updatedApiDays
+                            }
+                        };
+                        console.log('[EditingPage] 로컬 스토리지 데이터로 병합된 데이터:', JSON.stringify(dataToProcess, null, 2));
+                    }
+                } catch (e) {
+                    console.error('[EditingPage] 로컬 스토리지 데이터 처리 중 오류:', e);
+                }
+            }
+
+            processApiResult(dataToProcess);
             
             // 스타일 정보도 함께 가져오기
             return authenticatedFetch('/api/styles');
@@ -380,12 +435,12 @@ useEffect(() => {
                 }));
             }
         })
-        .catch(error => {
-            console.error('API 호출 중 오류가 발생했습니다:', error);
+        .catch(err => {
+            console.error('API 호출 중 오류가 발생했습니다:', err);
             // 로딩 상태 종료
             setIsLoading(false);
             // 에러 상태 설정
-            setError(`데이터 로딩 중 오류: ${error.message}`);
+            setError(`데이터 로딩 중 오류: ${err.message}`);
             // 빈 데이터 설정
             setSchedules([]);
         });
@@ -429,38 +484,62 @@ const addPlace = (dayIndex: number) => {
 const handleAddPlaceFromSearch = (place: SearchPlace) => {
     if (selectedDayIndex === null) return;
     
+    const placeTypeFromSearch = place.type ?? 'UNKNOWN';
+
     const newPlace: VisitPlace = {
         id: Date.now(),
         name: place.name,
         memo: '',
         location: place.address,
         imageUrl: place.imageUrl,
-        // 좌표 정보 추가
         coordinates: place.coordinates,
+        placeType: placeTypeFromSearch,
+        originalPlaceId: place.id, 
     };
     
-    setSchedules(prev => prev.map((schedule, index) => 
+    const updatedSchedules = schedules.map((schedule, index) => 
         index === selectedDayIndex 
-            ? { ...schedule, places: [newPlace, ...schedule.places] }
+            ? { ...schedule, places: [newPlace, ...schedule.places.filter(p => p.id !== newPlace.id)] }
             : schedule
-    ));
+    );
+    setSchedules(updatedSchedules);
     
-    // 모달 닫기
+    if (tripPlansId) {
+        try {
+            const simplifiedSchedules = updatedSchedules.map(ds => ({ day: ds.day, places: ds.places.map(p => ({...p})) }));
+            localStorage.setItem(`scheduleOrder_${tripPlansId}`, JSON.stringify(simplifiedSchedules));
+        } catch (e) {
+            console.error('로컬 스토리지 저장 실패 (handleAddPlaceFromSearch):', e);
+        }
+    }
+
     setIsSearchModalOpen(false);
     setSelectedDayIndex(null);
 };
 
 const updatePlace = (dayIndex: number, placeId: number, field: keyof VisitPlace, value: string) => {
-    setSchedules(prev => prev.map((schedule, index) => 
-    index === dayIndex
-        ? {
-            ...schedule,
-            places: schedule.places.map(place =>
-            place.id === placeId ? { ...place, [field]: value } : place
-            ),
+    setSchedules(prevSchedules => {
+        const updatedSchedules = prevSchedules.map((schedule, i) => 
+            i === dayIndex
+                ? { ...schedule, places: schedule.places.map(p => p.id === placeId ? { ...p, [field]: value } : p) }
+                : schedule
+        );
+
+        // 로컬 스토리지에 변경된 스케줄 저장
+        if (tripPlansId) {
+            try {
+                const simplifiedSchedules = updatedSchedules.map(ds => ({
+                    day: ds.day,
+                    places: ds.places.map(p => ({ ...p })) // VisitPlace의 모든 속성 저장
+                }));
+                localStorage.setItem(`scheduleOrder_${tripPlansId}`, JSON.stringify(simplifiedSchedules));
+                console.log('[updatePlace] 로컬 스토리지 업데이트됨:', simplifiedSchedules);
+            } catch (e) {
+                console.error('로컬 스토리지 저장 실패 (updatePlace):', e);
+            }
         }
-        : schedule
-    ));
+        return updatedSchedules;
+    });
 };
 
 // 드래그 활성화 토글 함수
@@ -492,7 +571,7 @@ const handleDragOver = (e: React.DragEvent, dayIndex: number, placeIndex: number
     e.preventDefault();
     e.stopPropagation();
     
-    // 드래그가 활성화되지 않은 경우 처리하지 않음
+    // 드래그가 활성화되지 않은 경우 무시
     if (!isDragEnabled || !draggedItem) return;
     
     // 드롭 효과 설정
@@ -538,118 +617,37 @@ const handleDragEnd = (e: React.DragEvent) => {
     // 드래그 오버 상태 초기화
     setDragOverItem(null);
     
-    const draggedDayIndex = draggedItem?.dayIndex;
-    const draggedPlaceIndex = draggedItem?.placeIndex;
-    
-    // draggedItem이 없으면 종료
-    if (draggedDayIndex === undefined || draggedPlaceIndex === undefined || !dragOverItemRef.current) {
-        setDraggedItem(null);
-        return;
-    }
-    
-    const { dayIndex: dragOverDayIndex, placeIndex: dragOverPlaceIndex } = dragOverItemRef.current;
-    
-    // 유효하지 않은 인덱스이거나 같은 위치면 종료
-    if (
-        draggedDayIndex === dragOverDayIndex && draggedPlaceIndex === dragOverPlaceIndex
-    ) {
-        setDraggedItem(null);
-        dragOverItemRef.current = null;
-        return;
-    }
-    
-    // 아이템 순서 변경 로직
-    setSchedules(prev => {
-        const newSchedules = [...prev];
-        
-        // 같은 날짜 내 순서 변경인 경우
-        if (draggedDayIndex === dragOverDayIndex) {
-            const places = [...newSchedules[draggedDayIndex].places];
-            
-            // 원본 배열 범위 검사
-            if (draggedPlaceIndex >= places.length) {
-                return prev;
-            }
-            
-            const draggedPlace = places[draggedPlaceIndex];
-            
-            // 유효한 dragOverPlaceIndex 확인
-            const validDragOverPlaceIndex = Math.min(dragOverPlaceIndex, places.length);
-            
-            // 드래그된 항목 제거 후 새 위치에 추가
-            places.splice(draggedPlaceIndex, 1);
-            places.splice(validDragOverPlaceIndex > draggedPlaceIndex ? validDragOverPlaceIndex - 1 : validDragOverPlaceIndex, 0, draggedPlace);
-            
-            newSchedules[draggedDayIndex].places = places;
-        } 
-        // 다른 날짜로 이동하는 경우
-        else {
-            // 현재 보이는 일정만 처리 (숨겨진 일정에 대한 드래그 앤 드롭은 무시)
-            const displayedDays = [currentPageIndex * 2, currentPageIndex * 2 + 1];
-            
-            // 대상 일차가 현재 보이는 일정이 아니면 작업 중단
-            if (!displayedDays.includes(dragOverDayIndex) || dragOverDayIndex >= newSchedules.length) {
-                return prev;
-            }
-            
-            // 소스 일차가 배열 범위를 벗어나면 작업 중단
-            if (draggedDayIndex >= newSchedules.length) {
-                return prev;
-            }
-            
-            const sourcePlaces = [...newSchedules[draggedDayIndex].places];
-            const destPlaces = [...newSchedules[dragOverDayIndex].places];
-            
-            // 드래그된 항목의 인덱스가 유효한지 확인
-            if (draggedPlaceIndex >= sourcePlaces.length) {
-                return prev;
-            }
-            
-            // 드래그된 항목 가져오기
-            const draggedPlace = sourcePlaces[draggedPlaceIndex];
-            
-            // 유효한 dragOverPlaceIndex 확인
-            const validDragOverPlaceIndex = Math.min(dragOverPlaceIndex, destPlaces.length);
-            
-            // 원래 날짜에서 제거
-            sourcePlaces.splice(draggedPlaceIndex, 1);
-            
-            // 새 날짜에 추가
-            destPlaces.splice(validDragOverPlaceIndex, 0, draggedPlace);
-            
-            newSchedules[draggedDayIndex].places = sourcePlaces;
-            newSchedules[dragOverDayIndex].places = destPlaces;
-        }
-
-        // 로컬 스토리지에 변경된 순서 저장
-        if (tripPlansId) {
-            try {
-                const simplifiedSchedules = newSchedules.map(daySchedule => ({
-                    day: daySchedule.day,
-                    // 각 장소의 id와 memo, time, location, imageUrl, coordinates를 저장
-                    places: daySchedule.places.map(place => ({ 
-                        id: place.id,
-                        name: place.name,
-                        memo: place.memo,
-                        time: place.time,
-                        location: place.location,
-                        imageUrl: place.imageUrl,
-                        coordinates: place.coordinates
-                    })),
-                }));
-                localStorage.setItem(`scheduleOrder_${tripPlansId}`, JSON.stringify(simplifiedSchedules));
-            } catch (e) {
-                console.error('로컬 스토리지 저장 실패 (handleDragEnd):', e);
-            }
-        }
-        
-        return newSchedules;
-    });
-    
-    // 드래그 상태 초기화
+    const dragged = draggedItem;
+    const over = dragOverItemRef.current;
     setDraggedItem(null);
     dragOverItemRef.current = null;
-    setIsDragEnabled(false); // 드래그 완료 후 드래그 모드 해제
+    setIsDragEnabled(false);
+
+    if (!dragged || !over || (dragged.dayIndex === over.dayIndex && dragged.placeIndex === over.placeIndex)) return;
+
+    setSchedules(prev => {
+        const newSchedules = [...prev];
+        const sourcePlaces = [...newSchedules[dragged.dayIndex].places];
+        const [draggedPlace] = sourcePlaces.splice(dragged.placeIndex, 1);
+
+        if (dragged.dayIndex === over.dayIndex) {
+            sourcePlaces.splice(over.placeIndex > dragged.placeIndex ? over.placeIndex -1 : over.placeIndex, 0, draggedPlace);
+            newSchedules[dragged.dayIndex].places = sourcePlaces;
+        } else {
+            const destPlaces = [...newSchedules[over.dayIndex].places];
+            destPlaces.splice(over.placeIndex, 0, draggedPlace);
+            newSchedules[dragged.dayIndex].places = sourcePlaces;
+            newSchedules[over.dayIndex].places = destPlaces;
+        }
+
+        if (tripPlansId) {
+            try {
+                const simplifiedSchedules = newSchedules.map(ds => ({ day: ds.day, places: ds.places.map(p => ({...p})) }));
+                localStorage.setItem(`scheduleOrder_${tripPlansId}`, JSON.stringify(simplifiedSchedules));
+            } catch (err) { console.error('로컬 스토리지 저장 실패 (handleDragEnd):', err); }
+        }
+        return newSchedules;
+    });
 };
 
 // 드래그 리브 핸들러 추가
@@ -696,11 +694,112 @@ const saveMemo = () => {
 };
 
 // 실제 저장 기능 수행 함수
-const handleSave = () => {
-    console.log('메모 저장됨:', schedules);
-    // 로컬 스토리지나 API를 통해 서버에 저장하는 로직 추가
-    setIsSaveModalOpen(false); // 모달 닫기
-    alert('메모가 저장되었습니다.');
+const handleSave = async () => {
+    if (!tripPlansId) {
+        alert('여행 계획 ID가 없어 저장할 수 없습니다.');
+        setIsSaveModalOpen(false);
+        return;
+    }
+
+    const storedScheduleData = localStorage.getItem(`scheduleOrder_${tripPlansId}`);
+    if (!storedScheduleData) {
+        alert('로컬 스토리지에 저장된 일정 데이터가 없습니다.');
+        setIsSaveModalOpen(false);
+        return;
+    }
+
+    let parsedSchedulesFromStorage: DaySchedule[];
+    try {
+        parsedSchedulesFromStorage = JSON.parse(storedScheduleData);
+    } catch (e) {
+        console.error('로컬 스토리지 데이터 파싱 실패:', e);
+        alert('저장된 일정 데이터를 불러오는데 실패했습니다.');
+        setIsSaveModalOpen(false);
+        return;
+    }
+
+    interface ApiItem {
+        dayNumber: number;
+        orderInDay: number;
+        placeType: string;
+        memo: string;
+        attractionId?: number;
+        restaurantId?: number;
+    }
+
+    const itemsToSave: ApiItem[] = [];
+
+    parsedSchedulesFromStorage.forEach(daySchedule => {
+        daySchedule.places.forEach((place, index) => {
+            // placeType과 originalPlaceId가 유효한지 먼저 확인
+            if (!place.placeType || place.placeType === 'UNKNOWN' || !place.originalPlaceId) {
+                console.warn(`장소 "${place.name}" (ID: ${place.id})는 placeType("${place.placeType}") 또는 originalPlaceId("${place.originalPlaceId}")가 유효하지 않아 저장에서 제외됩니다.`);
+                return; // 이 장소는 저장하지 않고 다음 장소로 넘어감
+            }
+
+            const item: ApiItem = {
+                dayNumber: daySchedule.day,
+                orderInDay: index + 1, 
+                placeType: place.placeType,
+                memo: place.memo || "",
+            };
+
+            if (place.placeType === 'ATTRACTION') {
+                item.attractionId = place.originalPlaceId;
+            } else if (place.placeType === 'RESTAURANT') {
+                item.restaurantId = place.originalPlaceId;
+            } else {
+                // API 명세상 ATTRACTION 또는 RESTAURANT 외 다른 타입은 ID를 포함하지 않거나 처리가 불명확하므로 제외
+                console.warn(`장소 "${place.name}"의 타입 ${place.placeType}은 현재 저장 로직에서 지원되지 않아 제외됩니다.`);
+                return; // 이 장소는 저장하지 않음
+            }
+            itemsToSave.push(item);
+        });
+    });
+
+    if (itemsToSave.length === 0 && parsedSchedulesFromStorage.some(d => d.places.length > 0)) {
+        alert('저장할 유효한 장소가 없습니다. 장소의 타입 및 ID를 확인해주세요.');
+        setIsSaveModalOpen(false);
+        return;
+    }
+
+    const payload = {
+        tripPlanId: tripPlansId,
+        items: itemsToSave
+    };
+
+    console.log('PUT /api/trip-plans 요청으로 전송할 데이터:', JSON.stringify(payload, null, 2));
+
+    try {
+        setIsLoading(true); // 저장 중 로딩 상태 활성화
+        const response = await authenticatedFetch('/api/trip-plans', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+            let errorData = { message: response.statusText };
+            try {
+                errorData = await response.json();
+            } catch (parseErr) {
+                 console.error('API 에러 메시지 JSON 파싱 실패:', parseErr); // parseError 변수 사용
+            }
+            console.error('API 오류 응답:', errorData);
+            throw new Error(`일정 저장에 실패했습니다: ${errorData?.message || response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('일정 저장 성공:', result);
+        alert('일정이 성공적으로 저장되었습니다.');
+
+    } catch (err) {
+        console.error('일정 저장 API 호출 중 오류 발생:', err);
+        alert(`일정 저장 중 오류가 발생했습니다: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+        setIsLoading(false); // 로딩 상태 비활성화
+        setIsSaveModalOpen(false);
+    }
 };
 
 // 장소 삭제 함수 추가
@@ -728,16 +827,8 @@ const handleDelete = () => {
         try {
             const simplifiedSchedules = newSchedules.map(daySchedule => ({
                 day: daySchedule.day,
-                // 각 장소의 id와 memo, time, location, imageUrl, coordinates를 저장
-                places: daySchedule.places.map(place => ({ 
-                    id: place.id,
-                    name: place.name,
-                    memo: place.memo,
-                    time: place.time,
-                    location: place.location,
-                    imageUrl: place.imageUrl,
-                    coordinates: place.coordinates
-                })),
+                // 각 장소의 모든 속성을 저장하도록 변경
+                places: daySchedule.places.map(place => ({ ...place })),
             }));
             localStorage.setItem(`scheduleOrder_${tripPlansId}`, JSON.stringify(simplifiedSchedules));
         } catch (e) {
@@ -817,16 +908,8 @@ const handleEmptyListDrop = (e: React.DragEvent, dayIndex: number) => {
             try {
                 const simplifiedSchedules = newSchedules.map(daySchedule => ({
                     day: daySchedule.day,
-                    // 각 장소의 id와 memo, time, location, imageUrl, coordinates를 저장
-                    places: daySchedule.places.map(place => ({ 
-                        id: place.id,
-                        name: place.name,
-                        memo: place.memo,
-                        time: place.time,
-                        location: place.location,
-                        imageUrl: place.imageUrl,
-                        coordinates: place.coordinates
-                    })),
+                    // 각 장소의 모든 속성을 저장하도록 변경
+                    places: daySchedule.places.map(place => ({ ...place })),
                 }));
                 localStorage.setItem(`scheduleOrder_${tripPlansId}`, JSON.stringify(simplifiedSchedules));
                 // 콘솔에는 각 날짜별 장소 이름만 출력
@@ -855,7 +938,7 @@ const preventDragHandler = (e: React.DragEvent) => {
 };
 
 // 데이터 로딩 중일 때 표시할 로딩 화면
-if (isLoading) {
+if (isLoading && !isSaveModalOpen) {
     return <LoadingSpinner message="여행 일정을 불러오는 중..." />;
 }
 
@@ -886,13 +969,13 @@ return (
                     <DestinationName>BUSAN</DestinationName>
                     <DestinationDetails>
                         <DetailItem><DetailIcon>📅</DetailIcon> {tripInfo.startDate && tripInfo.endDate ? `${tripInfo.startDate}-${tripInfo.endDate}` : '여행 날짜 정보 없음'}</DetailItem>
-                        <DetailItem><DetailIcon>👥</DetailIcon> {tripInfo.numberOfPeople}</DetailItem>
+                        <DetailItem><DetailIcon>��</DetailIcon> {tripInfo.numberOfPeople}</DetailItem>
                         <DetailItem><DetailIcon>👨‍👧‍👦</DetailIcon> {tripInfo.ageRange}</DetailItem>
                         <DetailItem><DetailIcon>🚆</DetailIcon> {tripInfo.transportation}</DetailItem>
                     </DestinationDetails>
                 </DestinationTitle>
                 <ButtonContainer>
-                    <ViewMapButton onClick={() => navigate('/map')}>
+                    <ViewMapButton onClick={() => navigate('/map', { state: { tripPlansId }})}>
                         <MapIcon>🗺️</MapIcon> 지도로 확인하기
                     </ViewMapButton>
                     <SaveButtonSmall onClick={saveMemo}>저장하기</SaveButtonSmall>
@@ -905,8 +988,8 @@ return (
           <NavButton onClick={prevPage} disabled={currentPageIndex === 0}>
             <NavIcon>◀</NavIcon> 이전 일정
           </NavButton>
-          <PageIndicator>{currentPageIndex + 1} / {totalPages}</PageIndicator>
-          <NavButton onClick={nextPage} disabled={currentPageIndex === totalPages - 1}>
+          <PageIndicator>{currentPageIndex + 1} / {totalPages || 1}</PageIndicator>
+          <NavButton onClick={nextPage} disabled={currentPageIndex === totalPages - 1 || totalPages === 0}>
             다음 일정 <NavIcon>▶</NavIcon>
           </NavButton>
         </NavigationButtons>
@@ -941,9 +1024,7 @@ return (
                         }
                     }}
                     onDrop={(e) => {
-                        if (schedule.places.length === 0) {
-                            handleEmptyListDrop(e, dayIndex);
-                        }
+                        if (schedule.places.length === 0) handleEmptyListDrop(e, dayIndex);
                     }}
                 >
                     <AddPlaceButton onClick={() => addPlace(dayIndex)}>
@@ -1002,6 +1083,7 @@ return (
         onClose={() => setIsSaveModalOpen(false)}
         onSave={handleSave}
         title="일정 저장"
+        // isLoading={isLoading && isSaveModalOpen} // SaveModalProps에 isLoading이 없다면 일단 주석 처리
     />
     </PageLayout>
 );

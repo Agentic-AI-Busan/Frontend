@@ -14,6 +14,24 @@ interface PlaceWithAddress extends Place {
   addressInfo?: string; // 주소 정보를 저장할 추가 필드
 }
 
+// 로컬 스토리지에서 읽어올 데이터 타입 정의
+interface LocalStoragePlace {
+    id: number;
+    name: string;
+    memo: string;
+    time?: string;
+    location?: string;
+    imageUrl?: string;
+    coordinates?: { lat: number; lng: number };
+    placeType?: string;
+    originalPlaceId?: number;
+}
+
+interface SimplifiedDaySchedule {
+    day: number; // editingPage의 DaySchedule.day 와 동일
+    places: LocalStoragePlace[];
+}
+
 // 페이지 전체 컨테이너
 const PageContainer = styled.div`
   display: flex;
@@ -243,6 +261,21 @@ const MapPage = () => {
   
   // NaverMap의 focusPlace 함수를 저장할 ref
   const focusPlaceRef = useRef<((placeId: number) => void) | null>(null);
+
+  // LocalStoragePlace[] 를 ScheduleItem[] 으로 변환하는 함수
+  const convertLocalStoragePlacesToScheduleItems = (localStoragePlaces: LocalStoragePlace[]): ScheduleItem[] => {
+      return localStoragePlaces.map((vp, index) => ({
+          itemId: vp.id, 
+          order: index + 1,
+          placeType: vp.placeType || 'UNKNOWN', 
+          placeId: vp.originalPlaceId || 0, 
+          latitude: vp.coordinates?.lat || 0,
+          longitude: vp.coordinates?.lng || 0,
+          name: vp.name,
+          imageUrl: vp.imageUrl || null_place,
+          memo: vp.memo || '' 
+      }));
+  };
 
   // API 결과를 받아와서 places와 travelRoutes 상태를 설정하는 함수
   const processApiResult = (apiResult: unknown) => {
@@ -476,26 +509,61 @@ const MapPage = () => {
     
     // API 호출 - authenticatedFetch 사용
     authenticatedFetch(`/api/trip-plans/${tripPlansId}`)
-      .then(response => {
-        if (!response.ok) {
-          throw new Error(`API 응답이 올바르지 않습니다: ${response.status}`);
-        }
-        return response.json();
-      })
-      .then(data => {
-        console.log('API 응답 데이터:', data);
-        processApiResult(data);
-      })
-      .catch(error => {
-        console.error('API 호출 중 오류가 발생했습니다:', error);
-        // 로딩 상태 종료
-        setIsLoading(false);
-        // 에러 상태 설정
-        setError(`데이터 로딩 중 오류: ${error.message}`);
-        // 빈 데이터 설정 - 화면에 아무것도 표시하지 않음
-        setPlaces([]);
-        setTravelRoutes([]);
-      });
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`API 응답이 올바르지 않습니다: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(apiData => {
+            console.log('[MapPage] API 응답 데이터:', apiData);
+            let dataToProcess = apiData; // 최종적으로 processApiResult에 전달될 데이터
+
+            const storedScheduleData = localStorage.getItem(`scheduleOrder_${tripPlansId}`);
+            if (storedScheduleData) {
+                try {
+                    const localSchedules: SimplifiedDaySchedule[] = JSON.parse(storedScheduleData);
+                    console.log('[MapPage] 로컬 스토리지 데이터 발견:', localSchedules);
+
+                    if (dataToProcess && dataToProcess.result && Array.isArray(dataToProcess.result.days)) {
+                        const originalApiDays: DaySchedule[] = dataToProcess.result.days;
+
+                        const updatedApiDays = originalApiDays.map(apiDay => {
+                            const localDayData = localSchedules.find(ld => ld.day === apiDay.dayNumber);
+                            if (localDayData && localDayData.places) {
+                                return {
+                                    ...apiDay, 
+                                    scheduleItems: convertLocalStoragePlacesToScheduleItems(localDayData.places)
+                                };
+                            }
+                            return apiDay;
+                        });
+
+                        dataToProcess = {
+                            ...dataToProcess,
+                            result: {
+                                ...dataToProcess.result,
+                                days: updatedApiDays
+                            }
+                        };
+                        console.log('[MapPage] 로컬 스토리지 데이터로 병합된 데이터:', JSON.stringify(dataToProcess, null, 2));
+                    }
+                } catch (e) {
+                    console.error('[MapPage] 로컬 스토리지 데이터 처리 중 오류:', e);
+                }
+            } else {
+                console.log('[MapPage] 로컬 스토리지 데이터 없음. API 데이터 사용.');
+            }
+            
+            processApiResult(dataToProcess);
+        })
+        .catch(error => {
+            console.error('[MapPage] API 호출 중 오류가 발생했습니다:', error);
+            setIsLoading(false);
+            setError(`데이터 로딩 중 오류: ${error.message}`);
+            setPlaces([]);
+            setTravelRoutes([]);
+        });
   }, [tripPlansId]);
 
   // 전체 루트 보기 함수 - 특수 값(-1)을 전달하여 NaverMap에서 전체 일정 경계 맞추기

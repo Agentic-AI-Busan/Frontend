@@ -168,6 +168,7 @@ export interface Place {
     address: string;
     imageUrl?: string;
     coordinates?: { lat: number; lng: number };
+    type?: string;
 }
 
 interface SearchModalProps {
