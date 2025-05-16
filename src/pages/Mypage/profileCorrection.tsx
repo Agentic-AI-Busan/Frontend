@@ -63,31 +63,8 @@ background-color: white;
 box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 `
 
-const ProfileActions = styled.div`
-display: flex;
-gap: 8px;
-margin-left: 120px;
-margin-top: 12px;
-`
-
-const ActionButton = styled.button<{ secondary?: boolean }>`
-background: ${(props) => (props.secondary ? "transparent" : "#f8fafc")};
-color: ${(props) => (props.secondary ? "#64748b" : "#475569")};
-border: 1px solid ${(props) => (props.secondary ? "#e2e8f0" : "transparent")};
-padding: 6px 12px;
-border-radius: 6px;
-font-size: 13px;
-font-weight: 500;
-cursor: pointer;
-transition: all 0.2s;
-
-&:hover {
-background-color: ${(props) => (props.secondary ? "#f1f5f9" : "#f8fafc")};
-}
-`
-
 const ProfileDetails = styled.div`
-margin-top: 24px;
+margin-top: 70px;
 width: 100%;
 `
 
@@ -224,7 +201,6 @@ const MyPage: React.FC = () => {
   })
 
   const birthdayRef = useRef<HTMLInputElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState({
     name: false,
@@ -277,24 +253,6 @@ const MyPage: React.FC = () => {
       ...prev,
       [field]: value,
     }));
-  }
-
-  const handlePhotoButtonClick = () => {
-    fileInputRef.current?.click();
-  }
-
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setUser((prev) => ({
-          ...prev,
-          profileImage: reader.result as string,
-        }));
-      };
-      reader.readAsDataURL(file);
-    }
   }
 
   useEffect(() => {
@@ -466,17 +424,6 @@ const MyPage: React.FC = () => {
           <ProfileBanner src={bannerImg} alt="배너 이미지" />
           <ProfileInfoContainer>
             <ProfileImageLarge src={user.profileImage} alt={user.name} />
-            <input
-              type="file"
-              accept="image/*"
-              style={{ display: 'none' }}
-              ref={fileInputRef}
-              onChange={handlePhotoChange}
-            />
-            <ProfileActions>
-              <ActionButton onClick={handlePhotoButtonClick}>사진 변경</ActionButton>
-              <ActionButton onClick={() => setIsDeleteModalOpen(true)}>사진 삭제</ActionButton>
-            </ProfileActions>
             <ProfileDetails>
               <ProfileName>{user.name}</ProfileName>
               <ProfileStats>
