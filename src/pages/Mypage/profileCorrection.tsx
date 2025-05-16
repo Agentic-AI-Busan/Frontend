@@ -6,7 +6,7 @@ import { Korean } from 'flatpickr/dist/l10n/ko';
 import 'flatpickr/dist/flatpickr.min.css';
 import CheckModal from "../../components/Modal/CheckModal";
 import bannerImg from "../../assets/images/profile_bg_image.jpg";
-import defaultProfileImg from "../../assets/images/profile_img.png";
+import defaultProfileImg from "../../assets/images/default_profile_img.jpeg";
 import { useUser } from "../../contexts/UserContext";
 
 // Styled Components
