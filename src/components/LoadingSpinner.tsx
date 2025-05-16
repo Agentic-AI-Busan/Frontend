@@ -49,6 +49,7 @@ const LoadingMessage = styled.div`
     text-align: center;
     max-width: 500px;
     word-break: keep-all;
+    white-space: pre-line;
     margin-bottom: 40px;
 `;
 

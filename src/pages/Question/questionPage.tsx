@@ -8,6 +8,7 @@ import styled from 'styled-components';
 import { authenticatedFetch } from '../../services/api';
 import { useUser } from '../../contexts/UserContext';
 import QuestionSidebar from '../../components/QuestionSidebar';
+import LoadingSpinner from '../../components/LoadingSpinner';
 
 const ContentWrapper = styled.div`
     width: 100%;
@@ -642,6 +643,7 @@ const QuestionPage: React.FC = () => {
     const [inputValue, setInputValue] = useState("");
     const [isQuestionInProgress, setIsQuestionInProgress] = useState(true);
     const [isComplete, setIsComplete] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
     const [styleId, setStyleId] = useState<number | null>(null);
     // 사용자 응답 데이터 관리
@@ -1065,10 +1067,36 @@ const QuestionPage: React.FC = () => {
     // 마지막 질문 이후 다음 페이지로 이동
     useEffect(() => {
         if (isComplete) {
+            const checkAttractionsReady = async (tripPlanId: number) => {
+                try {
+                    // 추천 여행지 목록을 가져오는 API 엔드포인트로 변경
+                    const response = await authenticatedFetch(`/api/trip-plans/${tripPlanId}/attractions`, { method: 'GET' });
+                    const data = await response.json();
+
+                    // API 응답 성공 및 attractions 데이터 존재 여부 확인
+                    if (data.isSuccess && data.result && data.result.attractions && data.result.attractions.length > 0) {
+                        setIsLoading(false);
+                        navigate(`/selectionDestination`, { 
+                            state: { tripPlansId: tripPlanId } 
+                        });
+                    } else {
+                        // 데이터가 아직 준비되지 않았거나, API 응답은 성공했으나 attractions가 비어있는 경우
+                        // 또는 isSuccess가 false인 경우 (예: 아직 생성 중이라 404가 뜨는 경우 등)
+                        console.warn('Attractions 데이터 확인 중 또는 데이터 미비:', data.message || 'Attractions not ready');
+                        setTimeout(() => checkAttractionsReady(tripPlanId), 2000); // 2초 후 재시도
+                    }
+                } catch (error) {
+                    // 네트워크 오류 또는 기타 파싱 오류 등
+                    console.error('Attractions 데이터 확인 중 오류 발생:', error);
+                    setTimeout(() => checkAttractionsReady(tripPlanId), 2000); // 2초 후 재시도
+                }
+            };
+
             const loadNextPageData = async () => {
                 if (styleId) {
+                    setIsLoading(true); // 로딩 시작
                     try {
-                        // 여행 계획 확정 API 호출
+                        // 여행 계획 확정 API 호출 (tripPlanId 생성)
                         const response = await authenticatedFetch(`/api/styles/${styleId}/final`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' }
@@ -1079,21 +1107,22 @@ const QuestionPage: React.FC = () => {
                         if (data.isSuccess && data.result && data.result.tripPlanId) {
                             tripPlanId = data.result.tripPlanId;
                             console.log('[QuestionPage] 생성된 tripPlanId:', tripPlanId);
+                            // tripPlanId를 사용하여 attractions 데이터 준비 상태 확인 시작
+                            await checkAttractionsReady(tripPlanId); 
                         } else {
+                            setIsLoading(false); // tripPlanId 못 받으면 로딩 종료
                             console.warn('tripPlanId를 받지 못했습니다.');
-                            throw new Error('tripPlanId를 받지 못했습니다.');
+                            // 이 경우에는 사용자에게 알리거나, 재시도 로직을 추가할 수 있습니다.
+                            // 현재 요청은 attractions 확인부터 재시도이므로, 여기서는 일단 로딩을 멈춥니다.
+                            alert(data.message || 'tripPlanId를 받지 못했습니다. 여행 계획을 생성할 수 없습니다.');
                         }
-                        
-                        // 다음 페이지로 이동
-                        navigate(`/selectionDestination`, { 
-                            state: { tripPlansId: tripPlanId } 
-                        });
                     } catch (error) {
-                        console.error('Error finalizing style:', error);
+                        setIsLoading(false); // API 호출 실패 시 로딩 종료
+                        console.error('Error finalizing style (tripPlanId 생성 실패):', error);
                         alert('여행 계획을 생성하는 중 오류가 발생했습니다.');
                     }
                 } else {
-                    alert('스타일 ID가 없습니다.');
+                    alert('스타일 ID가 없습니다. 질문을 다시 진행해주세요.');
                 }
             };
             
@@ -1104,7 +1133,8 @@ const QuestionPage: React.FC = () => {
 
     return (
         <ContentWrapper>
-            <QuestionSection>
+            {isLoading && <LoadingSpinner message="여행 계획을 생성중입니다..."/>} 
+            <QuestionSection style={{ filter: isLoading ? 'blur(5px)' : 'none' }}>
                 <ChatSection>
                     <MessagesChat>
                         {defaultQuestions.map((msg, index) => (
@@ -1155,14 +1185,15 @@ const QuestionPage: React.FC = () => {
                                     value={inputValue}
                                     onChange={(e) => setInputValue(e.target.value)}
                                     onKeyDown={(e) => {
-                                        if (e.key === "Enter" && !e.shiftKey && !isQuestionInProgress && !isComplete) {
+                                        if (e.key === "Enter" && !e.shiftKey && !isQuestionInProgress && !isComplete && !isLoading) {
                                             e.preventDefault();
                                             if (!inputValue.trim()) return;
                                             handleSendMessage();
                                         }
                                     }}
-                                    disabled={isQuestionInProgress || isComplete}
+                                    disabled={isQuestionInProgress || isComplete || isLoading}
                                     placeholder={
+                                        isLoading ? '여행 계획 생성 중...' :
                                         isComplete ? '질문이 완료되었습니다.' :
                                         isQuestionInProgress ? '질문이 진행 중입니다...' : 
                                         '메시지 입력...'
@@ -1171,7 +1202,7 @@ const QuestionPage: React.FC = () => {
                             </InputArea>
                             <Button 
                                 onClick={handleSendMessage} 
-                                disabled={isQuestionInProgress || isComplete}
+                                disabled={isQuestionInProgress || isComplete || isLoading}
                             >
                                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M5 12H19M19 12L13 6M19 12L13 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
