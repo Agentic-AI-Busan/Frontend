@@ -7,6 +7,7 @@ import 'flatpickr/dist/flatpickr.min.css';
 import CheckModal from "../../components/Modal/CheckModal";
 import bannerImg from "../../assets/images/profile_bg_image.jpg";
 import defaultProfileImg from "../../assets/images/profile_img.png";
+import { useUser } from "../../contexts/UserContext";
 
 // Styled Components
 const Container = styled.div`
@@ -208,16 +209,17 @@ background-color: white;
 }
 `
 
-
 const MyPage: React.FC = () => {
   const [totalPlan, setTotalPlan] = useState(0);
+  const { user: userContext, setUser: setUserContext } = useUser();
+
   const [user, setUser] = useState({
-    name: "김수연",
-    email: "abcde12@gmail.com",
-    nickname: "김수연",
-    gender: "여성",
-    birthday: "1990-01-01",
-    phone: "010-1234-5678",
+    name: "",
+    email: "",
+    nickname: "",
+    gender: "",
+    birthday: "",
+    phone: "",
     profileImage: defaultProfileImg,
   })
 
@@ -242,30 +244,39 @@ const MyPage: React.FC = () => {
 
   const [phoneError, setPhoneError] = useState(false);
 
+  const formatPhoneNumber = (phone: string) => {
+    // 하이픈이 없는 경우에만 포맷팅
+    if (!phone.includes('-')) {
+      return phone.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
+    }
+    return phone;
+  };
+
   const handleEditChange = (field: string, value: string) => {
-    if (field === "birthday") {
+    if (field === "phone") {
+      // 숫자와 하이픈만 허용
+      const cleaned = value.replace(/[^\d-]/g, '');
+      // 하이픈 자동 추가
+      let formatted = cleaned;
+      if (cleaned.length > 3 && !cleaned.includes('-')) {
+        formatted = cleaned.replace(/(\d{3})(\d{0,4})(\d{0,4})/, (_, p1, p2, p3) => {
+          let result = p1;
+          if (p2) result += `-${p2}`;
+          if (p3) result += `-${p3}`;
+          return result;
+        });
+      }
       setEditValues((prev) => ({
         ...prev,
-        birthday: value,
+        phone: formatted,
       }));
-      setUser((prev) => ({
-        ...prev,
-        birthday: value,
-      }));
-      setIsEditing((prev) => ({
-        ...prev,
-        birthday: false,
-      }));
-      alert("수정되었습니다.");
+      setPhoneError(!/^\d{3}-\d{4}-\d{4}$/.test(formatted));
       return;
     }
     setEditValues((prev) => ({
       ...prev,
       [field]: value,
     }));
-    if (field === "phone") {
-      setPhoneError(!/^\d{3}-\d{4}-\d{4}$/.test(value));
-    }
   }
 
   const handlePhotoButtonClick = () => {
@@ -298,7 +309,8 @@ const MyPage: React.FC = () => {
             const year = selectedDates[0].getFullYear();
             const month = String(selectedDates[0].getMonth() + 1).padStart(2, '0');
             const day = String(selectedDates[0].getDate()).padStart(2, '0');
-            handleEditChange("birthday", `${year}-${month}-${day}`);
+            const formattedDate = `${year}-${month}-${day}`;
+            handleEditChange("birthday", formattedDate);
           }
         }
       });
@@ -320,28 +332,105 @@ const MyPage: React.FC = () => {
     fetchTotalPlan();
   }, []);
 
-  const handleSave = (field: string) => {
-    if (field === "birthday") {
-      setIsEditing((prev) => ({
+  useEffect(() => {
+    if (userContext) {
+      setUser(prev => ({
         ...prev,
-        birthday: false,
-      }));
-      return;
+        name: userContext.name || "",
+        email: userContext.email || "",
+        nickname: userContext.nickname || "",
+        gender: userContext.gender === 'MALE' ? '남성' : '여성',
+        birthday: userContext.birthDay || "",
+        phone: formatPhoneNumber(userContext.phoneNumber || ""),
+        profileImage: userContext.profileImage || defaultProfileImg,
+      }))
     }
+  }, [userContext])
+
+  const handleSave = async (field: string) => {
     if (field === "phone" && !/^\d{3}-\d{4}-\d{4}$/.test(editValues.phone)) {
       setPhoneError(true);
       return;
     }
-    setUser((prev) => ({
-      ...prev,
-      [field]: editValues[field as keyof typeof editValues],
-    }));
-    setIsEditing((prev) => ({
-      ...prev,
-      [field]: false,
-    }));
-    if (field === "phone") setPhoneError(false);
-    alert("수정되었습니다.");
+
+    try {
+      // API 스펙에 맞게 필드명과 값을 변환
+      const apiFieldMap: { [key: string]: string } = {
+        nickname: 'nickname',
+        phone: 'phoneNumber',
+        gender: 'gender',
+        birthday: 'birthDay'
+      };
+
+      let apiValue;
+      if (field === 'gender') {
+        apiValue = editValues.gender === '남성' ? 'MALE' : 'FEMALE';
+      } else if (field === 'birthday') {
+        apiValue = editValues.birthday; // YYYY-MM-DD 형식
+      } else if (field === 'phone') {
+        apiValue = editValues.phone.replace(/-/g, ''); // 하이픈 제거
+      } else {
+        apiValue = editValues[field as keyof typeof editValues];
+      }
+
+      // 기존 사용자 정보를 기반으로 요청 본문 생성
+      const requestBody = {
+        nickname: user.nickname,
+        phoneNumber: user.phone.replace(/-/g, ''), // 하이픈 제거
+        profileImage: user.profileImage,
+        gender: user.gender === '남성' ? 'MALE' : 'FEMALE',
+        birthDay: user.birthday
+      };
+
+      // 수정하려는 필드만 업데이트
+      requestBody[apiFieldMap[field] as keyof typeof requestBody] = apiValue;
+
+      console.log('Request Body:', requestBody);
+
+      const response = await authenticatedFetch('/api/users/edit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      const data = await response.json();
+      console.log('Response Data:', data);
+      
+      if (data.isSuccess) {
+        // 성공 시 상태 업데이트
+        const updatedValue = field === 'gender' 
+          ? (apiValue === 'MALE' ? '남성' : '여성')
+          : field === 'phone'
+          ? formatPhoneNumber(apiValue) // 하이픈 추가
+          : apiValue;
+
+        setUser((prev) => ({
+          ...prev,
+          [field]: updatedValue,
+        }));
+        if (userContext) {
+          setUserContext({
+            ...userContext,
+            [field === 'birthday' ? 'birthDay' : field === 'phone' ? 'phoneNumber' : field]: 
+              field === 'phone' ? apiValue : apiValue,
+          });
+        }
+        setIsEditing((prev) => ({
+          ...prev,
+          [field]: false,
+        }));
+        if (field === "phone") setPhoneError(false);
+        alert("수정되었습니다.");
+      } else {
+        console.error('API Error:', data);
+        alert(`수정에 실패했습니다. ${data.message || ''}`);
+      }
+    } catch (error) {
+      console.error('Profile update error:', error);
+      alert("수정 중 오류가 발생했습니다.");
+    }
   }
 
   const toggleEdit = (field: string) => {
@@ -450,14 +539,9 @@ const MyPage: React.FC = () => {
                   value={editValues.gender}
                   onChange={(e) => handleEditChange("gender", e.target.value)}
                   autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {handleSave("gender");}
-                  }}
                 >
                   <option value="남성">남성</option>
                   <option value="여성">여성</option>
-                  <option value="기타">기타</option>
-                  <option value="비공개">비공개</option>
                 </SelectInput>
               ) : (
                 user.gender
