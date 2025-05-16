@@ -74,10 +74,10 @@ interface ApiResult {
 
 const EditingPage = () => {
     const navigate = useNavigate();
-    const location = useLocation();
     
     // location.state에서 tripPlansId 가져오기
-    const tripPlansId = location.state?.tripPlansId;
+    // const tripPlansId = location.state?.tripPlansId;
+    const tripPlansId = '31';
     console.log('[EditingPage] 현재 사용 중인 tripPlansId:', tripPlansId);
 
 // 일정 데이터 상태
@@ -620,6 +620,28 @@ const handleDragEnd = (e: React.DragEvent) => {
             newSchedules[draggedDayIndex].places = sourcePlaces;
             newSchedules[dragOverDayIndex].places = destPlaces;
         }
+
+        // 로컬 스토리지에 변경된 순서 저장
+        if (tripPlansId) {
+            try {
+                const simplifiedSchedules = newSchedules.map(daySchedule => ({
+                    day: daySchedule.day,
+                    // 각 장소의 id와 memo, time, location, imageUrl, coordinates를 저장
+                    places: daySchedule.places.map(place => ({ 
+                        id: place.id,
+                        name: place.name,
+                        memo: place.memo,
+                        time: place.time,
+                        location: place.location,
+                        imageUrl: place.imageUrl,
+                        coordinates: place.coordinates
+                    })),
+                }));
+                localStorage.setItem(`scheduleOrder_${tripPlansId}`, JSON.stringify(simplifiedSchedules));
+            } catch (e) {
+                console.error('로컬 스토리지 저장 실패 (handleDragEnd):', e);
+            }
+        }
         
         return newSchedules;
     });
@@ -691,14 +713,40 @@ const deletePlace = (dayIndex: number, placeId: number) => {
 // 실제 삭제 기능 수행 함수
 const handleDelete = () => {
   if (placeToDelete) {
-    setSchedules(prev => prev.map((schedule, index) => 
-      index === placeToDelete.dayIndex
-        ? {
-            ...schedule,
-            places: schedule.places.filter(place => place.id !== placeToDelete.placeId)
-          }
-        : schedule
-    ));
+    setSchedules(prev => {
+      const newSchedules = prev.map((schedule, index) => 
+        index === placeToDelete.dayIndex
+          ? {
+              ...schedule,
+              places: schedule.places.filter(place => place.id !== placeToDelete.placeId)
+            }
+          : schedule
+      );
+
+      // 로컬 스토리지에 변경된 순서 저장 (삭제 반영)
+      if (tripPlansId) {
+        try {
+            const simplifiedSchedules = newSchedules.map(daySchedule => ({
+                day: daySchedule.day,
+                // 각 장소의 id와 memo, time, location, imageUrl, coordinates를 저장
+                places: daySchedule.places.map(place => ({ 
+                    id: place.id,
+                    name: place.name,
+                    memo: place.memo,
+                    time: place.time,
+                    location: place.location,
+                    imageUrl: place.imageUrl,
+                    coordinates: place.coordinates
+                })),
+            }));
+            localStorage.setItem(`scheduleOrder_${tripPlansId}`, JSON.stringify(simplifiedSchedules));
+        } catch (e) {
+            console.error('로컬 스토리지 저장 실패 (handleDelete):', e);
+        }
+      }
+      
+      return newSchedules;
+    });
     
     // 모달 상태 초기화
     setIsDeleteModalOpen(false);
@@ -763,6 +811,33 @@ const handleEmptyListDrop = (e: React.DragEvent, dayIndex: number) => {
         
         newSchedules[draggedDayIndex].places = sourcePlaces;
         newSchedules[dayIndex].places = destPlaces;
+
+        // 로컬 스토리지에 변경된 순서 저장
+        if (tripPlansId) {
+            try {
+                const simplifiedSchedules = newSchedules.map(daySchedule => ({
+                    day: daySchedule.day,
+                    // 각 장소의 id와 memo, time, location, imageUrl, coordinates를 저장
+                    places: daySchedule.places.map(place => ({ 
+                        id: place.id,
+                        name: place.name,
+                        memo: place.memo,
+                        time: place.time,
+                        location: place.location,
+                        imageUrl: place.imageUrl,
+                        coordinates: place.coordinates
+                    })),
+                }));
+                localStorage.setItem(`scheduleOrder_${tripPlansId}`, JSON.stringify(simplifiedSchedules));
+                // 콘솔에는 각 날짜별 장소 이름만 출력
+                const placeNamesForLogging = simplifiedSchedules.map(daySchedule => (
+                  `Day ${daySchedule.day}: ${daySchedule.places.map(p => p.name).join(' -> ') || '장소 없음'}`
+                ));
+                console.log('[handleEmptyListDrop] 로컬 스토리지 장소 순서:', placeNamesForLogging);
+            } catch (e) {
+                console.error('로컬 스토리지 저장 실패 (handleEmptyListDrop):', e);
+            }
+        }
         
         return newSchedules;
     });
