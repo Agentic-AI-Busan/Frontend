@@ -5,7 +5,6 @@ import { loginUser, getUserProfile } from '../../services/api';
 import { useUser } from '../../contexts/UserContext';
 
 import mainImage from '../../assets/images/main_image.png';
-import googleImage from '../../assets/images/ico_google2.png';
 
 const PageWrapper = styled.div`
   min-height: 100vh;
@@ -149,47 +148,6 @@ const Button = styled.button`
   }
 `;
 
-const Divider = styled.div`
-  width: 100%;
-  text-align: center;
-  color: #aaa;
-  font-size: 14px;
-  margin: 25px 0 25px 0;
-  position: relative;
-  border-bottom: 1px solid #eee;
-  line-height: 0.1em;
-  span {
-    background: #fff;
-    padding: 0 10px;
-  }
-`;
-
-const GoogleButton = styled.button`
-  width: 100%;
-  height: 44px;
-  border-radius: 8px;
-  border: 1.5px solid #e1e1e1;
-  background: #fff;
-  color: #222;
-  font-size: 15px;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 10px;
-  cursor: pointer;
-  transition: border 0.2s, box-shadow 0.2s;
-  &:hover {
-    border: 1.5px solid #BBDEFB;
-    box-shadow: 0 2px 8px rgba(108,99,255,0.08);
-  }
-  img {
-    width: 22px;
-    height: 22px;
-  }
-`;
-
 const RegisterRow = styled.div`
   width: 100%;
   text-align: center;
@@ -250,7 +208,7 @@ const LoginPage: React.FC = () => {
                     type="text"
                     id="userId"
                     name="username"
-                    placeholder="Enter your mail address"
+                    placeholder="아이디를 입력하세요"
                     ref={idRef}
                     autoComplete="username"
                     pattern="[A-Za-z]*"
@@ -263,7 +221,7 @@ const LoginPage: React.FC = () => {
                     type="password"
                     id="password"
                     name="password"
-                    placeholder="Enter password"
+                    placeholder="비밀번호를 입력하세요"
                     ref={pwRef}
                     autoComplete="current-password"
                     required
@@ -278,11 +236,6 @@ const LoginPage: React.FC = () => {
                 </Row>
                 <Button type="submit">로그인</Button>
             </Form>
-            <Divider><span>간편 로그인</span></Divider>
-            <GoogleButton type="button">
-                <img src={googleImage} alt="Google" />
-                구글로 로그인
-            </GoogleButton>
             <RegisterRow>
                 계정이 없으신가요?
                 <Link to="/signup">회원가입</Link>
