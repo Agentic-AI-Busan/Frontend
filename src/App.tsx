@@ -3,6 +3,7 @@ import { Routes, Route, useLocation } from 'react-router-dom'
 import styled, { createGlobalStyle } from 'styled-components'
 import LoginPage from './pages/LoginSingup/loginPage'
 import SignupPage from './pages/LoginSingup/signupPage'
+import AuthPage from './pages/LoginSingup/authPage'
 import MainPage from './pages/mainPage'
 import QuestionPage from './pages/Question/questionPage'
 import MyPage from './pages/Mypage/profileCorrection'
@@ -84,6 +85,7 @@ const AppContent = () => {
             <Route path="/map" element={<MapPage />} />
             <Route path="/editing" element={<EditingPage />} />
             <Route path="*" element={<ErrorPage />} />
+            <Route path="/auth" element={<AuthPage />} />
           </Routes>
         </MainContent>
         {isMainPage && <Footer />}
