@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import logoImage from '../assets/images/t_logo.png';
-import userImage from '../assets/images/Butterfly.jpeg';
+import userImage from '../assets/images/default_profile_img.jpeg';
 import CheckModal from './Modal/CheckModal';
 import { useUser } from '../contexts/UserContext';
 
@@ -152,7 +152,7 @@ const Navbar: React.FC<NavbarProps> = () => {
 
     const handleUserButtonClick = () => {
         if (!user) {
-            navigate('/login');
+            navigate('/auth');
         }
     };
 
@@ -163,7 +163,7 @@ const Navbar: React.FC<NavbarProps> = () => {
         setUser(null);
         setIsCheckModalOpen(false);
         alert('로그아웃 되었습니다.');
-        navigate('/login');
+        navigate('/auth');
     };
     
     return (
