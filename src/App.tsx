@@ -1,8 +1,6 @@
 import './App.css'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import styled, { createGlobalStyle } from 'styled-components'
-import LoginPage from './pages/LoginSingup/loginPage'
-import SignupPage from './pages/LoginSingup/signupPage'
 import AuthPage from './pages/LoginSingup/authPage'
 import MainPage from './pages/mainPage'
 import QuestionPage from './pages/Question/questionPage'
@@ -72,8 +70,6 @@ const AppContent = () => {
         <MainContent $isMapPage={isFullScreenPage}>
           <Routes>
             <Route path="/" element={<MainPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignupPage />} />
             <Route path="/question" element={<QuestionPage />} />
             <Route path="/myPage" element={<MyPage />} />
             <Route path="/joinAgree" element={<JoinAgreePage />} />
