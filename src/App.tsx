@@ -1,14 +1,11 @@
 import './App.css'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import styled, { createGlobalStyle } from 'styled-components'
-import LoginPage from './pages/LoginSingup/loginPage'
-import SignupPage from './pages/LoginSingup/signupPage'
+import AuthPage from './pages/LoginSingup/authPage'
 import MainPage from './pages/mainPage'
 import QuestionPage from './pages/Question/questionPage'
 import MyPage from './pages/Mypage/profileCorrection'
 import ErrorPage from './pages/errorPage'
-import JoinAgreePage from './pages/LoginSingup/joinAgreePage'
-import JoinRegisterPage from './pages/LoginSingup/joinRegisterPage'
 import SelectionAdd from './pages/Selection/selectionAdd'
 import MyGuidePage from './pages/Mypage/myGuidePage'
 import SelectionDestination from './pages/Selection/selectDestination'
@@ -17,7 +14,8 @@ import MapPage from './pages/SchduleEditing/mapPage'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import EditingPage from './pages/SchduleEditing/editingPage'
-import { UserProvider } from './contexts/UserContext';
+import { UserProvider } from './contexts/UserContext'
+import ProtectedRoute from './components/ProtectedRoute'
 
 // styled-components를 위한 타입 정의
 interface ContainerProps {
@@ -62,6 +60,7 @@ const AppContent = () => {
   const location = useLocation();
   const isMainPage = location.pathname === '/';
   const isFullScreenPage = location.pathname === '/map' || location.pathname === '/editing';
+  const isAuthPage = location.pathname === '/auth';
 
   return (
     <>
@@ -70,23 +69,59 @@ const AppContent = () => {
         <Navbar/>
         <MainContent $isMapPage={isFullScreenPage}>
           <Routes>
-            <Route path="/" element={<MainPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignupPage />} />
-            <Route path="/question" element={<QuestionPage />} />
-            <Route path="/myPage" element={<MyPage />} />
-            <Route path="/joinAgree" element={<JoinAgreePage />} />
-            <Route path="/joinRegister" element={<JoinRegisterPage />} />
-            <Route path="/selectionAdd" element={<SelectionAdd />} />
-            <Route path="/myGuide" element={<MyGuidePage />} />
-            <Route path="/selectionDestination" element={<SelectionDestination />} />
-            <Route path="/selectionRestaurant" element={<SelectionRestaurant />} />
-            <Route path="/map" element={<MapPage />} />
-            <Route path="/editing" element={<EditingPage />} />
+            {/* 공개 라우트 */}
+            <Route path="/auth" element={<AuthPage />} />
+            
+            {/* 보호된 라우트 */}
+            <Route path="/" element={
+              <ProtectedRoute>
+                <MainPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/question" element={
+              <ProtectedRoute>
+                <QuestionPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/myPage" element={
+              <ProtectedRoute>
+                <MyPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/selectionAdd" element={
+              <ProtectedRoute>
+                <SelectionAdd />
+              </ProtectedRoute>
+            } />
+            <Route path="/myGuide" element={
+              <ProtectedRoute>
+                <MyGuidePage />
+              </ProtectedRoute>
+            } />
+            <Route path="/selectionDestination" element={
+              <ProtectedRoute>
+                <SelectionDestination />
+              </ProtectedRoute>
+            } />
+            <Route path="/selectionRestaurant" element={
+              <ProtectedRoute>
+                <SelectionRestaurant />
+              </ProtectedRoute>
+            } />
+            <Route path="/map" element={
+              <ProtectedRoute>
+                <MapPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/editing" element={
+              <ProtectedRoute>
+                <EditingPage />
+              </ProtectedRoute>
+            } />
             <Route path="*" element={<ErrorPage />} />
           </Routes>
         </MainContent>
-        {isMainPage && <Footer />}
+        {isMainPage && !isAuthPage && <Footer />}
       </AppContainer>
     </>
   );
