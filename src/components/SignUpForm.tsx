@@ -828,7 +828,7 @@ export default function SignupForm({ onSignupSuccess }) {
                   <option value="">선택</option>
                   <option value="SKT">SKT</option>
                   <option value="KT">KT</option>
-                  <option value="LG U+">LG U+</option>
+                  <option value="LGT">LG U+</option>
                   <option value="알뜰폰">알뜰폰</option>
                 </FormSelect>
               </CarrierSection>
