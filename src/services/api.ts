@@ -110,3 +110,50 @@ export const getUserProfile = async () => {
         return null;
     }
 };
+
+// 아이디 중복 확인을 위한 API 함수
+export const checkUsernameAvailability = async (email: string): Promise<boolean> => {
+    try {
+        const response = await fetch(`/api/users/check-email?email=${encodeURIComponent(email)}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        })
+        const data = await response.json()
+        return data.result
+    } catch (error) {
+        console.error('잘못된 아이디입니다.', error)
+        return true
+    }
+}
+
+export const signupUser = async (signupData: {
+    email: string,
+    password: string,
+    name: string,
+    birthDate: string,
+    gender: string,
+    phoneService: string,
+    phoneNumber: string,
+    profileImage: string,
+    termsOfService: boolean,
+    privacyPolicy: boolean,
+    marketingAgreement: boolean,
+}) => {
+    try {
+        const response = await fetch('api/users/sign-up', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(signupData),
+        })
+        const data = await response.json()
+        console.log(data)
+        return data.result
+    } catch (error) {
+        console.error('회원가입 실패:', error)
+        return false
+    }
+}

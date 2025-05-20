@@ -3,17 +3,7 @@
 import type React from "react"
 import { useState, useEffect } from "react"
 import styled, { keyframes } from "styled-components"
-
-// 아이디 중복 확인을 위한 모의 API 함수
-const checkUsernameAvailability = async (username: string): Promise<boolean> => {
-  // 실제 구현에서는 서버에 API 요청을 보내야 합니다.
-  // 여기서는 모의 구현으로 특정 아이디는 이미 사용 중이라고 가정합니다.
-  await new Promise((resolve) => setTimeout(resolve, 800)) // API 호출 지연 시뮬레이션
-
-  // 테스트를 위해 'testuser1', 'admin123'은 이미 사용 중이라고 가정
-  const takenUsernames = ["testuser1", "admin123"]
-  return !takenUsernames.includes(username)
-}
+import { checkUsernameAvailability, signupUser } from "../services/api"
 
 // Animations
 const slideIn = keyframes`
@@ -463,7 +453,7 @@ export default function SignupForm({ onSignupSuccess }) {
     try {
       const isAvailable = await checkUsernameAvailability(signupForm.email)
 
-      if (isAvailable) {
+      if (!isAvailable) {
         setIsUsernameVerified(true)
         setUsernameError("")
       } else {
@@ -557,7 +547,7 @@ export default function SignupForm({ onSignupSuccess }) {
     }, 300)
   }
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!signupForm.termsOfService) {
@@ -589,10 +579,13 @@ export default function SignupForm({ onSignupSuccess }) {
     }
 
     // 실제 회원가입 API 호출 대신 콘솔 출력
-    console.log("Signup submitted", signupData)
-
-    alert("회원가입이 완료되었습니다. 로그인 페이지로 이동합니다.")
-    onSignupSuccess()
+    const result = await signupUser(signupData)
+    if (result) {
+        alert("회원가입이 완료되었습니다. 로그인 페이지로 이동합니다.")
+        onSignupSuccess()
+    } else {
+        alert("회원가입에 실패했습니다. 다시 시도해주세요.")
+    }
   }
 
   // 약관 보기 버튼 클릭 핸들러
