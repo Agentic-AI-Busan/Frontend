@@ -50,6 +50,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (newUser) {
             setUser({
                 ...newUser,
+                nickname: newUser.nickname !== null ? newUser.nickname : newUser.name,
                 profileImage: defaultProfileImg
             });
         } else {
