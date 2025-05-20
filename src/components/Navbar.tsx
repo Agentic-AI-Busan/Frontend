@@ -158,13 +158,18 @@ const Navbar: React.FC<NavbarProps> = () => {
 
     const handleLogout = () => {
         console.log('로그아웃 처리');
+        const savedUserId = localStorage.getItem('savedUserId');
         localStorage.clear();
+        if (savedUserId) {
+            localStorage.setItem('savedUserId', savedUserId);
+        }
         sessionStorage.clear();
         setUser(null);
         setIsCheckModalOpen(false);
         alert('로그아웃 되었습니다.');
         navigate('/auth');
     };
+
     
     return (
         <>
