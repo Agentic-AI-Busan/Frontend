@@ -315,6 +315,19 @@ const processApiResult = (apiResult: unknown) => {
     
     // 기본 스케줄 데이터 설정
     setSchedules(newSchedules);
+
+    if (tripPlansId) {
+        const storedScheduleData = localStorage.getItem(`scheduleOrder_${tripPlansId}`);
+        if (!storedScheduleData) {
+            try {
+                const simplifiedSchedules = newSchedules.map(ds => ({ day: ds.day, places: ds.places.map(p => ({...p})) }));
+                localStorage.setItem(`scheduleOrder_${tripPlansId}`, JSON.stringify(simplifiedSchedules));
+                console.log('[EditingPage] 초기 데이터 로컬 스토리지 저장 완료 (processApiResult):', simplifiedSchedules);
+            } catch (e) {
+                console.error('로컬 스토리지 저장 실패 (processApiResult):', e);
+            }
+        }
+    }
     
     // 모든 상세 정보 요청이 완료되면 로딩 상태 업데이트
     Promise.all(detailPromises)
