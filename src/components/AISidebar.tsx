@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import SelectionModal from './Modal/SelectionModal';
 import img_3 from '../assets/images/travel_img3.jpg'
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface Message {
     id: number;
@@ -18,8 +20,8 @@ interface Place {
     coordinates?: { lat: number; lng: number };
 }
 
-// 추천 장소를 위한 TravelItem 인터페이스
-interface TravelItem {
+// AISidebar 내부에서 사용하는 추천 장소 인터페이스
+interface AISidebarTravelItem {
     id: number;
     image: string;
     title: string;
@@ -27,6 +29,36 @@ interface TravelItem {
     location?: string;
     coordinates?: { lat: number; lng: number };
     operatingHours?: string;
+}
+
+// SelectionModal과 호환되는 TravelItem 인터페이스
+interface ModalTravelItem {
+    id: number; // AISidebarTravelItem의 id와 동일하게 사용
+    attractionId?: number;
+    restaurantId?: number;
+    imageUrl: string;
+    name: string;
+    title: string; // AISidebarTravelItem의 description에 해당
+    address?: string;
+    latitude?: number;
+    longitude?: number;
+    operatingHours?: string;
+    phoneNumber?: string;
+}
+
+// Chatbot API 요청 본문 타입
+interface ChatRequestBody {
+    query: string;
+    chat_history: string[][]; // 변경된 타입: [질문, 응답] 쌍의 배열
+}
+
+// Chatbot API 응답 타입
+interface ChatApiResponse {
+    query: string;
+    category: string;
+    response: string;
+    sources: Array<{ content_id: number }>;
+    chat_history_length: number;
 }
 
 interface AISidebarProps {
@@ -42,67 +74,92 @@ const AISidebar: React.FC<AISidebarProps> = ({ isOpen, addRecommendedPlace }) =>
     
     // SelectionModal 관련 상태
     const [isSelectionModalOpen, setIsSelectionModalOpen] = useState(false);
-    const [selectedTravelItem, setSelectedTravelItem] = useState<TravelItem | null>(null);
+    const [selectedTravelItem, setSelectedTravelItem] = useState<ModalTravelItem | null>(null);
     
-    // 테스트용 추천 장소 데이터
-    const recommendedPlaces: TravelItem[] = [
-        {
-            id: 1,
-            image: 'https://via.placeholder.com/400x200',
-            title: '해동용궁사',
-            description: '부산의 대표적인 해안 사참로, 아름다운 바다 풍경을 감상할 수 있어요. 동해 바다가 내려다보이는 절벽 위에 자리 잡고 있어 경치가 장관입니다.',
-            location: '부산광역시 기장군 기장읍 용궁길 86',
-            coordinates: { lat: 35.188904, lng: 129.224002 },
-            operatingHours: '04:00 - 19:00 (3월~10월), 04:30 - 18:00 (11월~2월)'
-        },
-        {
-            id: 2,
-            image: 'https://via.placeholder.com/400x200',
-            title: '청사포 다릿돌 전망대',
-            description: '해운대 해수욕장에서 멀지 않은 곳에 위치한 전망대로, 아름다운 해안선과 일출을 감상할 수 있는 장소입니다.',
-            location: '부산광역시 해운대구 청사포로 116',
-            coordinates: { lat: 35.159111, lng: 129.195889 },
-            operatingHours: '항상 개방'
-        },
-        {
-            id: 3,
-            image: 'https://via.placeholder.com/400x200',
-            title: '태종대',
-            description: '부산 영도구 끝자락에 위치한 해안 절벽 공원으로, 울창한 숲과 바다가 어우러진 아름다운 경치를 자랑합니다.',
-            location: '부산광역시 영도구 전망로 24',
-            coordinates: { lat: 35.051417, lng: 129.085472 },
-            operatingHours: '04:00 - 24:00'
-        }
-    ];
+    // 테스트용 추천 장소 데이터 (AISidebarTravelItem 사용)
+    const recommendedPlaces: AISidebarTravelItem[] = []; // 더미 데이터 제거, 빈 배열로 초기화
 
 // 메시지 보내기 함수
-const sendMessage = () => {
+const sendMessage = async () => {
     if (newMessage.trim() === '') return;
-    
-    // 사용자 메시지 추가
+
     const userMessage: Message = {
         id: Date.now(),
         text: newMessage,
         isUser: true
     };
-    
+
+    // 사용자 메시지를 먼저 messages 상태에 추가하고 화면에 표시
     setMessages(prev => [...prev, userMessage]);
+    const currentNewMessage = newMessage; // 비동기 상태 업데이트 대비
     setNewMessage('');
-    
-    // AI 응답 추가 (실제로는 API 호출이 필요합니다)
-    setTimeout(() => {
-        // 특정 키워드가 있으면 추천 기능 제공
-        if (newMessage.includes('추천') || newMessage.includes('가볼만한 곳')) {
-            showRecommendations();
-        } else {
-            const aiResponse: Message = {
-                id: Date.now() + 1,
-                text: "메모에 '해운대 해수욕장은 일몰 시간에 방문하면 아름다운 풍경을 볼 수 있어요. 인근 맛집도 많으니 저녁 식사 계획을 세워보세요.'라고 추가해보시겠어요?",
+
+    // AI 응답 대기 메시지 추가
+    const loadingMessageId = userMessage.id + 1; // 사용자 메시지 ID와 다르게 설정
+    const loadingMessage: Message = {
+        id: loadingMessageId, 
+        text: 'AI가 답변을 작성중입니다...',
+        isUser: false
+    };
+    setMessages(prev => [...prev, loadingMessage]);
+
+    // API 요청을 위한 chat_history 구성 (string[][])
+    const filteredMessages = messages.filter(msg => msg.id !== 1); // 초기 AI 메시지 제외
+    const newChatHistory: string[][] = [];
+    for (let i = 0; i < filteredMessages.length; i += 2) {
+        if (filteredMessages[i]?.isUser && filteredMessages[i+1] && !filteredMessages[i+1]?.isUser) {
+            newChatHistory.push([filteredMessages[i].text, filteredMessages[i+1].text]);
+        }
+        // 만약 마지막 메시지가 사용자 메시지이고 AI 응답이 아직 없다면, 이 부분은 history에 포함되지 않습니다.
+    }
+
+    try {
+        const response = await fetch('http://43.201.16.128/chatbot', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                query: currentNewMessage,
+                chat_history: newChatHistory
+            } as ChatRequestBody),
+        });
+
+        // 응답을 받으면 "작성중..." 메시지 제거
+        setMessages(prev => prev.filter(msg => msg.id !== loadingMessageId)); // msg.id (number)와 loadingMessageId (number) 비교
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ message: 'API 응답 처리 중 오류 발생' }));
+            console.error('API Error:', response.status, errorData);
+            const aiErrorMessage: Message = {
+                id: Date.now() + 1, // 새로운 ID
+                text: `오류가 발생했습니다: ${errorData.message || response.statusText}. 다시 시도해주세요.`,
                 isUser: false
             };
-            setMessages(prev => [...prev, aiResponse]);
+            setMessages(prev => [...prev, aiErrorMessage]);
+            return;
         }
-    }, 800);
+
+        const data: ChatApiResponse = await response.json();
+        const aiResponse: Message = {
+            id: Date.now() + 1, // 새로운 ID
+            text: data.response,
+            isUser: false
+        };
+        setMessages(prev => [...prev, aiResponse]);
+
+    } catch (error) {
+        // 오류 발생 시 "작성중..." 메시지 제거
+        setMessages(prev => prev.filter(msg => msg.id !== loadingMessageId)); // msg.id (number)와 loadingMessageId (number) 비교
+        
+        console.error('Failed to send message or parse response:', error);
+        const aiErrorMessage: Message = {
+            id: Date.now() + 1, // 새로운 ID
+            text: '메시지 전송 중 오류가 발생했습니다. 네트워크 연결을 확인해주세요.',
+            isUser: false
+        };
+        setMessages(prev => [...prev, aiErrorMessage]);
+    }
 };
 
 const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -113,29 +170,25 @@ const handleKeyPress = (e: React.KeyboardEvent) => {
 };
 
 // 장소 추천 메시지 표시
-const showRecommendations = () => {
-    const recommendMessage: Message = {
-        id: Date.now(),
-        text: '부산에서 꼭 가봐야 할 장소를 추천해 드릴게요:',
-        isUser: false
-    };
-    
-    setMessages(prev => [...prev, recommendMessage]);
-    
-    // 카드형 추천 메시지 표시
-    setTimeout(() => {
-        const cardMessage: Message = {
-            id: Date.now() + 1,
-            text: '<recommendation-cards>',
-            isUser: false
-        };
-        setMessages(prev => [...prev, cardMessage]);
-    }, 500);
-};
+// const showRecommendations = () => { ... }; // 이 함수 전체를 삭제합니다.
 
 // 추천 장소 선택 처리 함수
-const handleSelectRecommendation = (item: TravelItem) => {
-    setSelectedTravelItem(item);
+const handleSelectRecommendation = (item: AISidebarTravelItem) => {
+    // SelectionModal에서 사용할 형태로 변환
+    const modalItem: ModalTravelItem = {
+        id: item.id,
+        name: item.title, 
+        imageUrl: item.image, 
+        title: item.description, 
+        address: item.location,
+        latitude: item.coordinates?.lat,
+        longitude: item.coordinates?.lng,
+        operatingHours: item.operatingHours,
+        // ModalTravelItem에만 있는 필드는 undefined 또는 기본값으로 설정
+        // attractionId, restaurantId, phoneNumber 등은 여기서 설정하지 않거나,
+        // item에 해당 정보가 있다면 매핑합니다. 현재 AISidebarTravelItem에는 해당 필드가 없습니다.
+    };
+    setSelectedTravelItem(modalItem);
     setIsSelectionModalOpen(true);
 };
 
@@ -159,7 +212,7 @@ const handleAddSelectedPlace = () => {
     setTimeout(() => {
         const buttonMessage: Message = {
             id: Date.now() + 1,
-            text: `<add-place id=${selectedTravelItem.id}>`,
+            text: `<add-place id=${selectedTravelItem.id}>`, // id는 ModalTravelItem의 id를 사용
             isUser: false
         };
         setMessages(prev => [...prev, buttonMessage]);
@@ -168,17 +221,19 @@ const handleAddSelectedPlace = () => {
 
 // 장소 추가 실행 함수
 const executeAddPlace = (placeId: number, day?: number) => {
-    // 선택한 장소 찾기
-    const selectedPlace = recommendedPlaces.find(place => place.id === placeId);
-    if (!selectedPlace || !addRecommendedPlace) return;
+    // recommendedPlaces에서 AISidebarTravelItem을 찾아야 함
+    // selectedTravelItem은 ModalTravelItem 타입이므로 직접 비교 X
+    const originalRecommendedPlace = recommendedPlaces.find(place => place.id === placeId);
+
+    if (!originalRecommendedPlace || !addRecommendedPlace) return;
     
     // AISidebar Place 형식으로 변환
     const placeToAdd: Place = {
-        id: selectedPlace.id,
-        name: selectedPlace.title,
-        address: selectedPlace.location || '',
-        imageUrl: selectedPlace.image,
-        coordinates: selectedPlace.coordinates
+        id: originalRecommendedPlace.id,
+        name: originalRecommendedPlace.title,
+        address: originalRecommendedPlace.location || '',
+        imageUrl: originalRecommendedPlace.image,
+        coordinates: originalRecommendedPlace.coordinates
     };
     
     // 장소 추가
@@ -188,7 +243,7 @@ const executeAddPlace = (placeId: number, day?: number) => {
     const resultMessage: Message = {
         id: Date.now(),
         text: result 
-            ? `${day ? day + '일차' : '적절한 일차'}에 ${selectedPlace.title}가 추가되었습니다.` 
+            ? `${day ? day + '일차' : '적절한 일차'}에 ${originalRecommendedPlace.title}가 추가되었습니다.` 
             : '장소 추가에 실패했습니다.',
         isUser: false
     };
@@ -203,7 +258,7 @@ const renderMessage = (message: Message) => {
         return (
             <MessageBubble key={message.id} isUser={message.isUser}>
                 <RecommendationCards>
-                    {recommendedPlaces.map(place => (
+                    {recommendedPlaces.map(place => ( 
                         <RecommendationCard 
                             key={place.id}
                             onClick={() => handleSelectRecommendation(place)}
@@ -237,12 +292,24 @@ const renderMessage = (message: Message) => {
         );
     }
     
-    // 일반 메시지
-    return (
-        <MessageBubble key={message.id} isUser={message.isUser}>
-            {message.text}
-        </MessageBubble>
-    );
+    // 일반 메시지 (사용자 또는 AI)
+    if (message.isUser) {
+        // 사용자가 보낸 메시지
+        return (
+            <MessageBubble key={message.id} isUser={message.isUser}>
+                {message.text}
+            </MessageBubble>
+        );
+    } else {
+        // AI가 보낸 메시지 (마크다운 렌더링 적용)
+        return (
+            <MessageBubble key={message.id} isUser={message.isUser}>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {message.text}
+                </ReactMarkdown>
+            </MessageBubble>
+        );
+    }
 };
 
 return (
@@ -425,6 +492,31 @@ const MessageBubble = styled.div<{ isUser: boolean }>`
         'border-bottom-right-radius: 4px;' : 
         'border-bottom-left-radius: 4px;'
     }
+
+    // AI 메시지 내부의 마크다운 렌더링 요소 스타일 조정
+    ${props => !props.isUser && `
+        p, ul, ol {
+            margin-top: 0;
+            margin-bottom: 0;
+        }
+        // 연속되는 블록 요소들 사이에 일관된 간격 추가
+        p:not(:last-child),
+        ul:not(:last-child),
+        ol:not(:last-child) {
+            // margin-bottom: 0px;
+        }
+        // 목록 들여쓰기 유지
+        ul, ol {
+            padding-left: 20px; // 일반적인 목록 들여쓰기, 필요시 조정
+            margin-top: 10px;
+            margin-bottom: 20px;
+        }
+        // li 요소 자체의 마진이 문제라면 추가 조정 가능
+        li {
+            margin-top: 10px;
+            margin-bottom: 10px; 
+        }
+    `}
 `;
 
 const ChatInputContainer = styled.div`
