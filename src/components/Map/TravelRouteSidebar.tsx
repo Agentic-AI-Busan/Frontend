@@ -510,6 +510,8 @@ interface TravelRouteSidebarProps {
     onOptimizeRoute?: () => void;
     onShareRoute?: () => void;
     onPlaceHover?: (placeId: number) => void;
+    preferredStartTime?: string;
+    preferredEndTime?: string;
 }
 
 // 날씨 상태에 따른 이모지를 반환하는 함수
@@ -540,7 +542,9 @@ const TravelRouteSidebar: React.FC<TravelRouteSidebarProps> = ({
     activeDay,
     onOptimizeRoute,
     onShareRoute,
-    onPlaceHover
+    onPlaceHover,
+    preferredStartTime,
+    preferredEndTime
 }) => {
     // 선택된 일차에 해당하는 데이터 찾기
     const selectedDayData = routes.find(day => day.day === activeDay) || routes[0];
@@ -553,11 +557,11 @@ const TravelRouteSidebar: React.FC<TravelRouteSidebarProps> = ({
     const lastPlaceTime = selectedDayData.places[selectedDayData.places.length - 1]?.time || "";
     
     // 요약 정보
-    const summary = selectedDayData.summary || {
-        totalDistance: "12.5km",
-        totalTime: "2시간 30분",
-        startTime: firstPlaceTime, 
-        endTime: lastPlaceTime
+    const summary = {
+        totalDistance: selectedDayData.summary?.totalDistance || "정보 없음",
+        totalTime: selectedDayData.summary?.totalTime || "정보 없음",
+        startTime: preferredStartTime || selectedDayData.summary?.startTime || firstPlaceTime, 
+        endTime: preferredEndTime || selectedDayData.summary?.endTime || lastPlaceTime
     };
     
     // 날씨 이모지 가져오기

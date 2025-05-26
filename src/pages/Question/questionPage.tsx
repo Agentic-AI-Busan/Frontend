@@ -4,9 +4,8 @@ import flatpickr from 'flatpickr';
 import { Korean } from 'flatpickr/dist/l10n/ko';
 import 'flatpickr/dist/flatpickr.min.css';
 import styled from 'styled-components';
-
-import { authenticatedFetch } from '../../services/api';
 import { useUser } from '../../contexts/UserContext';
+import { authenticatedFetch } from '../../services/api';
 import QuestionSidebar from '../../components/QuestionSidebar';
 import LoadingSpinner from '../../components/LoadingSpinner';
 
@@ -600,6 +599,29 @@ const Button = styled.button`
     }
 `;
 
+const TimeConfirmButton = styled.button`
+    padding: 10px 18px;
+    margin-top: 10px;
+    margin-right: 10px;
+    cursor: pointer;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+
+    &:hover:not(:disabled) {
+        background-color: #2980b9; // 호버 시 약간 어두운 파란색
+    }
+
+    &:disabled {
+        background-color: #bdc3c7; // 비활성화 시 회색 계열
+        cursor: not-allowed;
+    }
+`;
+
 const getQuestion = (userName: string) => [
     "안녕하세요!",
     `이번 여행에서 ${userName}님의 가이드를 맞게된 AI 어시스턴트입니다!`,
@@ -611,6 +633,8 @@ const getQuestion = (userName: string) => [
     `${userName}님은 어떤 종류의 음식을 선호하시나요?`,
     `${userName}님은 못먹는 종류의 음식이 있으신가요?`,
     `${userName}님은 어떤 교통수단을 이용하시나요?`,
+    "몇 시에 일정을 시작하시나요?",
+    "몇 시에 일정을 마치길 선호하시나요?",
     "추가적으로 반영하고 싶은 내용이 있나요?",
     `${userName}님의 답변 내용을 바탕으로 여행지를 추천해드리겠습니다!`,
     "잠시만 기다려주세요!"
@@ -657,7 +681,9 @@ const QuestionPage: React.FC = () => {
         requirement: "",
         ageRange: "",
         numberOfPeople: "",
-        transportation: ""
+        transportation: "",
+        preferredStartTime: "",
+        preferredEndTime: ""
     });
 
     // 임시 날짜 범위 저장
@@ -666,11 +692,228 @@ const QuestionPage: React.FC = () => {
         end: ""
     });
 
+    // 임시 선호 시간 저장
+    const [tempPreferredTime, setTempPreferredTime] = useState<string>("");
+
     // 보여질 섹션 관리
     const [visibleSections, setVisibleSections] = useState<string[]>(["city"]);
 
     const inputRef = useRef<HTMLInputElement>(null);
     const messageEndRef = useRef<HTMLDivElement>(null);
+
+    // Flatpickr 인스턴스 저장을 위한 Refs
+    const datePickerRef = useRef<flatpickr.Instance | null>(null);
+    const startTimePickerRef = useRef<flatpickr.Instance | null>(null);
+    const endTimePickerRef = useRef<flatpickr.Instance | null>(null);
+
+    // handleSendMessageInternal 함수를 먼저 정의합니다.
+    const handleSendMessageInternal = (messageContent: string) => {
+        setIsQuestionInProgress(true);
+        const currentTime = new Date().toLocaleTimeString('ko-KR', { hour12: false, hour: '2-digit', minute: '2-digit' });
+        
+        // 버튼 클릭으로 인한 내부 호출이 아닐 경우(즉, 사용자가 직접 입력한 경우)에만 사용자 메시지를 채팅에 추가
+        if (messageContent !== "TIME_CONFIRMED_START" && messageContent !== "TIME_CONFIRMED_END" && messageContent !== "DATE_CONFIRMED") {
+            setChatHistory(prev => [...prev, {
+                content: messageContent,
+                timestamp: currentTime,
+                isResponse: true
+            }]);
+        }
+
+        const currentQuestionText = question[currentQuestionIndex -1]; 
+
+        // 날짜 확인 응답 처리 (텍스트 '네' 또는 버튼 클릭)
+        if (tempDateRange.start && tempDateRange.end && currentQuestionText?.includes("여행기간은 언제인가요") && (messageContent.toLowerCase() === '네' || messageContent === "DATE_CONFIRMED")) {
+            updateUserAnswer({ startDate: tempDateRange.start, endDate: tempDateRange.end });
+            localStorage.setItem('startDate', tempDateRange.start);
+            localStorage.setItem('endDate', tempDateRange.end);
+            handleUserResponse(messageContent === "DATE_CONFIRMED" ? `${tempDateRange.start} ~ ${tempDateRange.end}` : messageContent, currentQuestionText); 
+
+            if(messageContent === "DATE_CONFIRMED" && tempDateRange.start && tempDateRange.end){
+                setChatHistory(prev => [...prev, {
+                    content: `여행 기간을 ${tempDateRange.start} ~ ${tempDateRange.end}(으)로 설정할게요.`,
+                    timestamp: currentTime,
+                    isResponse: true
+                }]);
+            }
+
+            const calendarPickerDOM = document.querySelector('.calendar-message .flatpickr-calendar');
+            if (calendarPickerDOM) calendarPickerDOM.classList.add('disabled');
+            const confirmButtonDate = document.getElementById('confirm-date-btn');
+            if (confirmButtonDate) confirmButtonDate.style.display = 'none';
+
+            setTempDateRange({ start: "", end: "" });
+            handleNextQuestion(); 
+        } else if (tempDateRange.start && tempDateRange.end && currentQuestionText?.includes("여행기간은 언제인가요")) {
+            setIsQuestionInProgress(true);
+            setTimeout(() => {
+                setChatHistory(prev => [...prev, { content: "날짜를 다시 선택해주세요.", timestamp: currentTime, isResponse: false }]);
+                if (datePickerRef.current) {
+                    datePickerRef.current.clear();
+                    const calendarDOM = datePickerRef.current.calendarContainer.querySelector('.flatpickr-calendar');
+                    if (calendarDOM) calendarDOM.classList.remove('disabled');
+                    const confirmButtonDate = document.getElementById('confirm-date-btn');
+                    if (confirmButtonDate) confirmButtonDate.style.display = 'inline-block';
+                }
+                setTempDateRange({ start: "", end: "" });
+                setIsQuestionInProgress(false); 
+            }, 1000);
+        // 선호 시작 시간 확인 응답 처리 (텍스트 '네' 또는 버튼 클릭)
+        } else if (tempPreferredTime && currentQuestionText?.includes("몇 시에 일정을 시작하시나요?") && (messageContent.toLowerCase() === '네' || messageContent === "TIME_CONFIRMED_START")) {
+            updateUserAnswer({ preferredStartTime: tempPreferredTime });
+            localStorage.setItem('preferredStartTime', tempPreferredTime);
+            handleUserResponse(messageContent === "TIME_CONFIRMED_START" ? tempPreferredTime : messageContent, currentQuestionText); 
+            
+            if(messageContent === "TIME_CONFIRMED_START"){
+                setChatHistory(prev => [...prev, {
+                    content: `${tempPreferredTime}에 일정을 시작할게요.`,
+                    timestamp: currentTime,
+                    isResponse: true
+                }]);
+            }
+            const startTimePickerDOM = document.querySelector('.timepicker-start-preference-message .flatpickr-calendar');
+            if (startTimePickerDOM) startTimePickerDOM.classList.add('disabled');
+            const confirmButtonStart = document.getElementById('confirm-time-start-btn');
+            if (confirmButtonStart) confirmButtonStart.style.display = 'none';
+
+            setTempPreferredTime("");
+            handleNextQuestion(); 
+        } else if (tempPreferredTime && currentQuestionText?.includes("몇 시에 일정을 시작하시나요?")) {
+            setIsQuestionInProgress(true);
+            setTimeout(() => {
+                setChatHistory(prev => [...prev, { content: "시작 시간을 다시 선택해주세요.", timestamp: currentTime, isResponse: false }]);
+                if (startTimePickerRef.current) {
+                    startTimePickerRef.current.clear();
+                    const timepickerDOM = startTimePickerRef.current.calendarContainer.querySelector('.flatpickr-calendar');
+                    if (timepickerDOM) timepickerDOM.classList.remove('disabled');
+                    const confirmButtonStart = document.getElementById('confirm-time-start-btn');
+                    if (confirmButtonStart) confirmButtonStart.style.display = 'inline-block'; 
+                }
+                setTempPreferredTime("");
+                setIsQuestionInProgress(false);
+            }, 1000);
+        // 선호 종료 시간 확인 응답 처리 (텍스트 '네' 또는 버튼 클릭)
+        } else if (tempPreferredTime && currentQuestionText?.includes("몇 시에 일정을 마치길 선호하시나요") && (messageContent.toLowerCase() === '네' || messageContent === "TIME_CONFIRMED_END")) {
+            updateUserAnswer({ preferredEndTime: tempPreferredTime });
+            localStorage.setItem('preferredEndTime', tempPreferredTime);
+            handleUserResponse(messageContent === "TIME_CONFIRMED_END" ? tempPreferredTime : messageContent, currentQuestionText); 
+
+            if(messageContent === "TIME_CONFIRMED_END"){
+                setChatHistory(prev => [...prev, {
+                    content: `${tempPreferredTime}에 일정을 마칠게요.`,
+                    timestamp: currentTime,
+                    isResponse: true
+                }]);
+            }
+            const endTimePickerDOM = document.querySelector('.timepicker-end-preference-message .flatpickr-calendar');
+            if (endTimePickerDOM) endTimePickerDOM.classList.add('disabled');
+            const confirmButtonEnd = document.getElementById('confirm-time-end-btn');
+            if (confirmButtonEnd) confirmButtonEnd.style.display = 'none';
+
+            setTempPreferredTime("");
+            handleNextQuestion(); 
+        } else if (tempPreferredTime && currentQuestionText?.includes("몇 시에 일정을 마치길 선호하시나요")) {
+            setIsQuestionInProgress(true);
+            setTimeout(() => {
+                setChatHistory(prev => [...prev, { content: "종료 시간을 다시 선택해주세요.", timestamp: currentTime, isResponse: false }]);
+                if (endTimePickerRef.current) {
+                    endTimePickerRef.current.clear();
+                    const timepickerDOM = endTimePickerRef.current.calendarContainer.querySelector('.flatpickr-calendar');
+                    if (timepickerDOM) timepickerDOM.classList.remove('disabled');
+                    const confirmButtonEnd = document.getElementById('confirm-time-end-btn');
+                    if (confirmButtonEnd) confirmButtonEnd.style.display = 'inline-block';
+                }
+                setTempPreferredTime("");
+                setIsQuestionInProgress(false);
+            }, 1000);
+        } else {
+            // 위에서 모든 피커 관련 확인/재선택 로직이 처리되었으므로,
+            // 여기에 도달했다면 일반 텍스트 질문이거나, 피커 질문이지만 사용자가 '네' 또는 확인 버튼 외의 입력을 한 경우.
+            // 단, currentQuestionText가 undefined가 아닐 때만 일반 텍스트 질문으로 간주.
+            if (currentQuestionText && !currentQuestionText.includes("여행기간은 언제인가요") && !currentQuestionText.includes("몇 시에 일정을 시작하시나요?") && !currentQuestionText.includes("몇 시에 일정을 마치길 선호하시나요")) {
+                handleUserResponse(messageContent, currentQuestionText);
+                handleNextQuestion(); 
+            } else if (currentQuestionText) {
+                // 피커 질문에 대해 '네'나 확인 버튼이 아닌 다른 텍스트가 입력된 경우,
+                // 이미 각 피커 재선택 로직에서 처리했어야 하지만, 만약의 경우를 대비해 사용자 입력을 다시 유도.
+                // (예: 사용자가 시간 선택 없이 바로 텍스트 입력)
+                // 이 경우 isQuestionInProgress를 false로 두어 입력창을 다시 활성화.
+                 setIsQuestionInProgress(false);
+            } else {
+                // currentQuestionText가 없는 초기 상태 또는 오류 상황
+                 setIsQuestionInProgress(false);
+            }
+        }
+    };
+
+    const handleSendMessage = () => {
+        const trimmedInput = inputValue.trim();
+        if (trimmedInput !== "" && !isQuestionInProgress && !isComplete) {
+            handleSendMessageInternal(trimmedInput);
+            setInputValue("");
+        }
+    };
+
+    const handleNextQuestion = () => {
+        // currentQuestionIndex는 현재 AI가 답변을 기다리는 질문의 인덱스라고 가정.
+        // 즉, question[currentQuestionIndex] 가 다음에 나올 질문임.
+        if (currentQuestionIndex < question.length - 2) { // 마지막 두 개의 AI 전용 메시지 전까지
+            setIsQuestionInProgress(true);
+            const nextQuestionText = question[currentQuestionIndex];
+            let timePickerContent: string | null = null;
+            const messagesToAdd: Message[] = [];
+
+            messagesToAdd.push({
+                content: nextQuestionText,
+                timestamp: new Date().toLocaleTimeString('ko-KR', { hour12: false, hour: '2-digit', minute: '2-digit' }),
+                isResponse: false
+            });
+
+            if (nextQuestionText.includes("몇 시에 일정을 시작하시나요?")) {
+                timePickerContent = "timepicker_start_preference";
+            } else if (nextQuestionText.includes("몇 시에 일정을 마치길 선호하시나요?")) {
+                timePickerContent = "timepicker_end_preference";
+            }
+
+            if (timePickerContent) {
+                messagesToAdd.push({
+                    content: timePickerContent,
+                    timestamp: new Date().toLocaleTimeString('ko-KR', { hour12: false, hour: '2-digit', minute: '2-digit' }),
+                    isResponse: false
+                });
+            }
+
+            setTimeout(() => {
+                setChatHistory(prev => [...prev, ...messagesToAdd]);
+                // 다음 "질문" 텍스트의 인덱스로 업데이트
+                setCurrentQuestionIndex(prev => prev + 1); 
+                setIsQuestionInProgress(false);
+            }, 1000);
+        } else {
+            triggerCompletionSequence();
+        }
+    };
+
+    const triggerCompletionSequence = () => {
+        setIsQuestionInProgress(true);
+        setTimeout(() => {
+            setChatHistory(prev => [...prev, {
+                content: question[question.length - 2], // "...답변 내용을 바탕으로..."
+                timestamp: new Date().toLocaleTimeString('ko-KR', { hour12: false, hour: '2-digit', minute: '2-digit' }),
+                isResponse: false
+            }]);
+
+            setTimeout(() => {
+                setChatHistory(prev => [...prev, {
+                    content: question[question.length - 1], // "잠시만 기다려주세요!"
+                    timestamp: new Date().toLocaleTimeString('ko-KR', { hour12: false, hour: '2-digit', minute: '2-digit' }),
+                    isResponse: false
+                }]);
+                
+                setTimeout(() => setIsComplete(true), 1000);
+            }, 1000);
+        }, 1000);
+    };
 
     // 채팅창 자동 스크롤
     const scrollToBottom = () => {
@@ -716,7 +959,9 @@ const QuestionPage: React.FC = () => {
                         requirement: data.result.requirement ?? prev.requirement,
                         ageRange: data.result.ageRange ?? prev.ageRange,
                         numberOfPeople: data.result.numberOfPeople ?? prev.numberOfPeople,
-                        transportation: data.result.transportation ?? prev.transportation
+                        transportation: data.result.transportation ?? prev.transportation,
+                        preferredStartTime: data.result.preferredStartTime ?? prev.preferredStartTime,
+                        preferredEndTime: data.result.preferredEndTime ?? prev.preferredEndTime
                     }));
                 }
             } catch (error) {
@@ -787,21 +1032,23 @@ const QuestionPage: React.FC = () => {
     useEffect(() => {
         const isDateQuestion = defaultQuestions.length > 0 && 
             defaultQuestions[defaultQuestions.length - 1].content.includes("여행기간은 언제인가요?") &&
-            !chatHistory.some(msg => msg.content === "calendar");
+            !chatHistory.some(msg => msg.content === "calendar") &&
+            currentQuestionIndex === 4; // 정확히 해당 질문 순서일 때만
         
         if (isDateQuestion && !isQuestionInProgress) {
             setIsQuestionInProgress(true);
-            
+            // 다음 메시지로 캘린더 컴포넌트 추가
             setChatHistory(prev => [...prev, {
-                content: "calendar",
+                content: "calendar", // 특수 키워드로 캘린더 메시지 식별
                 timestamp: new Date().toLocaleTimeString('ko-KR', { hour12: false, hour: '2-digit', minute: '2-digit' }),
                 isResponse: false
             }]);
 
+            // 캘린더 렌더링 (DOM 업데이트 후)
             setTimeout(() => {
                 const calendarElement = document.querySelector('.calendar-message');
-                if (calendarElement) {
-                    flatpickr(calendarElement, {
+                if (calendarElement && !datePickerRef.current) { // 인스턴스가 없거나 파괴된 경우에만 새로 생성
+                    datePickerRef.current = flatpickr(calendarElement as HTMLElement, {
                         locale: Korean,
                         mode: "range",
                         inline: true,
@@ -818,10 +1065,10 @@ const QuestionPage: React.FC = () => {
                                     end: endDate
                                 });
 
-                                // 캘린더 비활성화
-                                const calendarElement = document.querySelector('.flatpickr-calendar');
-                                if (calendarElement) {
-                                    calendarElement.classList.add('disabled');
+                                // 캘린더 비활성화 (DOM 직접 조작)
+                                const calendarDOM = calendarElement.querySelector('.flatpickr-calendar');
+                                if (calendarDOM) {
+                                    calendarDOM.classList.add('disabled');
                                 }
 
                                 // 확인 메시지 표시
@@ -830,16 +1077,92 @@ const QuestionPage: React.FC = () => {
                                     timestamp: new Date().toLocaleTimeString('ko-KR', { hour12: false, hour: '2-digit', minute: '2-digit' }),
                                     isResponse: false
                                 }]);
-                                setIsQuestionInProgress(false);
+                                setIsQuestionInProgress(false); // 사용자 입력 활성화
                             }
                         }
                     });
                 }
-            }, 100);
+            }, 100); // DOM 업데이트 기다리는 시간
         }
-    }, [defaultQuestions, isQuestionInProgress]);
+    }, [defaultQuestions, chatHistory, currentQuestionIndex, isQuestionInProgress, question]); // chatHistory 추가
 
-    // 다음 질문 표시 (캘린더 이후 질문들)
+    // 선호 시작 시간 질문 처리
+    useEffect(() => {
+        // AI가 시작 시간 질문을 했고, 해당 타임피커 메시지가 채팅에 추가되었는지 확인
+        const qStartTimeQuestionExists = chatHistory.some(msg => !msg.isResponse && msg.content.includes("몇 시에 일정을 시작하시나요?"));
+        const qStartTimePickerMessageExists = chatHistory.some(msg => msg.content === "timepicker_start_preference");
+        const qShouldInitializeStartTimePicker = qStartTimeQuestionExists && qStartTimePickerMessageExists && !startTimePickerRef.current;
+
+        if (qShouldInitializeStartTimePicker) {
+            setTimeout(() => {
+                const timepickerElement = document.querySelector('.timepicker-start-preference-message');
+                if (timepickerElement && !startTimePickerRef.current) {
+                    startTimePickerRef.current = flatpickr(timepickerElement as HTMLElement, {
+                        inline: true,
+                        enableTime: true,
+                        noCalendar: true,
+                        dateFormat: "H:i",
+                        minuteIncrement: 30,
+                        defaultHour: 10,
+                        defaultMinute: 0,
+                        onReady: function(selectedDates, dateStr, instance) {
+                            // 인스턴스 준비 시 기본 설정된 시간을 tempPreferredTime 상태에 저장
+                            const defaultDate = new Date();
+                            defaultDate.setHours(instance.config.defaultHour || 0, instance.config.defaultMinute || 0, 0, 0);
+                            const initialTime = flatpickr.formatDate(defaultDate, "H:i");
+                            setTempPreferredTime(initialTime);
+                        },
+                        onChange: (selectedDates) => {
+                            if (selectedDates.length > 0) {
+                                const selectedTime = flatpickr.formatDate(selectedDates[0], "H:i");
+                                setTempPreferredTime(selectedTime);
+                            }
+                        }
+                    });
+                }
+            }, 0);
+        }
+    }, [chatHistory]);
+
+    // 선호 종료 시간 질문 처리
+    useEffect(() => {
+        // AI가 종료 시간 질문을 했고, 해당 타임피커 메시지가 채팅에 추가되었는지 확인
+        const qEndTimeQuestionExists = chatHistory.some(msg => !msg.isResponse && msg.content.includes("몇 시에 일정을 마치길 선호하시나요?"));
+        const qEndTimePickerMessageExists = chatHistory.some(msg => msg.content === "timepicker_end_preference");
+        const qShouldInitializeEndTimePicker = qEndTimeQuestionExists && qEndTimePickerMessageExists && !endTimePickerRef.current;
+
+        if (qShouldInitializeEndTimePicker) {
+            setTimeout(() => {
+                const timepickerElement = document.querySelector('.timepicker-end-preference-message');
+                if (timepickerElement && !endTimePickerRef.current) {
+                    endTimePickerRef.current = flatpickr(timepickerElement as HTMLElement, {
+                        inline: true,
+                        enableTime: true,
+                        noCalendar: true,
+                        dateFormat: "H:i",
+                        minuteIncrement: 30,
+                        defaultHour: 18,
+                        defaultMinute: 0,
+                        onReady: function(selectedDates, dateStr, instance) {
+                            // 인스턴스 준비 시 기본 설정된 시간을 tempPreferredTime 상태에 저장
+                            const defaultDate = new Date();
+                            defaultDate.setHours(instance.config.defaultHour || 0, instance.config.defaultMinute || 0, 0, 0);
+                            const initialTime = flatpickr.formatDate(defaultDate, "H:i");
+                            setTempPreferredTime(initialTime);
+                        },
+                        onChange: (selectedDates) => {
+                            if (selectedDates.length > 0) {
+                                const selectedTime = flatpickr.formatDate(selectedDates[0], "H:i");
+                                setTempPreferredTime(selectedTime);
+                            }
+                        }
+                    });
+                }
+            }, 0);
+        }
+    }, [chatHistory]);
+
+    // 다음 질문 표시 (캘린더 또는 타임피커 이후 질문들)
     useEffect(() => {
         if (currentQuestionIndex > 4 && currentQuestionIndex < question.length && !isQuestionInProgress) {
             const lastMessage = chatHistory[chatHistory.length - 1];
@@ -891,6 +1214,10 @@ const QuestionPage: React.FC = () => {
             } else if (currentQuestion.includes("교통수단을 이용하시나요")) {
                 setVisibleSections(prev => [...prev, "transportation"]);
                 updateUserAnswer({ transportation: response });
+            } else if (currentQuestion.includes("몇 시에 일정을 시작하시나요?")) {
+                setVisibleSections(prev => [...prev, "preferredStartTime"]);
+            } else if (currentQuestion.includes("몇 시에 일정을 마치길 선호하시나요")) {
+                setVisibleSections(prev => [...prev, "preferredEndTime"]);
             } else if (currentQuestion.includes("추가적으로 반영하고 싶은 내용이 있나요")) {
                 setVisibleSections(prev => [...prev, "requirement"]);
                 updateUserAnswer({ requirement: response });
@@ -898,157 +1225,12 @@ const QuestionPage: React.FC = () => {
         }, 500);
     };
 
-    // 메시지 전송 처리
-    const handleSendMessage = () => {
-        if (inputValue.trim() !== "" && !isQuestionInProgress && !isComplete) {
-            setIsQuestionInProgress(true);
-            const currentTime = new Date().toLocaleTimeString('ko-KR', { hour12: false, hour: '2-digit', minute: '2-digit' });
-            const currentQuestion = question[currentQuestionIndex - 1];
-            
-            // 사용자 응답 추가
-            setChatHistory(prev => [...prev, {
-                content: inputValue,
-                timestamp: currentTime,
-                isResponse: true
-            }]);
-
-            // 날짜 확인 응답 처리
-            if (tempDateRange.start && tempDateRange.end && inputValue.toLowerCase() === '네') {
-                updateUserAnswer({ startDate: tempDateRange.start });
-                updateUserAnswer({ endDate: tempDateRange.end });
-                // 섹션 표시 업데이트
-                handleUserResponse(inputValue, currentQuestion);
-
-                // 캘린더 비활성화
-                const calendarElement = document.querySelector('.flatpickr-calendar');
-                if (calendarElement) {
-                    calendarElement.classList.add('disabled');
-                }
-
-                // 다음 질문으로 진행
-                setTimeout(() => {
-                    setChatHistory(prev => [...prev, {
-                        content: question[currentQuestionIndex],
-                        timestamp: new Date().toLocaleTimeString('ko-KR', { hour12: false, hour: '2-digit', minute: '2-digit' }),
-                        isResponse: false
-                    }]);
-                    setCurrentQuestionIndex(prev => prev + 1);
-                    setIsQuestionInProgress(false);
-                    // 임시 저장된 날짜 초기화
-                    setTempDateRange({ start: "", end: "" });
-                }, 1000);
-            } else if (tempDateRange.start && tempDateRange.end) {
-                // '네'가 아닌 다른 응답인 경우 캘린더 재선택 안내
-                setIsQuestionInProgress(true);
-                setTimeout(() => {
-                    setChatHistory(prev => [...prev, {
-                        content: "날짜를 다시 선택해주세요.",
-                        timestamp: new Date().toLocaleTimeString('ko-KR', { hour12: false, hour: '2-digit', minute: '2-digit' }),
-                        isResponse: false
-                    }]);
-                    
-                    // 캘린더 초기화 및 재생성
-                    const calendar = document.querySelector('.calendar-message');
-                    if (calendar) {
-                        const fp = flatpickr(calendar, {
-                            locale: Korean,
-                            mode: "range",
-                            inline: true,
-                            dateFormat: "Y-m-d",
-                            onChange: (selectedDates) => {
-                                if (selectedDates.length === 2) {
-                                    const startDate = formatDateToYMD(selectedDates[0]);
-                                    const endDate = formatDateToYMD(selectedDates[1]);
-                                    const dateRange = `${startDate} ~ ${endDate}`;
-
-                                    // 임시로 날짜 데이터 저장
-                                    setTempDateRange({
-                                        start: startDate,
-                                        end: endDate
-                                    });
-
-                                    // 캘린더 비활성화
-                                    const calendarElement = calendar.querySelector('.flatpickr-calendar');
-                                    if (calendarElement) {
-                                        calendarElement.classList.add('disabled');
-                                    }
-
-                                    // 확인 메시지 표시
-                                    setChatHistory(prev => [...prev, {
-                                        content: `선택하신 기간이 ${dateRange} 맞으신가요? 맞으시다면 '네'를 입력해주세요.`,
-                                        timestamp: new Date().toLocaleTimeString('ko-KR', { hour12: false, hour: '2-digit', minute: '2-digit' }),
-                                        isResponse: false
-                                    }]);
-                                    setIsQuestionInProgress(false);
-                                }
-                            }
-                        });
-                        fp.clear();
-                        
-                        // 캘린더 활성화
-                        const calendarElement = calendar.querySelector('.flatpickr-calendar');
-                        if (calendarElement) {
-                            calendarElement.classList.remove('disabled');
-                        }
-                    }
-                    setTempDateRange({ start: "", end: "" });
-                    
-                    // 캘린더 위치로 스크롤
-                    const calendarMessage = document.querySelector('.calendar-message');
-                    if (calendarMessage) {
-                        const calendarContainer = calendarMessage.closest('.Message');
-                        if (calendarContainer) {
-                            calendarContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        }
-                    }
-                }, 1000);
-            } else {
-                // 일반적인 질문 처리
-                handleUserResponse(inputValue, currentQuestion);
-
-                if (currentQuestion.includes("추가적으로 반영하고 싶은 내용이 있나요?")) {
-                    setTimeout(() => {
-                        setChatHistory(prev => [...prev, {
-                            content: question[currentQuestionIndex],
-                            timestamp: new Date().toLocaleTimeString('ko-KR', { hour12: false, hour: '2-digit', minute: '2-digit' }),
-                            isResponse: false
-                        }]);
-
-                        setTimeout(() => {
-                            setChatHistory(prev => [...prev, {
-                                content: question[currentQuestionIndex + 1],
-                                timestamp: new Date().toLocaleTimeString('ko-KR', { hour12: false, hour: '2-digit', minute: '2-digit' }),
-                                isResponse: false
-                            }]);
-                            
-                            // 마지막 질문 이후 1초 뒤에 완료 상태로 변경
-                            setTimeout(() => {
-                                setIsComplete(true);
-                            }, 1000);
-                        }, 1000);
-                    }, 1000);
-                } else {
-                    setTimeout(() => {
-                        setChatHistory(prev => [...prev, {
-                            content: question[currentQuestionIndex],
-                            timestamp: new Date().toLocaleTimeString('ko-KR', { hour12: false, hour: '2-digit', minute: '2-digit' }),
-                            isResponse: false
-                        }]);
-                        setCurrentQuestionIndex(prev => prev + 1);
-                        setIsQuestionInProgress(false);
-                    }, 1000);
-                }
-            }
-
-            setInputValue("");
-        }
-    };
-
     // 이전 메시지와 현재 메시지가 같은 사람의 메시지인지 확인하는 함수
-    const shouldShowPhoto = (messages: Message[], currentIndex: number) => {
+    const shouldShowPhoto = (messages: Message[], currentIndex: number): boolean => {
         if (currentIndex === 0) return true;
         const currentMessage = messages[currentIndex];
         const previousMessage = messages[currentIndex - 1];
+        if (!currentMessage || !previousMessage) return true; // 방어 코드
         return currentMessage.isResponse !== previousMessage.isResponse;
     };
 
@@ -1131,9 +1313,27 @@ const QuestionPage: React.FC = () => {
         }
     }, [isComplete, navigate, styleId]);
 
+    // 컴포넌트 언마운트 시 flatpickr 인스턴스 파괴
+    useEffect(() => {
+        return () => {
+            if (datePickerRef.current) {
+                datePickerRef.current.destroy();
+                datePickerRef.current = null;
+            }
+            if (startTimePickerRef.current) {
+                startTimePickerRef.current.destroy();
+                startTimePickerRef.current = null;
+            }
+            if (endTimePickerRef.current) {
+                endTimePickerRef.current.destroy();
+                endTimePickerRef.current = null;
+            }
+        };
+    }, []);
+
     return (
         <ContentWrapper>
-            {isLoading && <LoadingSpinner message="여행 계획을 생성중입니다..."/>} 
+            {isLoading && <LoadingSpinner message="추천 여행지 정보 생성 중입니다... \n 잠시만 기다려주세요!" />} 
             <QuestionSection style={{ filter: isLoading ? 'blur(5px)' : 'none' }}>
                 <ChatSection>
                     <MessagesChat>
@@ -1162,6 +1362,30 @@ const QuestionPage: React.FC = () => {
                                         {msg.content === "calendar" ? (
                                             <Text className="calendar">
                                                 <div className="calendar-message" />
+                                            </Text>
+                                        ) : msg.content === "timepicker_start_preference" ? (
+                                            <Text className="calendar">
+                                                <div style={{ display: 'flex', alignItems: 'center' }}>
+                                                    <div className="timepicker-start-preference-message" />
+                                                    <TimeConfirmButton 
+                                                        id="confirm-time-start-btn"
+                                                        onClick={() => handleSendMessageInternal("TIME_CONFIRMED_START")}
+                                                    >
+                                                        선택 완료
+                                                    </TimeConfirmButton>
+                                                </div>
+                                            </Text>
+                                        ) : msg.content === "timepicker_end_preference" ? (
+                                            <Text className="calendar"> 
+                                                <div style={{ display: 'flex', alignItems: 'center' }}>
+                                                    <div className="timepicker-end-preference-message" />
+                                                    <TimeConfirmButton 
+                                                        id="confirm-time-end-btn"
+                                                        onClick={() => handleSendMessageInternal("TIME_CONFIRMED_END")}
+                                                    >
+                                                        선택 완료
+                                                    </TimeConfirmButton>
+                                                </div>
                                             </Text>
                                         ) : (
                                             <Text className={msg.isResponse ? "response" : ""}>

@@ -163,6 +163,8 @@ interface UserAnswers {
     ageRange: string;
     numberOfPeople: string;
     transportation: string;
+    preferredStartTime: string;
+    preferredEndTime: string;
 }
 
 interface QuestionSidebarProps {
@@ -287,6 +289,22 @@ const QuestionSidebar: React.FC<QuestionSidebarProps> = ({
                         </ResponseField>
                 </li>
                 )}
+                {visibleSections.includes("preferredStartTime") && (
+                    <li className="visible">
+                        <strong>일정 시작 시간</strong>
+                        <ResponseField className={!userAnswers.preferredStartTime ? "empty" : ""}>
+                            <p>{userAnswers.preferredStartTime || "아직 입력되지 않았습니다."}</p>
+                        </ResponseField>
+                    </li>
+                )}
+                {visibleSections.includes("preferredEndTime") && (
+                    <li className="visible">
+                        <strong>일정 종료 시간</strong>
+                        <ResponseField className={!userAnswers.preferredEndTime ? "empty" : ""}>
+                            <p>{userAnswers.preferredEndTime || "아직 입력되지 않았습니다."}</p>
+                        </ResponseField>
+                    </li>
+                )}
                 {visibleSections.includes("requirement") && (
                     <li className="visible">
                         <strong>추가 요청사항</strong>
@@ -323,7 +341,9 @@ const arePropsEqual = (prevProps: QuestionSidebarProps, nextProps: QuestionSideb
         prevAnswers.requirement === nextAnswers.requirement &&
         prevAnswers.ageRange === nextAnswers.ageRange &&
         prevAnswers.numberOfPeople === nextAnswers.numberOfPeople &&
-        prevAnswers.transportation === nextAnswers.transportation;
+        prevAnswers.transportation === nextAnswers.transportation &&
+        prevAnswers.preferredStartTime === nextAnswers.preferredStartTime &&
+        prevAnswers.preferredEndTime === nextAnswers.preferredEndTime;
 };
 
 // React.memo를 사용해 최적화된 컴포넌트 내보내기
