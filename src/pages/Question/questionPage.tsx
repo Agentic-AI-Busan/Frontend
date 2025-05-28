@@ -1196,12 +1196,15 @@ const QuestionPage: React.FC = () => {
         setTimeout(() => {
             if (currentQuestion.includes("여행기간은 언제인가요") && response === '네') {
                 setVisibleSections(prev => [...prev, "dateRange"]);
+                // startDate와 endDate는 handleSendMessageInternal에서 이미 저장됨
             } else if (currentQuestion.includes("함께 여행가는 인원을 말씀해주세요")) {
                 setVisibleSections(prev => [...prev, "numberOfPeople"]);
                 updateUserAnswer({ numberOfPeople: response });
+                localStorage.setItem('numberOfPeople', response); // 로컬 스토리지에 저장
             } else if (currentQuestion.includes("함께 여행가는 인원들의 연령대를 말씀해주세요")) {
                 setVisibleSections(prev => [...prev, "ageRange"]);
                 updateUserAnswer({ ageRange: response });
+                localStorage.setItem('ageRange', response); // 로컬 스토리지에 저장
             } else if (currentQuestion.includes("활동을 선호하시나요")) {
                 setVisibleSections(prev => [...prev, "preferActivity"]);
                 updateUserAnswer({ preferActivity: response });
@@ -1214,10 +1217,13 @@ const QuestionPage: React.FC = () => {
             } else if (currentQuestion.includes("교통수단을 이용하시나요")) {
                 setVisibleSections(prev => [...prev, "transportation"]);
                 updateUserAnswer({ transportation: response });
+                localStorage.setItem('transportation', response); // 로컬 스토리지에 저장
             } else if (currentQuestion.includes("몇 시에 일정을 시작하시나요?")) {
                 setVisibleSections(prev => [...prev, "preferredStartTime"]);
+                // preferredStartTime은 handleSendMessageInternal에서 이미 저장됨
             } else if (currentQuestion.includes("몇 시에 일정을 마치길 선호하시나요")) {
                 setVisibleSections(prev => [...prev, "preferredEndTime"]);
+                // preferredEndTime은 handleSendMessageInternal에서 이미 저장됨
             } else if (currentQuestion.includes("추가적으로 반영하고 싶은 내용이 있나요")) {
                 setVisibleSections(prev => [...prev, "requirement"]);
                 updateUserAnswer({ requirement: response });
