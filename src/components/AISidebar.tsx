@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import SelectionModal from './Modal/SelectionModal';
 import img_3 from '../assets/images/travel_img3.jpg'
@@ -9,6 +9,7 @@ interface Message {
     id: number;
     text: string;
     isUser: boolean;
+    isLoading?: boolean;
 }
 
 // Place 인터페이스 추가
@@ -76,6 +77,19 @@ const AISidebar: React.FC<AISidebarProps> = ({ isOpen, addRecommendedPlace }) =>
     const [isSelectionModalOpen, setIsSelectionModalOpen] = useState(false);
     const [selectedTravelItem, setSelectedTravelItem] = useState<ModalTravelItem | null>(null);
     
+    // 스크롤을 위한 ref
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    // 스크롤을 맨 아래로 이동시키는 함수
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+
+    // messages 상태가 변경될 때마다 스크롤을 맨 아래로 이동
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages]);
+    
     // 테스트용 추천 장소 데이터 (AISidebarTravelItem 사용)
     const recommendedPlaces: AISidebarTravelItem[] = []; // 더미 데이터 제거, 빈 배열로 초기화
 
@@ -99,7 +113,8 @@ const sendMessage = async () => {
     const loadingMessage: Message = {
         id: loadingMessageId, 
         text: 'AI가 답변을 작성중입니다...',
-        isUser: false
+        isUser: false,
+        isLoading: true
     };
     setMessages(prev => [...prev, loadingMessage]);
 
@@ -303,7 +318,7 @@ const renderMessage = (message: Message) => {
     } else {
         // AI가 보낸 메시지 (마크다운 렌더링 적용)
         return (
-            <MessageBubble key={message.id} isUser={message.isUser}>
+            <MessageBubble key={message.id} isUser={message.isUser} isLoading={message.isLoading}>
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                     {message.text}
                 </ReactMarkdown>
@@ -323,6 +338,7 @@ return (
     
     <MessagesContainer>
         {messages.map((message) => renderMessage(message))}
+        <div ref={messagesEndRef} /> {/* 스크롤 대상 ref */} 
     </MessagesContainer>
     
     <ChatInputContainer>
@@ -477,7 +493,7 @@ const MessagesContainer = styled.div`
     gap: 16px;
 `;
 
-const MessageBubble = styled.div<{ isUser: boolean }>`
+const MessageBubble = styled.div<{ isUser: boolean; isLoading?: boolean }>`
     max-width: 85%;
     padding: 12px 16px;
     border-radius: 16px;
@@ -485,7 +501,12 @@ const MessageBubble = styled.div<{ isUser: boolean }>`
     line-height: 1.5;
     align-self: ${props => props.isUser ? 'flex-end' : 'flex-start'};
     background-color: ${props => props.isUser ? '#3b82f6' : '#f1f5f9'};
-    color: ${props => props.isUser ? 'white' : '#1e293b'};
+    color: ${props => {
+        if (props.isUser) return 'white';
+        if (props.isLoading) return '#757575';
+        return '#1e293b';
+    }};
+    opacity: ${props => props.isLoading && !props.isUser ? 0.85 : 1};
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     
     ${props => props.isUser ? 

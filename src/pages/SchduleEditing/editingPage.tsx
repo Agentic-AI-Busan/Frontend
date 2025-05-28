@@ -104,9 +104,9 @@ const EditingPage = () => {
     const [tripInfo, setTripInfo] = useState({
         startDate: '',
         endDate: '',
-        numberOfPeople: '3명',
-        ageRange: '20세~25세',
-        transportation: '대중교통'
+        numberOfPeople: '',
+        ageRange: '',
+        transportation: ''
     });
 
     const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
@@ -140,11 +140,11 @@ const EditingPage = () => {
             
             setTripInfo(prev => ({
                 ...prev,
-                startDate: formatDate(tripData.startDate),
-                endDate: formatDate(tripData.endDate),
-                numberOfPeople: tripData.numberOfPeople || prev.numberOfPeople,
-                ageRange: tripData.ageRange || prev.ageRange,
-                transportation: tripData.transportation || prev.transportation
+                startDate: prev.startDate || formatDate(tripData.startDate),
+                endDate: prev.endDate || formatDate(tripData.endDate),
+                numberOfPeople: prev.numberOfPeople || tripData.numberOfPeople || '',
+                ageRange: prev.ageRange || tripData.ageRange || '',
+                transportation: prev.transportation || tripData.transportation || ''
             }));
         }
         
@@ -274,6 +274,31 @@ const EditingPage = () => {
           setIsLoading(false);
           return;
         }
+
+        // 로컬 스토리지에서 여행 정보 우선 로드
+        const localStartDate = localStorage.getItem('startDate');
+        const localEndDate = localStorage.getItem('endDate');
+        const localNumberOfPeople = localStorage.getItem('numberOfPeople');
+        const localAgeRange = localStorage.getItem('ageRange');
+        const localTransportation = localStorage.getItem('transportation');
+
+        if (localStartDate && localEndDate) {
+            const formatDate = (dateStr: string) => dateStr.replace(/-/g, '.');
+            setTripInfo(prev => ({
+                ...prev,
+                startDate: formatDate(localStartDate),
+                endDate: formatDate(localEndDate),
+            }));
+        }
+        if (localNumberOfPeople) {
+            setTripInfo(prev => ({ ...prev, numberOfPeople: localNumberOfPeople }));
+        }
+        if (localAgeRange) {
+            setTripInfo(prev => ({ ...prev, ageRange: localAgeRange }));
+        }
+        if (localTransportation) {
+            setTripInfo(prev => ({ ...prev, transportation: localTransportation }));
+        }
         
         authenticatedFetch(`/api/trip-plans/${tripPlansId}`)
             .then(response => {
@@ -351,9 +376,9 @@ const EditingPage = () => {
                     const styleInfo = styleDetailData.result;
                     setTripInfo(prev => ({
                         ...prev,
-                        numberOfPeople: styleInfo.numberOfPeople || prev.numberOfPeople,
-                        ageRange: styleInfo.ageRange || prev.ageRange,
-                        transportation: styleInfo.transportation || prev.transportation
+                        numberOfPeople: prev.numberOfPeople || styleInfo.numberOfPeople || '',
+                        ageRange: prev.ageRange || styleInfo.ageRange || '',
+                        transportation: prev.transportation || styleInfo.transportation || ''
                     }));
                 }
             })
