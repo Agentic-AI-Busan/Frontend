@@ -129,7 +129,7 @@ const SearchTitle = styled.strong`
     margin-bottom: 10px;
     color: #2c3e50;
     letter-spacing: 0.5px;
-    border-bottom: 2px solid #3498db;
+    border-bottom: 1px solid #e0e0e0;
 `;
 
 // 검색 입력 폼 스타일 컴포넌트
