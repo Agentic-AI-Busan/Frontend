@@ -157,3 +157,68 @@ export const signupUser = async (signupData: {
         return false
     }
 }
+
+
+// 사용자 여행 일정 관련 api
+
+export const getUserTripPlans = async () => { 
+    try {
+        const token = localStorage.getItem('authToken');
+        if (!token) return null;
+
+        const response = await fetch('api/users/trip-plans', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+        })
+
+        if (response.ok) {
+            console.log('여행 목록 조회 성공');
+            const data = await response.json();
+            console.log(data.result);
+            return data.result;
+        }
+        console.log('여행 목록 조회 실패');
+        return null;
+    } catch (error) {
+        console.error('여행 목록 조회 실패:', error);
+        return null;
+    }
+}
+
+export const editUserTripPlan = async (tripPlanId: number, title: string, memo: string) => {
+    try {
+        const response = await authenticatedFetch(`api/users/trip-plans/${tripPlanId}/edit`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ title, memo }),
+        })
+
+        if (response.ok) {
+            return true;
+        }
+        return false;
+    } catch (error) {
+        console.error('여행 정보 수정 실패:', error);
+        return false;
+    }
+}
+
+export const deleteUserTripPlan = async (tripPlanId: number) => {
+    try {
+        const response = await authenticatedFetch(`api/users/trip-plans/${tripPlanId}`, {
+            method: 'DELETE',
+        })
+        if (response.ok) {
+            return true;
+        }
+        return false;
+    } catch (error) {
+        console.error('여행 정보 삭제 실패:', error);
+        return false;
+    }
+}
