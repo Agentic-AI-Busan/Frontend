@@ -11,10 +11,10 @@ import MyGuidePage from './pages/Mypage/myGuidePage'
 import SelectionDestination from './pages/Selection/selectDestination'
 import SelectionRestaurant from './pages/Selection/selectRestaurant'
 import MapPage from './pages/SchduleEditing/mapPage'
+import { UserProvider } from './contexts/UserContext'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import EditingPage from './pages/SchduleEditing/editingPage'
-import { UserProvider } from './contexts/UserContext'
 import ProtectedRoute from './components/ProtectedRoute'
 
 // styled-components를 위한 타입 정의

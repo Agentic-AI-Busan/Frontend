@@ -1,18 +1,106 @@
 import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
-import ModalFrame from './ModalFrame';
-import travel_img3 from '../../assets/images/travel_img3.jpg';
+import styled, { keyframes } from 'styled-components';
+import { authenticatedFetch } from '../../services/api';
+import nullPlaceImage from '../../assets/images/null_place.png'; // 폴백 이미지
 
-// 검색 입력 폼 스타일 컴포넌트
+// Place 타입 정의 (AISidebar의 RecommendPlace와 유사하게, 또는 더 일반적인 형태로)
+export interface Place {
+    id: number;
+    name: string;
+    address: string;
+    imageUrl?: string;
+    coordinates?: { lat: number; lng: number };
+    type?: string; // 'ATTRACTION' 또는 'RESTAURANT' 등
+    originalPlaceId?: number; // API에서 받은 원본 ID
+}
+
+interface ApiSearchAttraction {
+    attractionId: number;
+    name: string;
+    address: string;
+    imageUrl?: string;
+    // 필요에 따라 추가 필드
+}
+
+interface ApiSearchRestaurant {
+    restaurantId: number;
+    name: string;
+    address: string;
+    imageUrl?: string;
+    // 필요에 따라 추가 필드
+}
+
+
+interface SearchModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onItemSelect: (place: Place) => void;
+    placeType: 'ATTRACTION' | 'RESTAURANT' | null; // 검색할 장소 유형
+}
+
+// Animations (from SearchPanel.tsx)
+const fadeIn = keyframes`
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+`;
+
+// Styled Components (inspired by SearchPanel.tsx)
+const ModalOverlay = styled.div`
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000; 
+    padding: 20px; // 모달이 화면 가장자리에 붙지 않도록
+`;
+
+const ModalContainer = styled.div<{ isClosing?: boolean }>` // Renamed from SearchContainer / ModalContent
+    width: 100%;
+    max-width: 500px; // SearchPanel과 유사한 크기, 혹은 조정
+    height: auto; // 내용에 따라 높이 자동 조절
+    max-height: calc(100vh - 100px); // 화면 높이보다 커지지 않도록
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; // 내부 스크롤을 위해
+    border: 1px solid #f0f0f0;
+    animation: ${fadeIn} 0.3s ease-out forwards; // fadeIn 애니메이션 적용
+`;
+
+const SearchTitle = styled.strong`
+    display: block;
+    text-align: center;
+    font-size: 18px;
+    font-weight: 700;
+    padding: 15px 0;
+    margin-bottom: 10px;
+    color: #2c3e50;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #e0e0e0; // SearchPanel과 약간 다르게 단순화
+`;
+
 const SearchForm = styled.div`
+    margin-bottom: 20px;
     display: flex;
     gap: 10px;
     align-items: center;
     margin-top: 10px;
-    padding: 20px;
 `;
 
-// 검색 입력창 스타일 컴포넌트
 const SearchInput = styled.input`
     flex: 1;
     padding: 12px 16px;
@@ -30,7 +118,6 @@ const SearchInput = styled.input`
     }
 `;
 
-// 검색 버튼 스타일 컴포넌트
 const SearchButton = styled.button`
     padding: 12px 20px;
     background: #3498db;
@@ -48,84 +135,94 @@ const SearchButton = styled.button`
         background: #2980b9;
         box-shadow: 0 6px 12px rgba(52, 152, 219, 0.3);
     }
+    &:disabled {
+        background-color: #bdc3c7;
+        box-shadow: none;
+    }
 `;
 
-// 검색 결과 컨테이너 스타일 컴포넌트
-const SearchResults = styled.div`
+const SearchResultsList = styled.div` // Renamed from SearchResults
     flex: 1;
     overflow-y: auto;
-    height: 400px; /* 고정된 높이 설정 */
-    padding: 20px;
+    padding-right: 5px;
+    margin-right: -5px; // 스크롤바 공간 확보
     scrollbar-width: thin;
+    scrollbar-color: #ccc #f0f0f0;
     
     &::-webkit-scrollbar {
-        width: 6px;
+        width: 8px;
     }
-    
+    &::-webkit-scrollbar-track {
+        background: #f0f0f0;
+        border-radius: 4px;
+    }
     &::-webkit-scrollbar-thumb {
-        background-color: #d8d8d8;
-        border-radius: 3px;
+        background: #ccc;
+        border-radius: 4px;
+    }
+    &::-webkit-scrollbar-thumb:hover {
+        background: #aaa;
     }
 `;
 
-// 검색 결과 아이템 스타일 컴포넌트
-const SearchResultItem = styled.div`
+const SearchResultItem = styled.div` // Changed from button to div for layout flexibility
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    padding: 16px;
-    background: #fff;
+    width: 100%;
+    padding: 14px 10px; // 패딩 약간 조정
+    margin: 10px 0;
     border-radius: 12px;
-    margin-bottom: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    cursor: pointer;
-    transition: all 0.3s;
+    font-size: 15px;
+    color: #2c3e50;
+    background: #ffffff;
     border: 1px solid #f0f0f0;
+    transition: all 0.3s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    cursor: pointer;
+    text-align: left;
     
     &:hover {
+        background: #fafafa;
+        border-color: #e8e8e8;
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        border-color: #3498db;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.04);
     }
 `;
 
-// 검색 결과 이미지 스타일 컴포넌트
-const ResultImage = styled.div<{ imageUrl?: string }>`
-    width: 60px;
-    height: 60px;
-    min-width: 60px;
+const PlaceImage = styled.div`
+    width: 50px;
+    height: 50px;
     border-radius: 8px;
-    background-color: #f0f0f0;
-    background-image: url(${props => props.imageUrl || travel_img3});
-    background-size: cover;
-    background-position: center;
+    overflow: hidden;
     margin-right: 16px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    flex-shrink: 0;
+    background-color: #f4f4f4;
 `;
 
-// 검색 결과 정보 컨테이너 스타일 컴포넌트
-const ResultInfo = styled.div`
+const Image = styled.img`
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+`;
+
+const PlaceInfo = styled.div`
     flex: 1;
-    display: flex;
-    flex-direction: column;
 `;
 
-// 장소 이름 스타일 컴포넌트
-const PlaceName = styled.h3`
-    margin: 0 0 8px 0;
-    font-size: 16px;
+const PlaceName = styled.div`
     font-weight: 600;
+    margin-bottom: 6px;
     color: #2c3e50;
 `;
 
-// 장소 주소 스타일 컴포넌트
-const PlaceAddress = styled.p`
-    margin: 0;
-    font-size: 14px;
+const PlaceAddress = styled.div`
+    font-size: 13px;
     color: #7f8c8d;
 `;
 
-// 추가 버튼 스타일 컴포넌트
-const AddButton = styled.button`
+// SelectButton (SearchPanel의 AddButton 역할)
+const SelectButton = styled.button` 
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -138,6 +235,7 @@ const AddButton = styled.button`
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s;
+    margin-left: 12px;
     
     &:hover {
         background: #3498db;
@@ -147,136 +245,186 @@ const AddButton = styled.button`
     }
 `;
 
-// 검색 결과 없음 컴포넌트
-const NoResults = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    padding: 32px;
+const MessageText = styled.p`
     text-align: center;
-    color: #7f8c8d;
-    background: #f9f9f9;
-    border-radius: 12px;
-    font-size: 15px;
-    // margin: 20px 0;
+    color: #555;
+    padding: 20px;
+    font-size: 14px;
 `;
 
-export interface Place {
-    id: number;
-    name: string;
-    address: string;
-    imageUrl?: string;
-    coordinates?: { lat: number; lng: number };
-    type?: string;
-}
+const ModalCloseButton = styled.button` // 기존 SearchModal의 CloseButton 과 유사
+    background: none;
+    border: none;
+    font-size: 24px; // 크기 약간 조정
+    font-weight: 300;
+    color: #aaa; // 색상 조정
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    
+    &:hover {
+        color: #333;
+    }
+`;
 
-interface SearchModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    onAddPlace: (place: Place) => void;
-}
-
-const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose, onAddPlace }) => {
+const SearchModal: React.FC<SearchModalProps> = ({
+    isOpen,
+    onClose,
+    onItemSelect,
+    placeType,
+}) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [searchResults, setSearchResults] = useState<Place[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [searchAttempted, setSearchAttempted] = useState(false);
 
-    // 검색어 변경 핸들러
-    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setSearchTerm(e.target.value);
-    };
+    const modalTitleText = placeType === 'ATTRACTION' ? '여행지 검색' : '음식점 검색';
+    const searchPlaceholder = placeType === 'ATTRACTION' ? '여행지를 검색하세요' : '음식점을 검색하세요';
 
-    // 검색 실행 핸들러
-    const handleSearch = () => {
-        if (!searchTerm.trim()) return;
-        
-        setIsLoading(true);
-        
-        // 여기서는 예시 데이터를 사용합니다
-        // 실제 구현시에는 API 호출이나 데이터베이스 검색을 수행합니다
-        setTimeout(() => {
-            const mockResults: Place[] = [
-                {
-                    id: 1,
-                    name: '서울 남산타워',
-                    address: '서울특별시 용산구 남산공원길 105',
-                    imageUrl: 'https://www.seoultower.co.kr/images/img_tower_intro.jpg',
-                    coordinates: { lat: 37.551348, lng: 126.988328 }
-                },
-                {
-                    id: 2,
-                    name: '경복궁',
-                    address: '서울특별시 종로구 사직로 161',
-                    imageUrl: 'https://www.royalpalace.go.kr/content/images/intro/sub1_img1.jpg',
-                    coordinates: { lat: 37.579617, lng: 126.977041 }
-                },
-                {
-                    id: 3,
-                    name: '명동성당',
-                    address: '서울특별시 중구 명동길 74',
-                    imageUrl: 'https://www.myeongdongcathedral.org/upload/main/main_img01.jpg',
-                    coordinates: { lat: 37.563545, lng: 126.987607 }
-                }
-            ];
-            
-            setSearchResults(mockResults);
-            setIsLoading(false);
-        }, 800);
-    };
-
-    // Enter 키로 검색 실행
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
-            handleSearch();
-        }
-    };
-
-    // 모달이 닫힐 때 상태 초기화
     useEffect(() => {
-        if (!isOpen) {
+        if (isOpen) {
             setSearchTerm('');
             setSearchResults([]);
+            setIsLoading(false);
+            setError(null);
+            setSearchAttempted(false);
         }
     }, [isOpen]);
 
+    const handleSearch = async () => {
+        if (!searchTerm.trim() || !placeType) {
+            setSearchResults([]);
+            setError(null);
+            setSearchAttempted(false);
+            return;
+        }
+        setIsLoading(true);
+        setError(null);
+        setSearchAttempted(true);
+
+        let apiUrl = '';
+        if (placeType === 'ATTRACTION') {
+            apiUrl = `/api/trip-plans/attractions/search?keyword=${encodeURIComponent(searchTerm)}`;
+        } else if (placeType === 'RESTAURANT') {
+            apiUrl = `/api/trip-plans/restaurants/search?keyword=${encodeURIComponent(searchTerm)}`;
+        } else {
+            setError('잘못된 장소 유형입니다.');
+            setIsLoading(false);
+            return;
+        }
+
+        try {
+            const response = await authenticatedFetch(apiUrl);
+            if (!response.ok) {
+                let errorMsg = `HTTP error! status: ${response.status}`;
+                try {
+                    const errorData = await response.json();
+                    errorMsg = errorData.message || errorMsg;
+                } catch { /* ignore */ }
+                throw new Error(errorMsg);
+            }
+            const data = await response.json();
+
+            if (data.isSuccess && data.result) {
+                let formattedResults: Place[] = [];
+                if (placeType === 'ATTRACTION' && Array.isArray(data.result.attractions)) {
+                    formattedResults = data.result.attractions.map((item: ApiSearchAttraction): Place => ({
+                        id: Date.now() + Math.random(), 
+                        originalPlaceId: item.attractionId,
+                        name: item.name,
+                        address: item.address,
+                        imageUrl: item.imageUrl || undefined,
+                        type: 'ATTRACTION',
+                    }));
+                } else if (placeType === 'RESTAURANT' && Array.isArray(data.result.restaurants)) {
+                    formattedResults = data.result.restaurants.map((item: ApiSearchRestaurant): Place => ({
+                        id: Date.now() + Math.random(), 
+                        originalPlaceId: item.restaurantId,
+                        name: item.name,
+                        address: item.address,
+                        imageUrl: item.imageUrl || undefined,
+                        type: 'RESTAURANT',
+                    }));
+                }
+                setSearchResults(formattedResults);
+            } else {
+                setSearchResults([]);
+                setError(data.message || '검색 결과를 가져오는데 실패했습니다.');
+            }
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : '검색 중 오류가 발생했습니다.';
+            setError(errorMessage);
+            setSearchResults([]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleItemClick = (place: Place) => {
+        onItemSelect(place); 
+    };
+
+    const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+        e.currentTarget.src = nullPlaceImage;
+    };
+
+    if (!isOpen) return null;
+
     return (
-        <ModalFrame
-            isOpen={isOpen}
-            onClose={onClose}
-            title="숙소 검색"
-            size="medium"
-        >
-            <SearchForm>
-                <SearchInput
-                    type="text"
-                    placeholder="숙소명 또는 주소를 입력하세요"
-                    value={searchTerm}
-                    onChange={handleSearchChange}
-                    onKeyDown={handleKeyDown}
-                />
-                <SearchButton onClick={handleSearch}>검색</SearchButton>
-            </SearchForm>
-            
-            <SearchResults>
-                {isLoading ? (
-                    <NoResults>검색 중입니다...</NoResults>
-                ) : searchResults.length > 0 ? (
-                    searchResults.map(place => (
-                        <SearchResultItem key={place.id}>
-                            <ResultImage imageUrl={place.imageUrl} />
-                            <ResultInfo>
+        <ModalOverlay onClick={onClose}>
+            <ModalContainer onClick={(e) => e.stopPropagation()}>
+                <ModalCloseButton onClick={onClose}>&times;</ModalCloseButton>
+                <SearchTitle>{modalTitleText}</SearchTitle>
+                <SearchForm>
+                    <SearchInput
+                        type="text"
+                        placeholder={searchPlaceholder}
+                        value={searchTerm}
+                        onChange={(e) => {
+                            setSearchTerm(e.target.value);
+                            setSearchAttempted(false); 
+                        }}
+                        onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                                handleSearch();
+                            }
+                        }}
+                        disabled={isLoading}
+                    />
+                    <SearchButton onClick={handleSearch} disabled={isLoading || !searchTerm.trim()}>
+                        검색
+                    </SearchButton>
+                </SearchForm>
+                <SearchResultsList>
+                    {isLoading && <MessageText>검색 중입니다...</MessageText>}
+                    {error && <MessageText>오류: {error}</MessageText>}
+                    {searchAttempted && !isLoading && !error && searchResults.length === 0 && searchTerm.trim() !== '' && (
+                        <MessageText>검색 결과가 없습니다. 다른 키워드로 시도해 보세요.</MessageText>
+                    )}
+                    {!isLoading && !error && searchResults.map((place) => (
+                        <SearchResultItem key={place.originalPlaceId || place.id} onClick={() => handleItemClick(place)}>
+                            <PlaceImage>
+                                <Image 
+                                    src={place.imageUrl || nullPlaceImage} 
+                                    alt={place.name} 
+                                    onError={handleImageError}
+                                />
+                            </PlaceImage>
+                            <PlaceInfo>
                                 <PlaceName>{place.name}</PlaceName>
                                 <PlaceAddress>{place.address}</PlaceAddress>
-                            </ResultInfo>
-                            <AddButton onClick={() => onAddPlace(place)}>추가</AddButton>
+                            </PlaceInfo>
+                            {/* SearchPanel과 유사하게 보이도록 버튼 추가. onItemSelect 호출 */}
+                            <SelectButton onClick={(e) => { e.stopPropagation(); handleItemClick(place); }}>선택</SelectButton>
                         </SearchResultItem>
-                    ))
-                ) : (
-                    searchTerm && <NoResults>검색 결과가 없습니다</NoResults>
-                )}
-            </SearchResults>
-        </ModalFrame>
+                    ))}
+                </SearchResultsList>
+            </ModalContainer>
+        </ModalOverlay>
     );
 };
 

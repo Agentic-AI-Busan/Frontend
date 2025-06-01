@@ -49,7 +49,7 @@ const LoadingMessage = styled.div`
     text-align: center;
     max-width: 500px;
     word-break: keep-all;
-    white-space: pre-line;
+    white-space: pre-line !important;
     margin-bottom: 40px;
 `;
 
@@ -60,10 +60,19 @@ interface LoadingSpinnerProps {
 const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ 
     message = '로딩 중입니다. 잠시만 기다려주세요.' 
 }) => {
+    const messageParts = message.split('\\n');
+
     return (
         <SpinnerContainer>
             <Spinner />
-            <LoadingMessage>{message}</LoadingMessage>
+            <LoadingMessage>
+                {messageParts.map((part, index) => (
+                    <React.Fragment key={index}>
+                        {part}
+                        {index < messageParts.length - 1 && <br />}
+                    </React.Fragment>
+                ))}
+            </LoadingMessage>
         </SpinnerContainer>
     );
 };

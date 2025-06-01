@@ -214,6 +214,12 @@ interface TravelRoute {
   };
   places: RoutePlace[];
   routes: RouteInfo[];
+  summary?: {
+    totalDistance?: string;
+    totalTime?: string;
+    startTime?: string;
+    endTime?: string;
+  };
 }
 
 // 두 지점 사이의 거리를 계산하는 하버사인 공식 구현 함수 (km 단위 반환)
@@ -258,6 +264,10 @@ const MapPage = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   // 에러 상태 추가
   const [error, setError] = useState<string | null>(null);
+  
+  // 사용자의 선호 시작/종료 시간 상태 추가
+  const [preferredStartTime, setPreferredStartTime] = useState<string | undefined>(undefined);
+  const [preferredEndTime, setPreferredEndTime] = useState<string | undefined>(undefined);
   
   // NaverMap의 focusPlace 함수를 저장할 ref
   const focusPlaceRef = useRef<((placeId: number) => void) | null>(null);
@@ -326,6 +336,13 @@ const MapPage = () => {
       // scheduleItems가 있는지 확인
       if (!day.scheduleItems || !Array.isArray(day.scheduleItems) || day.scheduleItems.length === 0) {
         console.warn(`${day.dayNumber}일차에 일정 항목이 없습니다.`);
+        // summary 기본값 설정 (장소가 없을 경우)
+        routeDay.summary = {
+            totalDistance: "0m",
+            totalTime: "0분",
+            startTime: "-",
+            endTime: "-"
+        };
         newTravelRoutes.push(routeDay); // 빈 일정으로 추가
         return; // 다음 일차로 이동
       }
@@ -468,6 +485,61 @@ const MapPage = () => {
         }
       });
       
+      // 총 이동 거리 및 시간 계산
+      let totalDistanceMeters = 0;
+      let totalDurationMinutes = 0;
+
+      routeDay.routes.forEach(route => {
+        // 거리 파싱 (예: "1.2km" -> 1200, "500m" -> 500)
+        if (route.distance.endsWith('km')) {
+          totalDistanceMeters += parseFloat(route.distance.replace('km', '')) * 1000;
+        } else if (route.distance.endsWith('m')) {
+          totalDistanceMeters += parseFloat(route.distance.replace('m', ''));
+        }
+
+        // 시간 파싱 (예: "1시간 30분" -> 90, "45분" -> 45)
+        let currentDurationMinutes = 0;
+        const durationStr = route.duration || ""; // null 또는 undefined 방지
+
+        const hourMatch = durationStr.match(/(\d+)\s*시간/);
+        if (hourMatch && hourMatch[1]) {
+            currentDurationMinutes += parseInt(hourMatch[1], 10) * 60;
+        }
+
+        const minuteMatch = durationStr.match(/(\d+)\s*분/);
+        if (minuteMatch && minuteMatch[1]) {
+            currentDurationMinutes += parseInt(minuteMatch[1], 10);
+        }
+        
+        // currentDurationMinutes가 유효한 숫자인 경우에만 더함
+        if (!isNaN(currentDurationMinutes)) {
+            totalDurationMinutes += currentDurationMinutes;
+        } else {
+            console.warn(`[MapPage] 시간 파싱 중 NaN 발생: route.duration = "${route.duration}", 파싱된 분 = ${currentDurationMinutes}`);
+        }
+      });
+
+      // 총 거리 포맷팅
+      const formattedTotalDistance = totalDistanceMeters < 1000
+        ? `${Math.round(totalDistanceMeters)}m`
+        : `${(totalDistanceMeters / 1000).toFixed(1)}km`;
+
+      // 총 시간 포맷팅
+      const formattedTotalDuration = totalDurationMinutes < 60
+        ? `${totalDurationMinutes}분`
+        : `${Math.floor(totalDurationMinutes / 60)}시간 ${totalDurationMinutes % 60}분`;
+        
+      // 시작 및 종료 시간 설정 (기존 로직 활용 또는 API 데이터 기반)
+      const firstPlaceTime = routeDay.places[0]?.time || "-";
+      const lastPlaceTime = routeDay.places[routeDay.places.length - 1]?.time || "-";
+
+      routeDay.summary = {
+        totalDistance: formattedTotalDistance,
+        totalTime: formattedTotalDuration,
+        startTime: firstPlaceTime,
+        endTime: lastPlaceTime,
+      };
+      
       newTravelRoutes.push(routeDay);
     });
     
@@ -498,8 +570,19 @@ const MapPage = () => {
       });
   };
 
-  // 컴포넌트 마운트 시 API 호출
+  // 컴포넌트 마운트 시 API 호출 및 localStorage에서 선호 시간 로드
   useEffect(() => {
+    // localStorage에서 선호 시작/종료 시간 불러오기
+    const storedStartTime = localStorage.getItem('preferredStartTime');
+    const storedEndTime = localStorage.getItem('preferredEndTime');
+
+    if (storedStartTime) {
+      setPreferredStartTime(storedStartTime);
+    }
+    if (storedEndTime) {
+      setPreferredEndTime(storedEndTime);
+    }
+
     // tripPlansId 유효성 확인
     if (!tripPlansId) {
       setError('여행 계획 ID가 없습니다. 이전 페이지로 돌아가 다시 시작해주세요.');
@@ -633,6 +716,8 @@ const MapPage = () => {
         routes={travelRoutes} 
         activeDay={activeDay} 
         onPlaceHover={handleFocusPlace}
+        preferredStartTime={preferredStartTime}
+        preferredEndTime={preferredEndTime}
       />
       <MapContainer>
         <NaverMap 
