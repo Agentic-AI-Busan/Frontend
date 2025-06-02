@@ -411,6 +411,7 @@ const MyGuidePage: React.FC = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [editingText, setEditingText] = useState("");
+
     const [editingTitleId, setEditingTitleId] = useState<number | null>(null);
     const [editingTitle, setEditingTitle] = useState("");
 

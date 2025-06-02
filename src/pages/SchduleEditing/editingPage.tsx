@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
-import travel_img1 from '../../assets/images/travel_img1.jpg';
+// import travel_img1 from '../../assets/images/card_img.png';
 import AISidebar from '../../components/AISidebar';
 import EditingCard from '../../components/EditingCard';
 import { 
@@ -9,7 +9,8 @@ import {
   getDayVeryLightColor, 
   getDayMediumColor 
 } from '../../components/Map/MapContent';
-import SearchModal, { Place as ModalPlaceFromSearch } from '../../components/Modal/SearchModal';
+// SearchModal에서 가져오는 Place 타입을 OriginalPlaceFromSearch 별칭으로 사용
+import SearchModal, { Place as OriginalPlaceFromSearch } from '../../components/Modal/SearchModal';
 import DeleteModal from '../../components/Modal/DeleteModal';
 import SaveModal from '../../components/Modal/SaveModal';
 import SelectionModal from '../../components/Modal/SelectionModal';
@@ -26,8 +27,15 @@ interface VisitPlace {
     location?: string;
     imageUrl?: string;
     coordinates?: { lat: number; lng: number };
-    placeType?: string;
+    placeType?: string; // VisitPlace의 placeType은 API 저장/로드 구조에 따라 string일 수 있음
     originalPlaceId?: number;
+}
+
+// 상세 정보까지 포함하는 장소 타입 (OriginalPlaceFromSearch 확장)
+interface DetailedPlaceInfo extends OriginalPlaceFromSearch {
+    operatingHours?: string;
+    phoneNumber?: string;
+    title?: string;
 }
 
 interface DaySchedule {
@@ -36,7 +44,7 @@ interface DaySchedule {
     places: VisitPlace[];
 }
 
-// AISidebar 컴포넌트에서 사용할 Place 타입을 ModalPlace와 호환되는 형태로 정의
+// AISidebar 컴포넌트에서 사용할 Place 타입을 OriginalPlaceFromSearch와 호환되는 형태로 정의
 interface RecommendPlace {
     id: number;
     name: string;
@@ -114,7 +122,9 @@ const EditingPage = () => {
     const [selectedPlaceType, setSelectedPlaceType] = useState<'ATTRACTION' | 'RESTAURANT' | null>(null);
 
     const [isSelectionModalOpen, setIsSelectionModalOpen] = useState(false);
-    const [selectedPlaceForDetail, setSelectedPlaceForDetail] = useState<ModalPlaceFromSearch | null>(null);
+    const [selectedPlaceForDetail, setSelectedPlaceForDetail] = useState<DetailedPlaceInfo | null>(null);
+    const [isLoadingPlaceDetail, setIsLoadingPlaceDetail] = useState(false); 
+    const [placeDetailError, setPlaceDetailError] = useState<string | null>(null); 
 
     const processApiResult = (apiResult: unknown) => {
         console.log('처리할 API 데이터 구조:', JSON.stringify(apiResult, null, 2));
@@ -162,7 +172,7 @@ const EditingPage = () => {
                     memo: item.memo || '',
                     time: '정보 불러오는 중...',
                     location: '주소 불러오는 중...',
-                    imageUrl: item.imageUrl || travel_img1,
+                    imageUrl: item.imageUrl,
                     coordinates: {
                         lat: item.latitude,
                         lng: item.longitude
@@ -340,7 +350,7 @@ const EditingPage = () => {
                                         latitude: p.coordinates?.lat || 0,
                                         longitude: p.coordinates?.lng || 0,
                                         name: p.name,
-                                        imageUrl: p.imageUrl || travel_img1,
+                                        imageUrl: p.imageUrl || '',
                                         memo: p.memo || null
                                     }));
                                     return { ...apiDay, scheduleItems };
@@ -444,7 +454,7 @@ const EditingPage = () => {
                 const simplifiedSchedules = updatedSchedules.map(ds => ({ day: ds.day, places: ds.places.map(p => ({...p})) }));
                 localStorage.setItem(`scheduleOrder_${tripPlansId}`, JSON.stringify(simplifiedSchedules));
             } catch (e) {
-                console.error('로컬 스토리지 저장 실패 (addRecommendedPlace):', e);
+                console.error('로컬 스토리지 저장 실패 (addRecommendedPlace): ', e);
             }
         }
         return true;
@@ -474,27 +484,88 @@ const EditingPage = () => {
         setSelectedDayIndex(dayIndex);
         setSelectedPlaceType(placeType);
         setIsSearchModalOpen(true);
+        setPlaceDetailError(null); 
     };
 
-    const handlePlaceSelectFromSearch = (place: ModalPlaceFromSearch) => {
-        setSelectedPlaceForDetail(place);
-        setIsSelectionModalOpen(true);
-        setIsSearchModalOpen(false);
+    // 이제 SearchModal에서 오는 OriginalPlaceFromSearch 타입을 그대로 받음
+    const handlePlaceSelectFromSearch = async (placeFromSearch: OriginalPlaceFromSearch) => {
+        // placeFromSearch.type이 이제 'ATTRACTION' | 'RESTAURANT' | undefined 임을 타입 시스템이 인지
+        if (!placeFromSearch || !placeFromSearch.originalPlaceId || !placeFromSearch.type) {
+            console.error("선택된 장소 정보가 유효하지 않습니다.", placeFromSearch);
+            setPlaceDetailError("선택된 장소 정보가 올바르지 않습니다.");
+            setIsSearchModalOpen(false); 
+            return;
+        }
+
+        setIsLoadingPlaceDetail(true);
+        setPlaceDetailError(null);
+        setSelectedPlaceForDetail(null); 
+        setIsSearchModalOpen(false); 
+
+        try {
+            // placeFromSearch.type은 이제 'ATTRACTION' 또는 'RESTAURANT' 중 하나임이 보장됨 (위의 null/undefined 체크로 인해)
+            const type = placeFromSearch.type as 'ATTRACTION' | 'RESTAURANT'; 
+            const { originalPlaceId } = placeFromSearch;
+            let apiUrl = '';
+            if (type === 'ATTRACTION') {
+                apiUrl = `/api/trip-plans/attractions/${originalPlaceId}`;
+            } else {
+                apiUrl = `/api/trip-plans/restaurants/${originalPlaceId}`;
+            }
+
+            const response = await authenticatedFetch(apiUrl);
+            if (!response.ok) {
+                let errorMsg = `상세 정보 로드 실패 (상태 코드: ${response.status})`;
+                try {
+                    const errorData = await response.json();
+                    errorMsg = errorData.message || errorMsg;
+                } catch { /* ignore */ }
+                throw new Error(errorMsg);
+            }
+
+            const data = await response.json();
+            if (data.isSuccess && data.result) {
+                const detailResult = data.result;
+                
+                const detailedPlaceData: DetailedPlaceInfo = {
+                    ...placeFromSearch, 
+                    type: type, // 타입 단언을 통해 확정된 타입을 명시적으로 할당
+                    operatingHours: detailResult.operatingHours,
+                    phoneNumber: detailResult.phone || detailResult.phoneNumber, 
+                    title: detailResult.title || placeFromSearch.name, 
+                    coordinates: (detailResult.latitude && detailResult.longitude)
+                        ? { lat: detailResult.latitude, lng: detailResult.longitude }
+                        : placeFromSearch.coordinates,
+                    imageUrl: detailResult.imageUrl || placeFromSearch.imageUrl,
+                };
+
+                setSelectedPlaceForDetail(detailedPlaceData);
+                setIsSelectionModalOpen(true);
+            } else {
+                throw new Error(data.message || '상세 정보 API 응답이 올바르지 않습니다.');
+            }
+        } catch (err) {
+            console.error("장소 상세 정보 로드 중 오류:", err);
+            const errorMessage = err instanceof Error ? err.message : '장소 상세 정보를 불러오는 중 오류가 발생했습니다.';
+            setPlaceDetailError(errorMessage);
+        } finally {
+            setIsLoadingPlaceDetail(false);
+        }
     };
 
-    const mapPlaceToTravelItem = (place: ModalPlaceFromSearch | null): TravelItemForSelection | null => {
+    const mapPlaceToTravelItem = (place: DetailedPlaceInfo | null): TravelItemForSelection | null => {
         if (!place) return null;
         return {
             attractionId: place.type === 'ATTRACTION' ? place.originalPlaceId : undefined,
             restaurantId: place.type === 'RESTAURANT' ? place.originalPlaceId : undefined,
             imageUrl: place.imageUrl || nullPlaceImage,
             name: place.name,
-            title: place.name,
+            title: place.title || place.name, 
             address: place.address,
             latitude: place.coordinates?.lat,
             longitude: place.coordinates?.lng,
-            operatingHours: '정보 없음',
-            phoneNumber: '정보 없음',
+            operatingHours: place.operatingHours || '정보 없음',
+            phoneNumber: place.phoneNumber || '정보 없음',
         };
     };
 
@@ -509,7 +580,7 @@ const EditingPage = () => {
             location: placeToAdd.address,
             imageUrl: placeToAdd.imageUrl || nullPlaceImage,
             coordinates: placeToAdd.coordinates,
-            placeType: selectedPlaceType,
+            placeType: selectedPlaceType, // placeType은 selectedPlaceType (검색 시점의 타입)을 따라감
             originalPlaceId: placeToAdd.originalPlaceId || placeToAdd.id,
         };
         
@@ -868,7 +939,7 @@ const EditingPage = () => {
         e.stopPropagation();
     };
 
-    if (isLoading && !isSaveModalOpen && !isSelectionModalOpen) {
+    if (isLoading && !isSaveModalOpen && !isSelectionModalOpen && !isLoadingPlaceDetail) {
         return <LoadingSpinner message="여행 일정을 불러오는 중..." />;
     }
 
@@ -1000,15 +1071,29 @@ const EditingPage = () => {
                 setSelectedDayIndex(null);
                 setSelectedPlaceType(null);
             }}
-            onItemSelect={handlePlaceSelectFromSearch}
+            onItemSelect={(place) => { 
+                // handlePlaceSelectFromSearch가 async 함수이므로, 
+                // 반환된 Promise를 void 처리하여 타입 일치시킴
+                void handlePlaceSelectFromSearch(place); 
+            }}
             placeType={selectedPlaceType}
         />
 
+        {isLoadingPlaceDetail && <LoadingSpinner message="장소 상세 정보를 준비 중입니다..." />}
+        
+        {placeDetailError && !isSelectionModalOpen && (
+            <ErrorMessageContainer>
+                <p>오류: {placeDetailError}</p>
+                <button onClick={() => setPlaceDetailError(null)}>닫기</button>
+            </ErrorMessageContainer>
+        )}
+
         <SelectionModal 
-            isOpen={isSelectionModalOpen}
+            isOpen={isSelectionModalOpen && !isLoadingPlaceDetail && !placeDetailError}
             onClose={() => {
                 setIsSelectionModalOpen(false);
                 setSelectedPlaceForDetail(null);
+                setPlaceDetailError(null); 
             }}
             selectedTravelItem={mapPlaceToTravelItem(selectedPlaceForDetail)}
             onSelect={handleAddPlaceFromSelectionModal}
@@ -1343,6 +1428,37 @@ const ViewMapButton = styled.button`
 const MapIcon = styled.span`
   margin-right: 8px;
   font-size: 16px;
+`;
+
+// 에러 메시지 표시를 위한 간단한 스타일 컨테이너
+const ErrorMessageContainer = styled.div`
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    z-index: 2001; // 다른 모달보다 위에 오도록
+    text-align: center;
+    color: red;
+
+    p {
+        margin-bottom: 15px;
+    }
+
+    button {
+        padding: 8px 15px;
+        background-color: #3498db;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        &:hover {
+            background-color: #2980b9;
+        }
+    }
 `;
 
 export default EditingPage;

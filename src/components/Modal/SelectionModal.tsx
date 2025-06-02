@@ -23,6 +23,8 @@ interface SelectionModalProps {
     onClose: () => void;
     selectedTravelItem: TravelItem | null;
     onSelect: () => void;
+    showActionButtons?: boolean;
+    showSingleCloseButton?: boolean;
 }
 
 // 모달 컨텐츠 스타일 컴포넌트 - 가로 레이아웃으로 변경
@@ -32,6 +34,7 @@ const ModalContent = styled.div`
     height: 100%;
     overflow: hidden;
     background-color: white;
+    position: relative;
 `;
 
 // 지도 컨테이너
@@ -113,11 +116,12 @@ const ModalBody = styled.div`
     flex-grow: 1;
     display: flex;
     flex-direction: column;
+    gap: 20px;
 `;
 
 // 정보 섹션
 const InfoSection = styled.div`
-    flex-grow: 1;
+    // flex-grow: 1;
 `;
 
 // 섹션 제목
@@ -179,7 +183,6 @@ const ActionSection = styled.div`
     display: flex;
     justify-content: center;
     gap: 15px;
-    margin-top: 15px;
     padding-top: 15px;
 `;
 
@@ -224,11 +227,16 @@ const CancelButton = styled.button`
     }
 `;
 
+// 단일 닫기 버튼 스타일을 CancelButton과 동일하게 변경
+const SingleCloseButton = styled(CancelButton)``; // CancelButton 스타일을 그대로 상속
+
 const SelectionModal: React.FC<SelectionModalProps> = ({
     isOpen,
     onClose,
     selectedTravelItem,
-    onSelect
+    onSelect,
+    showActionButtons = true,
+    showSingleCloseButton = false,
 }) => {
     // 부산 대표 좌표 (기본값으로 사용)
     const defaultCoordinates = { lat: 35.1796, lng: 129.0756 }; // 부산 해운대 좌표
@@ -259,7 +267,6 @@ const SelectionModal: React.FC<SelectionModalProps> = ({
         >
             {selectedTravelItem && (
                 <ModalContent>
-                    {/* 왼쪽 지도 영역 */}
                     <MapContainer>
                         <SimpleMapContent 
                             places={mapPlaces}
@@ -272,10 +279,8 @@ const SelectionModal: React.FC<SelectionModalProps> = ({
                         />
                     </MapContainer>
 
-                    {/* 오른쪽 정보 영역 */}
                     <InfoContainer>
                         <ImageHeaderContainer>
-                            {/* <ModalImage src={selectedTravelItem.image} alt={selectedTravelItem.title} /> */}
                             <ModalImage 
                                 src={selectedTravelItem.imageUrl} 
                                 alt={selectedTravelItem.name} 
@@ -315,10 +320,16 @@ const SelectionModal: React.FC<SelectionModalProps> = ({
                                 <ModalDescription>{selectedTravelItem.title}</ModalDescription>
                             </InfoSection>
                             
-                            <ActionSection>
-                                <CancelButton onClick={onClose}>취소하기</CancelButton>
-                                <ModalButton onClick={onSelect}>추가하기</ModalButton>
-                            </ActionSection>
+                            {showSingleCloseButton ? (
+                                <ActionSection>
+                                    <SingleCloseButton onClick={onClose}>닫기</SingleCloseButton>
+                                </ActionSection>
+                            ) : showActionButtons ? (
+                                <ActionSection>
+                                    <CancelButton onClick={onClose}>취소하기</CancelButton>
+                                    <ModalButton onClick={onSelect}>추가하기</ModalButton>
+                                </ActionSection>
+                            ) : null}
                         </ModalBody>
                     </InfoContainer>
                 </ModalContent>

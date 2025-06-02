@@ -647,7 +647,7 @@ const MapPage = () => {
             setPlaces([]);
             setTravelRoutes([]);
         });
-  }, [tripPlansId]);
+  }, [tripPlansId, location]);
 
   // 전체 루트 보기 함수 - 특수 값(-1)을 전달하여 NaverMap에서 전체 일정 경계 맞추기
   const showFullRoute = () => {
