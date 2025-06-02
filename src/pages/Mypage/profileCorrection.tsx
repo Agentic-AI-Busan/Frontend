@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import styled from "styled-components"
-import { authenticatedFetch } from "../../services/api";
+import { authenticatedFetch, getUserTripPlans } from "../../services/api";
 import flatpickr from 'flatpickr';
 import { Korean } from 'flatpickr/dist/l10n/ko';
 import 'flatpickr/dist/flatpickr.min.css';
@@ -276,18 +276,18 @@ const MyPage: React.FC = () => {
   }, [isEditing.birthday]);
 
   useEffect(() => {
-    const fetchTotalPlan = async () => {
+    const fetchUserTripPlans = async () => {
       try {
-        const response = await authenticatedFetch(`/api/user/total-plan`, { method: 'GET' });
-        const data = await response.json();
-        if (data.isSuccess && data.result) {
-          setTotalPlan(data.result.totalElements);
+        const response = await getUserTripPlans();
+        console.log('response: ', response);
+        if (response) {
+          setTotalPlan(response.totalElements);
         }
       } catch (error) {
-        console.error('Total plan fetch error:', error);
+        console.error('User trip plans fetch error:', error);
       }
     }
-    fetchTotalPlan();
+    fetchUserTripPlans();
   }, []);
 
   useEffect(() => {
