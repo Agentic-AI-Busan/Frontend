@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import styled from "styled-components"
-import { authenticatedFetch } from "../../services/api";
+import { authenticatedFetch, getUserTripPlans } from "../../services/api";
 import flatpickr from 'flatpickr';
 import { Korean } from 'flatpickr/dist/l10n/ko';
 import 'flatpickr/dist/flatpickr.min.css';
@@ -16,7 +16,7 @@ padding: 32px 20px;
 font-family: 'Pretendard', sans-serif;
 color: #1a1a1a;
 background-color: #f8f9fa;
-min-height: 90vh;
+min-height: 95.5vh;
 display: flex;
 align-items: center;
 justify-content: center;
@@ -171,13 +171,18 @@ background-color: white;
 
 const SelectInput = styled.select`
 width: 100%;
-padding: 10px 14px;
+padding: 10px 30px 10px 14px;
 border: 1px solid #e2e8f0;
 border-radius: 8px;
 font-size: 15px;
 outline: none;
 background-color: #f8fafc;
 transition: all 0.2s;
+appearance: none;
+background-image: url("data:image/svg+xml;utf8,<svg fill='gray' height='20' viewBox='0 0 24 24' width='20' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+background-repeat: no-repeat;
+background-position: right 12px center;
+background-size: 20px 20px;
 
 &:focus {
 border-color: #cbd5e1;
@@ -276,18 +281,18 @@ const MyPage: React.FC = () => {
   }, [isEditing.birthday]);
 
   useEffect(() => {
-    const fetchTotalPlan = async () => {
+    const fetchUserTripPlans = async () => {
       try {
-        const response = await authenticatedFetch(`/api/user/total-plan`, { method: 'GET' });
-        const data = await response.json();
-        if (data.isSuccess && data.result) {
-          setTotalPlan(data.result.totalElements);
+        const response = await getUserTripPlans();
+        console.log('response: ', response);
+        if (response) {
+          setTotalPlan(response.totalElements);
         }
       } catch (error) {
-        console.error('Total plan fetch error:', error);
+        console.error('User trip plans fetch error:', error);
       }
     }
-    fetchTotalPlan();
+    fetchUserTripPlans();
   }, []);
 
   useEffect(() => {
@@ -393,7 +398,11 @@ const MyPage: React.FC = () => {
 
   const toggleEdit = (field: string) => {
     setIsEditing((prev) => ({
-      ...prev,
+      name: false,
+      nickname: false,
+      gender: false,
+      birthday: false,
+      phone: false,
       [field]: !prev[field as keyof typeof isEditing],
     }))
     // Reset edit value to current user value when toggling edit mode

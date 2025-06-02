@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-// import travel_img2 from '../../assets/images/travel_img2.jpg';
-// import travel_img3 from '../../assets/images/travel_img3.jpg';
+import card_image from '../../assets/images/card_image.jpg';
 import { useNavigate } from 'react-router-dom';
+import { getUserTripPlans, editUserTripPlan, deleteUserTripPlan } from '../../services/api';
+import { useUser } from '../../contexts/UserContext';
 
 const Container = styled.div`
     width: 100%;
@@ -89,6 +90,7 @@ const GuideItem = styled.div`
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     overflow: hidden;
     cursor: pointer;
+    height: 250px;
 
     &:hover {
         transform: translateY(-2px);
@@ -103,7 +105,7 @@ const GuideItem = styled.div`
 
 const GuideImage = styled.div`
     width: 280px;
-    height: 220px;
+    height: 100%;
     overflow: hidden;
     flex-shrink: 0;
     position: relative;
@@ -116,7 +118,7 @@ const GuideImage = styled.div`
 
     @media (max-width: 768px) {
         width: 100%;
-        height: 200px;
+        height: 100%;
     }
 `;
 
@@ -142,6 +144,7 @@ const GuideTitle = styled.div`
         margin: 0;
         padding-left: 12px;
         position: relative;
+        cursor: pointer;
 
         &::before {
             content: '';
@@ -154,6 +157,10 @@ const GuideTitle = styled.div`
             background: #3498db;
             border-radius: 1px;
             opacity: 0.85;
+        }
+
+        &:hover {
+            color: #3498db;
         }
     }
 
@@ -230,21 +237,17 @@ const GuideDescription = styled.div<{ isEditing: boolean }>`
     `}
 `;
 
-const EditableTextArea = styled.textarea`
+const EditableInput = styled.input`
     width: 100%;
-    min-height: 100px;
-    padding: 0;
+    padding: 8px;
     border: none;
     background: none;
     font-size: 15px;
     line-height: 1.7;
-    resize: none;
     font-family: inherit;
     color: inherit;
-
-    &:focus {
-        outline: none;
-    }
+    outline: none;
+    box-sizing: border-box;
 
     &::placeholder {
         color: #999;
@@ -369,135 +372,157 @@ const ArrowButton = styled(PageButton)`
     }
 `;
 
-// 날짜 계산 함수
-const calculateDday = (startDateStr: string): string => {
-    // "YYYY.MM.DD" 형식의 날짜를 파싱
-    const [startDate] = startDateStr.split(' ~ ');
-    const [year, month, day] = startDate.split('.').map(Number);
+const TitleInput = styled.input`
+    font-size: 24px;
+    font-weight: 700;
+    color: #1a3b5d;
+    margin: 0;
+    padding: 4px 12px;
+    border: 1px solid #3498db;
+    border-radius: 4px;
+    width: 100%;
+    max-width: 300px;
+    background-color: white;
     
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const targetDate = new Date(year, month - 1, day);
-    targetDate.setHours(0, 0, 0, 0);
-    
-    const diffTime = targetDate.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 0) {
-        return "D-Day";
-    } else if (diffDays > 0) {
-        return `D-${diffDays}`;
-    } else {
-        return `D+${Math.abs(diffDays)}`;
+    &:focus {
+        outline: none;
+        border-color: #2980b9;
+        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
     }
-};
+`;
 
-// GuideItem 타입 정의
-interface GuideItem {
-    id: number;
-    title: string;
-    date: string;
-    image: string;
-    location: string;
-    description: string;
+interface TripPlan {
+    tripPlanId: number;
+    tripPlanName: string;
+    tripPlanStatus: string;
+    startDate: string;
+    endDate: string;
+    dayDiff: number;
+    imageUrl: string;
+    memo: string | null;
+    city: string;
 }
 
 const MyGuidePage: React.FC = () => {
-    const [username] = useState<string>("성수립");
+    const { user } = useUser();
+    const userName = user?.nickname || user?.name;
+    const navigate = useNavigate();
+
     const [currentPage, setCurrentPage] = useState(1);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [editingText, setEditingText] = useState("");
-    const navigate = useNavigate();
-    
-    // 더미 데이터 상태 관리
-    const [guideItems, setGuideItems] = useState<GuideItem[]>([
-        {
-            id: 1,
-            title: "대학교 친구들과",
-            date: "2024.08.24 ~ 2024.08.26",
-            image: '',
-            location: "부산 해운대 (기본 위치)",
-            description: "메모를 작성해 주세요..."
-        },
-        {
-            id: 2,
-            title: "중학교 친구들과",
-            date: "2024.09.15 ~ 2024.09.17",
-            image: '',
-            location: "부산 해운대 (기본 위치)",
-            description: "메모를 작성해 주세요..."
-        },
-        {
-            id: 3,
-            title: "대학교 친구들과",
-            date: "2024.07.01 ~ 2024.07.03",
-            image: '',
-            location: "부산 해운대 (기본 위치)",
-            description: "메모를 작성해 주세요..."
-        },
-        {
-            id: 4,
-            title: "대학교 친구들과",
-            date: "2024.12.24 ~ 2024.12.26",
-            image: '',
-            location: "부산 해운대 (기본 위치)",
-            description: "메모를 작성해 주세요..."
-        }
-    ]);
 
-    const itemsPerPage = 2;
-    const totalPages = Math.ceil(guideItems.length / itemsPerPage);
+    const [editingTitleId, setEditingTitleId] = useState<number | null>(null);
+    const [editingTitle, setEditingTitle] = useState("");
+
+    const [tripPlans, setTripPlans] = useState<TripPlan[]>([]);
+    const [itemsPerPage, setItemsPerPage] = useState(2);
+
+    useEffect(() => {
+        const updateItemsPerPage = () => {
+            const windowHeight = window.innerHeight;
+            const topPadding = 60 + 20 + 40;
+            const availableHeight = windowHeight - topPadding - 100;
+
+            const cardHeight = 250;
+            const cardGap = 24;
+
+            let count = Math.floor((availableHeight + cardGap) / (cardHeight + cardGap));
+            if (window.innerWidth <= 768) count = 1;
+
+            setItemsPerPage(Math.max(1, count));
+        };
+        updateItemsPerPage();
+        window.addEventListener('resize', updateItemsPerPage);
+        return () => window.removeEventListener('resize', updateItemsPerPage);
+    }, []);
+
+    useEffect(() => {
+        const fetchTripPlans = async () => {
+            const plans = await getUserTripPlans();
+            if (plans) {
+                const userTripPlans = plans.tripPlans.map((plan: TripPlan) => ({
+                    ...plan,
+                    memo: plan.memo === "string"  || plan.memo === null ? "메모를 작성해 주세요..." : plan.memo
+                }));
+                setTripPlans(userTripPlans);
+            }
+        }
+        fetchTripPlans();
+    }, []);
+    
+    const totalPages = Math.ceil((tripPlans?.length || 0) / itemsPerPage);
     
     // 현재 페이지에 표시할 아이템들
-    const currentItems = guideItems.slice(
+    const currentItems = Array.isArray(tripPlans) ? tripPlans.slice(
         (currentPage - 1) * itemsPerPage,
         currentPage * itemsPerPage
-    );
+    ) : [];
 
     const handlePageChange = (pageNumber: number) => {
         setCurrentPage(pageNumber);
     };
 
-    // 가이드 삭제 핸들러
-    const handleDelete = (id: number) => {
-        if (window.confirm('정말로 이 가이드를 삭제하시겠습니까?')) {
-            setGuideItems(prevItems => {
-                const newItems = prevItems.filter(item => item.id !== id);
-                // 현재 페이지의 마지막 아이템을 삭제했을 때 이전 페이지로 이동
-                const newTotalPages = Math.ceil(newItems.length / itemsPerPage);
-                if (currentPage > newTotalPages && newTotalPages > 0) {
-                    setCurrentPage(newTotalPages);
-                }
-                return newItems;
-            });
+    // 일정 삭제 핸들러
+    const handleDelete = async (id: number) => {
+            if (window.confirm('정말로 이 일정을 삭제하시겠습니까?')) {
+                setTripPlans(prevItems => {
+                    const newItems = prevItems.filter(item => item.tripPlanId !== id);
+                    // 현재 페이지의 마지막 아이템을 삭제했을 때 이전 페이지로 이동
+                    const newTotalPages = Math.ceil(newItems.length / itemsPerPage);
+                    if (currentPage > newTotalPages && newTotalPages > 0) {
+                        setCurrentPage(newTotalPages);
+                    }
+                    return newItems;
+                });
+
+            const success = await deleteUserTripPlan(id);
+            if (success) {
+                console.log('일정 삭제 성공');
+            } else {
+                console.log('일정 삭제 실패');
+            }
         }
     };
 
     // 메모 수정 시작
-    const handleStartEdit = (item: GuideItem) => {
-        if (item.description === "메모를 작성해 주세요...") {
+    const handleStartEdit = (item: TripPlan) => {
+        if (item.memo === "메모를 작성해 주세요...") {
             setEditingText("");
         } else {
-            setEditingText(item.description);
+            setEditingText(item.memo || "");
         }
-        setEditingId(item.id);
+        setEditingId(item.tripPlanId);
     };
 
     // 메모 수정 완료
-    const handleFinishEdit = () => {
+    const handleFinishEdit = async () => {
         if (editingId === null) return;
-        
-        const finalText = editingText.trim() === "" ? "메모를 작성해 주세요..." : editingText;
-        
-        setGuideItems(prevItems =>
-            prevItems.map(item =>
-                item.id === editingId
-                    ? { ...item, description: finalText }
-                    : item
-            )
-        );
-        
+        const plan = tripPlans.find(item => item.tripPlanId === editingId);
+        if (!plan) return;
+
+        // 입력값이 비어있으면 기존 memo 사용, 기존 memo도 없으면 기본값
+        const finalText = editingText.trim() === "" 
+            ? (plan.memo && plan.memo !== "string" ? plan.memo : "메모를 작성해 주세요...") 
+            : editingText;
+
+        try {
+            const success = await editUserTripPlan(editingId, plan.tripPlanName, finalText);
+            if (success) {
+                setTripPlans(prevItems =>
+                    prevItems.map(item =>
+                        item.tripPlanId === editingId
+                            ? { ...item, memo: finalText }
+                            : item
+                    )
+                );
+                console.log('메모 수정 성공');
+            } else {
+                console.log('메모 수정 실패');
+            }
+        } catch (e) {
+            console.log('메모 수정 실패: ', e);
+        }
         setEditingId(null);
         setEditingText("");
     };
@@ -523,10 +548,62 @@ const MyGuidePage: React.FC = () => {
         }
     };
 
+    // 제목 수정 시작
+    const handleStartTitleEdit = (item: TripPlan) => {
+        console.log('현재 수정 중인 제목 ID:', item.tripPlanId);
+        setEditingTitle(item.tripPlanName);
+        setEditingTitleId(item.tripPlanId);
+    };
+
+    // 제목 수정 완료
+    const handleFinishTitleEdit = async () => {
+        if (editingTitleId === null) return;
+
+        const plan = tripPlans.find(plan => plan.tripPlanId === editingTitleId);
+        if (!plan) return;
+        
+        const finalTitle = editingTitle.trim() === "" ? plan.tripPlanName : editingTitle;
+        if (finalTitle === "") return; // 빈 제목은 저장하지 않음
+        
+        setTripPlans(prevItems =>
+            prevItems.map(item =>
+                item.tripPlanId === editingTitleId
+                    ? { ...item, tripPlanName: finalTitle }
+                    : item
+            )
+        );
+
+        const success = await editUserTripPlan(editingTitleId, finalTitle, plan.memo || "");
+        if (success) {
+            console.log('여행 정보 수정 성공');
+        } else {
+            console.log('여행 정보 수정 실패');
+        }
+        
+        setEditingTitleId(null);
+        setEditingTitle("");
+    };
+
+    // 제목 수정 취소
+    const handleCancelTitleEdit = () => {
+        setEditingTitleId(null);
+        setEditingTitle("");
+    };
+
+    // 제목 수정 키보드 이벤트
+    const handleTitleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handleFinishTitleEdit();
+        }
+        if (e.key === 'Escape') {
+            handleCancelTitleEdit();
+        }
+    };
+
     // 가이드 클릭 핸들러
     const handleGuideClick = (id: number) => {
-        // navigate(`/map/${id}`);
-        navigate(`/map/#`);
+        navigate(`/map`, { state: { tripPlansId: id } });
     };
 
     // 이벤트 버블링 방지
@@ -537,49 +614,72 @@ const MyGuidePage: React.FC = () => {
     return (
         <Container>
             <TitleWrapper>
-                <MainTitle><span>{username}</span>님의 가이드 목록입니다</MainTitle>
+                <MainTitle><span>{userName}</span>님의 가이드 목록입니다</MainTitle>
             </TitleWrapper>
             <MainContent>
                 <GuideList>
                     {currentItems.map((item) => (
                         <GuideItem 
-                            key={item.id}
-                            onClick={() => handleGuideClick(item.id)}
+                            key={item.tripPlanId}
+                            onClick={() => handleGuideClick(item.tripPlanId)}
                         >
                             <GuideImage>
-                                <img src={item.image} alt={item.title} />
+                                <img src={card_image} alt={item.tripPlanName} />
                             </GuideImage>
                             <GuideInfo>
                                 <GuideTitle>
-                                    <h3>{item.title}</h3>
-                                    <span>{item.date}</span>
-                                    <DDay>{calculateDday(item.date)}</DDay>
+                                    {editingTitleId === item.tripPlanId ? (
+                                        <TitleInput
+                                            value={editingTitle}
+                                            onChange={(e) => setEditingTitle(e.target.value)}
+                                            onBlur={handleFinishTitleEdit}
+                                            onKeyDown={handleTitleKeyDown}
+                                            placeholder="여행 제목을 입력하세요"
+                                            autoFocus
+                                            onClick={e => e.stopPropagation()}
+                                        />
+                                    ) : (
+                                        <h3 
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                console.log('클릭된 아이템:', item);
+                                                handleStartTitleEdit(item);
+                                            }}
+                                            style={{ cursor: 'pointer' }}
+                                        >
+                                            {item.tripPlanName}
+                                        </h3>
+                                    )}
+                                    <span>{`${item.startDate} ~ ${item.endDate}`}</span>
+                                    <DDay>{item.dayDiff === 0 ? 'D-Day' : `D${item.dayDiff > 0 ? '+' : ''}${item.dayDiff}`}</DDay>
                                 </GuideTitle>
                                 <LocationInfo>
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                                         <path d="M12 2C8.13 2 5 5.13 5 9C5 14.25 12 22 12 22C12 22 19 14.25 19 9C19 5.13 15.87 2 12 2ZM12 11.5C10.62 11.5 9.5 10.38 9.5 9C9.5 7.62 10.62 6.5 12 6.5C13.38 6.5 14.5 7.62 14.5 9C14.5 10.38 13.38 11.5 12 11.5Z"/>
                                     </svg>
-                                    {item.location}
+                                    {item.city}
                                 </LocationInfo>
                                 <GuideDescription 
-                                    isEditing={editingId === item.id}
+                                    isEditing={editingId === item.tripPlanId}
                                     onClick={(e) => {
                                         handleDescriptionClick(e);
                                         if (!editingId) handleStartEdit(item);
                                     }}
                                 >
-                                    {editingId === item.id ? (
-                                        <EditableTextArea
+                                    {editingId === item.tripPlanId ? (
+                                        <EditableInput
+                                            type="text"
                                             value={editingText}
                                             onChange={(e) => setEditingText(e.target.value)}
                                             onBlur={handleFinishEdit}
                                             onKeyDown={handleKeyDown}
                                             placeholder="메모를 작성해 주세요..."
                                             autoFocus
+                                            maxLength={50}
                                             onClick={e => e.stopPropagation()}
                                         />
                                     ) : (
-                                        item.description
+                                        item.memo
                                     )}
                                 </GuideDescription>
                                 <ButtonGroup onClick={e => e.stopPropagation()}>
@@ -587,7 +687,7 @@ const MyGuidePage: React.FC = () => {
                                         className="delete"
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            handleDelete(item.id);
+                                            handleDelete(item.tripPlanId);
                                         }}
                                     >
                                         삭제
@@ -597,7 +697,7 @@ const MyGuidePage: React.FC = () => {
                         </GuideItem>
                     ))}
                 </GuideList>
-                {guideItems.length === 0 ? (
+                {tripPlans.length === 0 ? (
                     <EmptyGuide>
                         등록된 가이드가 없습니다.
                     </EmptyGuide>
