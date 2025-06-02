@@ -255,6 +255,17 @@ const EditingPage = () => {
         });
         
         setSchedules(newSchedules);
+
+        const storedScheduleData = localStorage.getItem(`scheduleOrder_${tripPlansId}`);
+        if (!storedScheduleData) {
+            try {
+                const initialSchedules = newSchedules.map(ds => ({ day: ds.day, places: ds.places.map(p => ({...p})) }));
+                localStorage.setItem(`scheduleOrder_${tripPlansId}`, JSON.stringify(initialSchedules));
+                console.log('[processApiResult] 로컬 스토리지 저장 성공');
+            } catch (e) {
+                console.error('[processApiResult] 로컬 스토리지 저장 실패:', e);
+            }
+        }
         
         Promise.all(detailPromises)
             .then(() => {
