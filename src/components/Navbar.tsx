@@ -1,66 +1,38 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import logoImage from '../assets/images/t_logo.png';
+import logoImage from '../assets/images/logo.svg';
 import userImage from '../assets/images/default_profile_img.jpeg';
 import CheckModal from './Modal/CheckModal';
 import { useUser } from '../contexts/UserContext';
 
 interface NavbarProps {
     userName?: string;
+    onLogoClick?: () => void;
 }
 
 const HeaderContainer = styled.header`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0px 25px;
+    padding: 20px 20px;
     background-color: #ffffff;
     height: 60px;
     z-index: 100;
 `;
 
 const Logo = styled.h1`
+    cursor: pointer;
     img {
-        height: 40px;
+        height: 50px;
         width: auto;
+        display: block;
     }
 `;
 
 const MenuWrapper = styled.nav`
     display: flex;
     align-items: center;
-`;
-
-const MenuList = styled.ul`
-    display: flex;
-    list-style: none;
-    margin-right: 30px;
-`;
-
-const MenuItem = styled.li`
-    margin: 0 25px;
-`;
-
-const MenuButton = styled.button`
-    background: none;
-    border: none;
-    color: #808080;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    padding: 10px 12px;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 1.5;
-    height: 40px;
-    
-    &:hover {
-        color: #3498db;
-        border-radius: 4px;
-    }
 `;
 
 const UserButtonWrapper = styled.div`
@@ -139,7 +111,7 @@ const DropdownItem = styled.button`
     }
 `;
 
-const Navbar: React.FC<NavbarProps> = () => {
+const Navbar: React.FC<NavbarProps> = ({ onLogoClick }) => {
     const navigate = useNavigate();
     const { user, setUser } = useUser();
     const [showDropdown, setShowDropdown] = useState(false);
@@ -173,30 +145,11 @@ const Navbar: React.FC<NavbarProps> = () => {
     
     return (
         <>
-            <HeaderContainer>
-                <Logo>
-                    <Link to="/">
+        <HeaderContainer>
+                <Logo onClick={onLogoClick}>
                     <img src={logoImage} alt="logo" />
-                </Link>
-            </Logo>
+                </Logo>
             <MenuWrapper>
-                <MenuList>
-                    <MenuItem>
-                        <MenuButton onClick={() => handleNavigation('/service')}>
-                            서비스 소개
-                        </MenuButton>
-                    </MenuItem>
-                    <MenuItem>
-                        <MenuButton onClick={() => handleNavigation('/guide')}>
-                            여행지 검색
-                        </MenuButton>
-                    </MenuItem>
-                    <MenuItem>
-                        <MenuButton onClick={() => handleNavigation('/question')}>
-                            가이드 시작하기
-                        </MenuButton>
-                    </MenuItem>
-                </MenuList>
                 <UserButtonWrapper 
                     onMouseEnter={() => user && setShowDropdown(true)}
                     onMouseLeave={() => setShowDropdown(false)}

@@ -10,7 +10,7 @@ export interface Place {
     address: string;
     imageUrl?: string;
     coordinates?: { lat: number; lng: number };
-    type?: string; // 'ATTRACTION' 또는 'RESTAURANT' 등
+    type?: 'ATTRACTION' | 'RESTAURANT'; // 수정된 부분
     originalPlaceId?: number; // API에서 받은 원본 ID
 }
 

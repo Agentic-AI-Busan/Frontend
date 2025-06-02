@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import travel_img2 from '../../assets/images/travel_img2.jpg';
-import travel_img3 from '../../assets/images/travel_img3.jpg';
+// import travel_img2 from '../../assets/images/travel_img2.jpg';
+// import travel_img3 from '../../assets/images/travel_img3.jpg';
 import { useNavigate } from 'react-router-dom';
 
 const Container = styled.div`
@@ -416,7 +416,7 @@ const MyGuidePage: React.FC = () => {
             id: 1,
             title: "대학교 친구들과",
             date: "2024.08.24 ~ 2024.08.26",
-            image: travel_img3,
+            image: '',
             location: "부산 해운대 (기본 위치)",
             description: "메모를 작성해 주세요..."
         },
@@ -424,7 +424,7 @@ const MyGuidePage: React.FC = () => {
             id: 2,
             title: "중학교 친구들과",
             date: "2024.09.15 ~ 2024.09.17",
-            image: travel_img2,
+            image: '',
             location: "부산 해운대 (기본 위치)",
             description: "메모를 작성해 주세요..."
         },
@@ -432,7 +432,7 @@ const MyGuidePage: React.FC = () => {
             id: 3,
             title: "대학교 친구들과",
             date: "2024.07.01 ~ 2024.07.03",
-            image: travel_img3,
+            image: '',
             location: "부산 해운대 (기본 위치)",
             description: "메모를 작성해 주세요..."
         },
@@ -440,7 +440,7 @@ const MyGuidePage: React.FC = () => {
             id: 4,
             title: "대학교 친구들과",
             date: "2024.12.24 ~ 2024.12.26",
-            image: travel_img3,
+            image: '',
             location: "부산 해운대 (기본 위치)",
             description: "메모를 작성해 주세요..."
         }

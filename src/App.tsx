@@ -1,5 +1,4 @@
-import './App.css'
-import { Routes, Route, useLocation } from 'react-router-dom'
+import { Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import styled, { createGlobalStyle } from 'styled-components'
 import AuthPage from './pages/LoginSingup/authPage'
 import MainPage from './pages/mainPage'
@@ -13,7 +12,6 @@ import SelectionRestaurant from './pages/Selection/selectRestaurant'
 import MapPage from './pages/SchduleEditing/mapPage'
 import { UserProvider } from './contexts/UserContext'
 import Navbar from './components/Navbar'
-import Footer from './components/Footer'
 import EditingPage from './pages/SchduleEditing/editingPage'
 import ProtectedRoute from './components/ProtectedRoute'
 
@@ -58,15 +56,19 @@ const GlobalStyle = createGlobalStyle<{ $isMapPage: boolean }>`
 
 const AppContent = () => {
   const location = useLocation();
-  const isMainPage = location.pathname === '/';
+  const navigate = useNavigate();
   const isFullScreenPage = location.pathname === '/map' || location.pathname === '/editing';
-  const isAuthPage = location.pathname === '/auth';
+  // const isAuthPage = location.pathname === '/auth'; // 이 변수는 Footer 조건에서 더 이상 필요하지 않습니다.
+
+  const handleNavigateHome = () => {
+    navigate('/');
+  };
 
   return (
     <>
       <GlobalStyle $isMapPage={isFullScreenPage} />
       <AppContainer $isMapPage={isFullScreenPage}>
-        <Navbar/>
+        <Navbar onLogoClick={handleNavigateHome} />
         <MainContent $isMapPage={isFullScreenPage}>
           <Routes>
             {/* 공개 라우트 */}
@@ -121,7 +123,6 @@ const AppContent = () => {
             <Route path="*" element={<ErrorPage />} />
           </Routes>
         </MainContent>
-        {isMainPage && !isAuthPage && <Footer />}
       </AppContainer>
     </>
   );

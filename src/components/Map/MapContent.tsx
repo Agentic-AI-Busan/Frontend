@@ -1,5 +1,5 @@
 import { Place, NaverMapTypes } from './NaverMap';
-import travel_img1 from '../../assets/images/travel_img1.jpg';
+// import travel_img1 from '../../assets/images/travel_img1.jpg';
 
 // =============== 정보창 스타일 정의 ===============
 const infoWindowStyles = {
@@ -332,7 +332,7 @@ export const generateInfoWindowContent = (place: Place): string => {
             <div style="width:100%; position:relative;">
                 <!-- 커스텀 앵커 추가 -->
                 <div style="${anchorStyle.anchor}"></div>
-                <div style="${infoWindowStyles.imageContainer} background-image:url('${place.imageUrl || travel_img1}');">
+                <div style="${infoWindowStyles.imageContainer} background-image:url('${place.imageUrl || ''}');">
                     <div style="${infoWindowStyles.imageOverlay}"></div>
                     <div style="${infoWindowStyles.titleContainer}">
                         <h3 style="${infoWindowStyles.title}">${place.name}</h3>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import SelectionModal from './Modal/SelectionModal';
-import img_3 from '../assets/images/travel_img3.jpg'
+// import img_3 from '../assets/images/travel_img3.jpg'
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -278,7 +278,7 @@ const renderMessage = (message: Message) => {
                             key={place.id}
                             onClick={() => handleSelectRecommendation(place)}
                         >
-                            <CardImage src={img_3} alt={place.title} />
+                            <CardImage src={place.image} alt={place.title} />
                             <CardContent>
                                 <CardTitle>{place.title}</CardTitle>
                                 <CardLocation>{place.location}</CardLocation>
