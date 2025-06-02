@@ -415,6 +415,26 @@ const MyGuidePage: React.FC = () => {
     const [editingTitle, setEditingTitle] = useState("");
 
     const [tripPlans, setTripPlans] = useState<TripPlan[]>([]);
+    const [itemsPerPage, setItemsPerPage] = useState(2);
+
+    useEffect(() => {
+        const updateItemsPerPage = () => {
+            const windowHeight = window.innerHeight;
+            const topPadding = 60 + 20 + 40;
+            const availableHeight = windowHeight - topPadding - 100;
+
+            const cardHeight = 250;
+            const cardGap = 24;
+
+            let count = Math.floor((availableHeight + cardGap) / (cardHeight + cardGap));
+            if (window.innerWidth <= 768) count = 1;
+
+            setItemsPerPage(Math.max(1, count));
+        };
+        updateItemsPerPage();
+        window.addEventListener('resize', updateItemsPerPage);
+        return () => window.removeEventListener('resize', updateItemsPerPage);
+    }, []);
 
     useEffect(() => {
         const fetchTripPlans = async () => {
@@ -430,7 +450,6 @@ const MyGuidePage: React.FC = () => {
         fetchTripPlans();
     }, []);
     
-    const itemsPerPage = 2;
     const totalPages = Math.ceil((tripPlans?.length || 0) / itemsPerPage);
     
     // 현재 페이지에 표시할 아이템들
