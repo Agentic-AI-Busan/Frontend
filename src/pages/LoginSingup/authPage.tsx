@@ -44,7 +44,7 @@ const PageWrapper = styled.div`
 const SignContainer = styled.div`
   background: #fff;
   width: 900px;
-  min-height: 600px;
+  min-height: 700px;
   height: auto;
   margin: auto;
   border-radius: 16px;
@@ -208,13 +208,14 @@ const FormSignIn = styled.div<{ $isVisible: boolean }>`
   position: absolute;
   height: inherit;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   clip-path: inset(0px 0px 0px 0px round 16px);
   opacity: ${(props) => (props.$isVisible ? 1 : 0)};
   pointer-events: ${(props) => (props.$isVisible ? "auto" : "none")};
   transition: opacity 0.3s ease;
   z-index: ${(props) => (props.$isVisible ? 1 : -1)};
+  padding-top: 70px; /* 로고 공간 확보 */
   
   @media (max-width: 700px) {
     width: 100%;
@@ -226,7 +227,7 @@ const FormSignUp = styled.div<{ $isVisible: boolean }>`
   position: absolute;
   height: 100%;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   right: 0px;
   clip-path: inset(0px 0px 0px 0px round 16px);
@@ -234,6 +235,7 @@ const FormSignUp = styled.div<{ $isVisible: boolean }>`
   pointer-events: ${(props) => (props.$isVisible ? "auto" : "none")};
   transition: opacity 0.3s ease;
   z-index: ${(props) => (props.$isVisible ? 1 : -1)};
+  padding-top: 50px; /* 로고 공간 확보 */
   
   /* 스크롤바 숨기기 */
   scrollbar-width: none; /* Firefox */
@@ -265,11 +267,11 @@ export default function AuthPage() {
             <TextGroup>
               <SignContent $isLogin={isLogin}>
                 <Container>
-                  <h3>{isLogin ? "계정이 없으신가요?" : "이미 계정이 있으신가요?"}</h3>
+                  <h3>{isLogin ? "계정이 없으신가요?" : <>이미 계정이<br />있으신가요?</>}</h3>
                   <span>
                     {isLogin
-                      ? "회원가입을 통해 서비스를 이용해보세요."
-                      : "로그인하여 서비스를 이용해보세요."}
+                      ? <>회원가입을 통해<br />서비스를 이용해보세요.</>
+                      : <>로그인하여<br />서비스를 이용해보세요.</>}
                   </span>
                 </Container>
               </SignContent>
