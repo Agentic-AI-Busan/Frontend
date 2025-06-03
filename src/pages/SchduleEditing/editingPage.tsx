@@ -14,7 +14,8 @@ import SearchModal, { Place as OriginalPlaceFromSearch } from '../../components/
 import DeleteModal from '../../components/Modal/DeleteModal';
 import SaveModal from '../../components/Modal/SaveModal';
 import SelectionModal from '../../components/Modal/SelectionModal';
-import { authenticatedFetch } from '../../services/api';
+import TitleInputModal from '../../components/Modal/TitleInputModal';
+import { authenticatedFetch, getUserTripPlans } from '../../services/api';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import nullPlaceImage from '../../assets/images/null_place.png';
 
@@ -99,6 +100,18 @@ interface TravelItemForSelection {
     phoneNumber?: string;
 }
 
+interface TripPlan {
+    city: string;
+    daydiff: number;
+    endDate: string;
+    imageUrl: string;
+    memo: string;
+    startDate: string;
+    tripPlanId: number;
+    tripPlanName: string;
+    tripPlanStatus: string;
+}
+
 const EditingPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -118,6 +131,8 @@ const EditingPage = () => {
     });
 
     const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+    const [isTitleModalOpen, setIsTitleModalOpen] = useState(false);
+    const [tripTitle, setTripTitle] = useState('');
     const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null);
     const [selectedPlaceType, setSelectedPlaceType] = useState<'ATTRACTION' | 'RESTAURANT' | null>(null);
 
@@ -289,6 +304,16 @@ const EditingPage = () => {
             });
     };
 
+    const fetchTripTitle = async () => {
+        const response = await getUserTripPlans();
+        if (response && Array.isArray(response.tripPlans) && response.tripPlans.length > 0) {
+            const found = response.tripPlans.find((plan: TripPlan) => plan.tripPlanId === tripPlansId);
+            if (found) {
+                setTripTitle(found.tripPlanName);
+            }
+        }
+    }
+
     useEffect(() => {
         if (!tripPlansId) {
           setError('여행 계획 ID가 없습니다. 이전 페이지로 돌아가 다시 시작해주세요.');
@@ -320,6 +345,8 @@ const EditingPage = () => {
         if (localTransportation) {
             setTripInfo(prev => ({ ...prev, transportation: localTransportation }));
         }
+
+        fetchTripTitle();
         
         authenticatedFetch(`/api/trip-plans/${tripPlansId}`)
             .then(response => {
@@ -836,12 +863,36 @@ const EditingPage = () => {
         } finally {
             setIsLoading(false);
             setIsSaveModalOpen(false);
+            if (tripTitle === '여행 계획') {
+                setIsTitleModalOpen(true);
+            } else {
+                navigate('/myGuide');
+            }
         }
     };
 
     const deletePlace = (dayIndex: number, placeId: number) => {
       setPlaceToDelete({ dayIndex, placeId });
       setIsDeleteModalOpen(true);
+    };
+
+    const handleTitleInputConfirm = async () => {
+        try {
+            const response = await authenticatedFetch(`/api/trip-plans/${tripPlansId}/title?title=${tripTitle}`, {
+                method: 'PUT',
+            });
+            if (!response.ok) {
+                throw new Error('일정 제목 변경에 실패했습니다.');
+            }
+            const result = await response.json();
+            console.log('일정 제목 변경 성공:', result);
+            alert('일정 제목이 성공적으로 변경되었습니다.');
+        } catch (err) {
+            console.error('일정 저장 API 호출 중 오류 발생:', err);
+        } finally {
+            setIsTitleModalOpen(false);
+            navigate('/myGuide');
+        }
     };
 
     const handleDelete = () => {
@@ -1110,6 +1161,14 @@ const EditingPage = () => {
             isOpen={isSaveModalOpen}
             onClose={() => setIsSaveModalOpen(false)}
             onSave={handleSave}
+            title="일정 저장"
+        />
+        <TitleInputModal
+            isOpen={isTitleModalOpen}
+            value={tripTitle === "여행 계획" ? "" : tripTitle}
+            onChange={e => setTripTitle(e.target.value)}
+            onClose={() => setIsTitleModalOpen(false)}
+            onConfirm={handleTitleInputConfirm}
             title="일정 저장"
         />
         </PageLayout>
