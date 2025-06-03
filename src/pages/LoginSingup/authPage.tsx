@@ -4,6 +4,7 @@ import styled, { keyframes } from "styled-components"
 import LoginForm from "../../components/LoginForm"
 import SignupForm from "../../components/SignUpForm"
 import mainImage from "../../assets/images/main_image.png"
+import logo from "../../assets/images/logo.svg"
 
 // Content fade animations
 const fadeX = keyframes`
@@ -90,7 +91,7 @@ const SwitchPanel = styled.div<{ $isLogin: boolean }>`
 `
 
 const SwitchLogo = styled.img`
-  max-width: 30px;
+  max-width: 60px;
   position: absolute;
   margin: 1.5em;
   filter: grayscale(1) brightness(3);
@@ -197,7 +198,7 @@ const FormPanel = styled.div`
 `
 
 const FormLogo = styled.img`
-  max-width: 30px;
+  max-width: 60px;
   position: absolute;
   margin: 1.5em;
 `
@@ -259,7 +260,7 @@ export default function AuthPage() {
       <SignContainer>
         {/* Switch Panel (Changes sides) with Background Image */}
         <SwitchPanel $isLogin={isLogin}>
-          <SwitchLogo src="/images/t_logo.png" alt="Logo" />
+          <SwitchLogo src={logo} alt="Logo" />
           <Group>
             <TextGroup>
               <SignContent $isLogin={isLogin}>
@@ -282,7 +283,7 @@ export default function AuthPage() {
 
         {/* Form Panel */}
         <FormPanel>
-          <FormLogo src="/images/t_logo.png" alt="Logo" />
+          <FormLogo src={logo} alt="Logo" />
 
           {/* Render only the active form */}
           <FormSignIn $isVisible={isLogin}>
