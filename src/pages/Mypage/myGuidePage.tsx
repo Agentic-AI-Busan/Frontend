@@ -451,8 +451,6 @@ const MyGuidePage: React.FC = () => {
         fetchTripPlans();
     }, []);
     
-    const totalPages = Math.ceil((tripPlans?.length || 0) / itemsPerPage);
-    
     // 현재 페이지에 표시할 아이템들
     const currentItems = Array.isArray(tripPlans) ? tripPlans.slice(
         (currentPage - 1) * itemsPerPage,
@@ -611,6 +609,37 @@ const MyGuidePage: React.FC = () => {
         e.stopPropagation();
     };
 
+    // 페이지네이션 버튼 생성을 위한 함수
+    const getPageNumbers = () => {
+        const totalPages = Math.ceil((tripPlans?.length || 0) / itemsPerPage);
+        const pageNumbers = [];
+        
+        // 항상 5개의 버튼을 표시
+        let startPage = Math.max(1, currentPage - 2);
+        const endPage = Math.min(totalPages, startPage + 4);
+        
+        // endPage가 totalPages보다 작으면 startPage를 조정
+        if (endPage - startPage < 4) {
+            startPage = Math.max(1, endPage - 4);
+        }
+        
+        for (let i = startPage; i <= endPage; i++) {
+            pageNumbers.push(i);
+        }
+        
+        return pageNumbers;
+    };
+
+    // 5페이지 이동 핸들러
+    const handlePageJump = (direction: 'prev' | 'next') => {
+        const totalPages = Math.ceil((tripPlans?.length || 0) / itemsPerPage);
+        if (direction === 'prev') {
+            setCurrentPage(Math.max(1, currentPage - 5));
+        } else {
+            setCurrentPage(Math.min(totalPages, currentPage + 5));
+        }
+    };
+
     return (
         <Container>
             <TitleWrapper>
@@ -704,6 +733,14 @@ const MyGuidePage: React.FC = () => {
                 ) : (
                     <PaginationWrapper>
                         <ArrowButton 
+                            onClick={() => handlePageJump('prev')}
+                            disabled={currentPage <= 5}
+                        >
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M18.41 16.59L13.82 12l4.59-4.59L17 6l-6 6 6 6zM6 6h2v12H6z"/>
+                            </svg>
+                        </ArrowButton>
+                        <ArrowButton 
                             onClick={() => handlePageChange(currentPage - 1)}
                             disabled={currentPage === 1}
                         >
@@ -711,21 +748,29 @@ const MyGuidePage: React.FC = () => {
                                 <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
                             </svg>
                         </ArrowButton>
-                        {[...Array(totalPages)].map((_, index) => (
+                        {getPageNumbers().map((pageNumber) => (
                             <PageButton
-                                key={index + 1}
-                                onClick={() => handlePageChange(index + 1)}
-                                isActive={currentPage === index + 1}
+                                key={pageNumber}
+                                onClick={() => handlePageChange(pageNumber)}
+                                isActive={currentPage === pageNumber}
                             >
-                                {index + 1}
+                                {pageNumber}
                             </PageButton>
                         ))}
                         <ArrowButton 
                             onClick={() => handlePageChange(currentPage + 1)}
-                            disabled={currentPage === totalPages}
+                            disabled={currentPage === Math.ceil((tripPlans?.length || 0) / itemsPerPage)}
                         >
                             <svg viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z"/>
+                            </svg>
+                        </ArrowButton>
+                        <ArrowButton 
+                            onClick={() => handlePageJump('next')}
+                            disabled={currentPage + 5 > Math.ceil((tripPlans?.length || 0) / itemsPerPage)}
+                        >
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M5.59 7.41L10.18 12l-4.59 4.59L7 18l6-6-6-6zM16 6h2v12h-2z"/>
                             </svg>
                         </ArrowButton>
                     </PaginationWrapper>
