@@ -411,66 +411,6 @@ const RouteDuration = styled.div<{ day: number }>`
     text-align: left;
 `;
 
-// 하단 버튼 컨테이너
-const ActionButtonsContainer = styled.div`
-    margin-top: 20px;
-    margin-bottom: 50px;
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-`;
-
-// 액션 버튼
-const ActionButton = styled.button`
-    color: white;
-    border: none;
-    border-radius: 8px;
-    padding: 10px 20px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    
-    &:active {
-        transform: translateY(0);
-    }
-    
-    &:before {
-        margin-right: 8px;
-    }
-`;
-
-// 최적화 버튼
-const OptimizeButton = styled(ActionButton)`
-    background: #2ecc71;
-    
-    &:hover {
-        background: #27ae60;
-        box-shadow: 0 4px 8px rgba(46, 204, 113, 0.3);
-    }
-    
-    &:before {
-        content: "⚡";
-    }
-`;
-
-// 공유 버튼
-const ShareButton = styled(ActionButton)`
-    background: #f39c12;
-    
-    &:hover {
-        background: #e67e22;
-        box-shadow: 0 4px 8px rgba(243, 156, 18, 0.3);
-    }
-    
-    &:before {
-        content: "🔗";
-    }
-`;
-
 // 인터페이스 정의
 interface Place {
     id: number;
@@ -507,8 +447,6 @@ interface RouteDay {
 interface TravelRouteSidebarProps {
     routes: RouteDay[];
     activeDay: number;
-    onOptimizeRoute?: () => void;
-    onShareRoute?: () => void;
     onPlaceHover?: (placeId: number) => void;
     preferredStartTime?: string;
     preferredEndTime?: string;
@@ -540,8 +478,6 @@ const getWeatherEmoji = (condition: string): string => {
 const TravelRouteSidebar: React.FC<TravelRouteSidebarProps> = ({ 
     routes, 
     activeDay,
-    onOptimizeRoute,
-    onShareRoute,
     onPlaceHover,
     preferredStartTime,
     preferredEndTime
@@ -642,11 +578,6 @@ const TravelRouteSidebar: React.FC<TravelRouteSidebarProps> = ({
                     ))}
                 </PlacesList>
             </DayContainer>
-            
-            <ActionButtonsContainer>
-                <OptimizeButton onClick={onOptimizeRoute}>경로 최적화</OptimizeButton>
-                <ShareButton onClick={onShareRoute}>일정 공유</ShareButton>
-            </ActionButtonsContainer>
         </SidebarContainer>
     );
 };
