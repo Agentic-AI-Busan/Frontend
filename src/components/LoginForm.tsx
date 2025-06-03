@@ -101,19 +101,6 @@ const RememberMe = styled.label`
   }
 `
 
-const ForgotLink = styled.a`
-  color: #3498db;
-  font-size: 14px;
-  text-decoration: none;
-  cursor: pointer;
-  transition: color 0.2s ease;
-  
-  &:hover {
-    color: #2980b9;
-    text-decoration: underline;
-  }
-`
-
 const SubmitButton = styled.button`
   width: 100%;
   height: 50px;
@@ -245,7 +232,6 @@ export default function LoginForm() {
               />
               아이디 저장
             </RememberMe>
-            <ForgotLink href="/find-password">비밀번호 찾기</ForgotLink>
           </FormRow>
         </InputGroup>
 
