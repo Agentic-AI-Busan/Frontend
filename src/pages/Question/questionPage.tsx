@@ -779,7 +779,7 @@ const QuestionPage: React.FC = () => {
             setTempPreferredTime("");
             handleNextQuestion(); 
         } else if (tempPreferredTime && currentQuestionText?.includes("몇 시에 일정을 시작하시나요?")) {
-            setIsQuestionInProgress(true);
+            setIsQuestionInProgress(true); // 입력창 계속 비활성화 상태 유지
             setTimeout(() => {
                 setChatHistory(prev => [...prev, { content: "시작 시간을 다시 선택해주세요.", timestamp: currentTime, isResponse: false }]);
                 if (startTimePickerRef.current) {
@@ -790,7 +790,7 @@ const QuestionPage: React.FC = () => {
                     if (confirmButtonStart) confirmButtonStart.style.display = 'inline-block'; 
                 }
                 setTempPreferredTime("");
-                setIsQuestionInProgress(false);
+                // setIsQuestionInProgress(false); // 이 줄을 제거하여 입력창을 계속 비활성화
             }, 1000);
         // 선호 종료 시간 확인 응답 처리 (텍스트 '네' 또는 버튼 클릭)
         } else if (tempPreferredTime && currentQuestionText?.includes("몇 시에 일정을 마치길 선호하시나요") && (messageContent.toLowerCase() === '네' || messageContent === "TIME_CONFIRMED_END")) {
@@ -813,7 +813,7 @@ const QuestionPage: React.FC = () => {
             setTempPreferredTime("");
             handleNextQuestion(); 
         } else if (tempPreferredTime && currentQuestionText?.includes("몇 시에 일정을 마치길 선호하시나요")) {
-            setIsQuestionInProgress(true);
+            setIsQuestionInProgress(true); // 입력창 계속 비활성화 상태 유지
             setTimeout(() => {
                 setChatHistory(prev => [...prev, { content: "종료 시간을 다시 선택해주세요.", timestamp: currentTime, isResponse: false }]);
                 if (endTimePickerRef.current) {
@@ -824,7 +824,7 @@ const QuestionPage: React.FC = () => {
                     if (confirmButtonEnd) confirmButtonEnd.style.display = 'inline-block';
                 }
                 setTempPreferredTime("");
-                setIsQuestionInProgress(false);
+                // setIsQuestionInProgress(false); // 이 줄을 제거하여 입력창을 계속 비활성화
             }, 1000);
         } else {
             // 위에서 모든 피커 관련 확인/재선택 로직이 처리되었으므로,
@@ -887,7 +887,11 @@ const QuestionPage: React.FC = () => {
                 setChatHistory(prev => [...prev, ...messagesToAdd]);
                 // 다음 "질문" 텍스트의 인덱스로 업데이트
                 setCurrentQuestionIndex(prev => prev + 1); 
-                setIsQuestionInProgress(false);
+                // 만약 다음 질문이 시간 선택과 관련된 것이 아니라면 입력창 활성화
+                if (!nextQuestionText.includes("몇 시에 일정을 시작하시나요?") && !nextQuestionText.includes("몇 시에 일정을 마치길 선호하시나요?")) {
+                    setIsQuestionInProgress(false);
+                }
+                // 시간 관련 질문이면 isQuestionInProgress는 true로 유지됨.
             }, 1000);
         } else {
             triggerCompletionSequence();

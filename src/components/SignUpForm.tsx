@@ -31,7 +31,7 @@ const slideOut = keyframes`
 // Styled Components
 const Holder = styled.div`
   width: 380px;
-  padding: 40px 0;
+  padding: 0 0 10px 0;
   position: relative;
   
   /* 스크롤바 숨기기 */
@@ -44,12 +44,12 @@ const Holder = styled.div`
 
 const FormHeader = styled.div`
   text-align: center;
-  margin-bottom: 12px;
+  margin-bottom: 0px;
   position: sticky;
   top: 0;
   background: #fff;
   z-index: 10;
-  padding-top: 12px;
+  padding-top: 0;
 `
 
 const FormTitle = styled.h3`
@@ -63,10 +63,11 @@ const FormTitle = styled.h3`
 const StyledForm = styled.form`
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  // gap: 24px;
   height: 425px;
   align-items: center;
   justify-content: center;
+  margin-top: 60px;
   
   .exiting {
     animation: ${slideOut} 0.4s ease-out forwards;
@@ -85,7 +86,8 @@ const InputGroup = styled.div`
 
 const InputLabel = styled.label`
   display: block;
-  margin-bottom: 8px;
+  margin-left: 10px;
+  margin-bottom: 12px;
   font-size: 16px;
   color: #555;
   font-weight: 500;
@@ -101,6 +103,7 @@ const FormInput = styled.input<{ $error?: boolean }>`
   background: ${(props) => (props.$error ? "#fff0f0" : "#f8f9fa")};
   transition: all 0.3s ease;
   box-sizing: border-box;
+  margin-bottom: 10px;
   
   &:focus {
     border: 1.5px solid ${(props) => (props.$error ? "#e74c3c" : "#BBDEFB")};
@@ -169,7 +172,7 @@ const SubmitButton = styled.button`
   font-size: 16px;
   font-weight: 600;
   border: none;
-  margin-top: 12px;
+  margin-top: 20px;
   cursor: pointer;
   transition: all 0.3s ease;
   
@@ -195,7 +198,7 @@ const SubmitButton = styled.button`
 const StepIndicator = styled.div`
   display: flex;
   justify-content: center;
-  margin-bottom: 24px;
+  margin: 10px 0 20px 0;
 `
 
 const StepDot = styled.div<{ $active: boolean }>`
@@ -226,7 +229,7 @@ const BackButton = styled.button`
   cursor: pointer;
   transition: all 0.3s ease;
   padding: 0;
-  margin-top: 12px;
+  margin-top: 20px;
   
   &:hover {
     background: #e1e1e1;
@@ -393,7 +396,11 @@ const PasswordMessage = styled.div`
   font-weight: 500;
 `
 
-export default function SignupForm({ onSignupSuccess }) {
+interface SignupFormProps {
+  onSignupSuccess: () => void;
+}
+
+export default function SignupForm({ onSignupSuccess }: SignupFormProps) {
   const [signupForm, setSignupForm] = useState({
     email: "",
     password: "",

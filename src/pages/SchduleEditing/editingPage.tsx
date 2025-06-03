@@ -762,14 +762,14 @@ const EditingPage = () => {
 
     const handleSave = async () => {
         if (!tripPlansId) {
-            alert('여행 계획 ID가 없어 저장할 수 없습니다.');
+            console.log('여행 계획 ID가 없어 저장할 수 없습니다.');
             setIsSaveModalOpen(false);
             return;
         }
 
         const storedScheduleData = localStorage.getItem(`scheduleOrder_${tripPlansId}`);
         if (!storedScheduleData) {
-            alert('로컬 스토리지에 저장된 일정 데이터가 없습니다.');
+            console.log('로컬 스토리지에 저장된 일정 데이터가 없습니다.');
             setIsSaveModalOpen(false);
             return;
         }
@@ -779,7 +779,7 @@ const EditingPage = () => {
             parsedSchedulesFromStorage = JSON.parse(storedScheduleData);
         } catch (e) {
             console.error('로컬 스토리지 데이터 파싱 실패:', e);
-            alert('저장된 일정 데이터를 불러오는데 실패했습니다.');
+            console.log('저장된 일정 데이터를 불러오는데 실패했습니다.');
             setIsSaveModalOpen(false);
             return;
         }
@@ -822,7 +822,7 @@ const EditingPage = () => {
         });
 
         if (itemsToSave.length === 0 && parsedSchedulesFromStorage.some(d => d.places.length > 0)) {
-            alert('저장할 유효한 장소가 없습니다. 장소의 타입 및 ID를 확인해주세요.');
+            console.log('저장할 유효한 장소가 없습니다. 장소의 타입 및 ID를 확인해주세요.');
             setIsSaveModalOpen(false);
             return;
         }
@@ -855,11 +855,11 @@ const EditingPage = () => {
 
             const result = await response.json();
             console.log('일정 저장 성공:', result);
-            alert('일정이 성공적으로 저장되었습니다.');
+            console.log('일정이 성공적으로 저장되었습니다.');
 
         } catch (err) {
             console.error('일정 저장 API 호출 중 오류 발생:', err);
-            alert(`일정 저장 중 오류가 발생했습니다: ${err instanceof Error ? err.message : String(err)}`);
+            console.log(`일정 저장 중 오류가 발생했습니다: ${err instanceof Error ? err.message : String(err)}`);
         } finally {
             setIsLoading(false);
             setIsSaveModalOpen(false);
@@ -886,7 +886,7 @@ const EditingPage = () => {
             }
             const result = await response.json();
             console.log('일정 제목 변경 성공:', result);
-            alert('일정 제목이 성공적으로 변경되었습니다.');
+            console.log('일정 제목이 성공적으로 변경되었습니다.');
         } catch (err) {
             console.error('일정 저장 API 호출 중 오류 발생:', err);
         } finally {
